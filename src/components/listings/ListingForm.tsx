@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { Listing, ListingImage } from "@prisma/client";
 import type { ListingFormState } from "@/lib/validation/listing";
+import { REQUEST_NEW_DEVELOPER_VALUE } from "@/lib/validation/developer-request";
 
 type Developer = { id: string; name: string; developerProfile: { companyName: string } | null };
 
@@ -18,6 +19,8 @@ export function ListingForm({
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [developerSelection, setDeveloperSelection] = useState(listing?.developerId ?? "");
+  const isRequestingNewDeveloper = developerSelection === REQUEST_NEW_DEVELOPER_VALUE;
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -121,7 +124,8 @@ export function ListingForm({
         <select
           id="developerId"
           name="developerId"
-          defaultValue={listing?.developerId ?? ""}
+          value={developerSelection}
+          onChange={(e) => setDeveloperSelection(e.target.value)}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm"
         >
           <option value="">None</option>
@@ -130,8 +134,34 @@ export function ListingForm({
               {dev.developerProfile?.companyName ?? dev.name}
             </option>
           ))}
+          <option value={REQUEST_NEW_DEVELOPER_VALUE}>+ Request a new developer</option>
         </select>
       </div>
+
+      {isRequestingNewDeveloper && (
+        <div className="flex flex-col gap-4 rounded-lg border border-dashed border-gray-300 p-4">
+          <p className="text-sm text-gray-600">
+            An admin will review this and create the developer&apos;s account.
+          </p>
+          <Field
+            label="Company name"
+            name="requestDeveloperCompanyName"
+            errors={state?.errors?.requestDeveloperCompanyName}
+          />
+          <Field
+            label="Contact name"
+            name="requestDeveloperContactName"
+            errors={state?.errors?.requestDeveloperContactName}
+          />
+          <Field
+            label="Contact email"
+            name="requestDeveloperEmail"
+            type="email"
+            errors={state?.errors?.requestDeveloperEmail}
+          />
+          <Field label="Contact phone (optional)" name="requestDeveloperPhone" />
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="imageUrls" className="text-sm font-medium text-gray-700">

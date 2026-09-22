@@ -6,12 +6,23 @@ export const PasswordSchema = z
   .regex(/[a-zA-Z]/, "Password must contain at least one letter.")
   .regex(/[0-9]/, "Password must contain at least one number.");
 
-export const SignupFormSchema = z.object({
-  name: z.string().trim().min(2, "Name must be at least 2 characters long."),
-  email: z.string().trim().email("Please enter a valid email."),
-  password: PasswordSchema,
-  role: z.enum(["AGENT", "CUSTOMER"]),
-});
+export const SignupFormSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name must be at least 2 characters long."),
+    email: z.string().trim().email("Please enter a valid email."),
+    password: PasswordSchema,
+    role: z.enum(["AGENT", "CUSTOMER", "DEVELOPER"]),
+    companyName: z.string().trim().optional().or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "DEVELOPER" && !data.companyName) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["companyName"],
+        message: "Company name is required.",
+      });
+    }
+  });
 
 export type SignupFormState =
   | {
@@ -20,6 +31,7 @@ export type SignupFormState =
         email?: string[];
         password?: string[];
         role?: string[];
+        companyName?: string[];
       };
       message?: string;
     }

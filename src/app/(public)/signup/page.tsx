@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signup } from "@/lib/actions/auth";
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signup, undefined);
+  const [role, setRole] = useState<"AGENT" | "CUSTOMER" | "DEVELOPER">("AGENT");
 
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-6 py-12">
@@ -57,15 +58,51 @@ export default function SignupPage() {
           <span className="text-sm font-medium text-gray-700">I am a…</span>
           <div className="flex gap-4 text-sm">
             <label className="flex items-center gap-2">
-              <input type="radio" name="role" value="AGENT" defaultChecked />
+              <input
+                type="radio"
+                name="role"
+                value="AGENT"
+                checked={role === "AGENT"}
+                onChange={() => setRole("AGENT")}
+              />
               Agent
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" name="role" value="CUSTOMER" />
+              <input
+                type="radio"
+                name="role"
+                value="CUSTOMER"
+                checked={role === "CUSTOMER"}
+                onChange={() => setRole("CUSTOMER")}
+              />
               Customer
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="role"
+                value="DEVELOPER"
+                checked={role === "DEVELOPER"}
+                onChange={() => setRole("DEVELOPER")}
+              />
+              Developer
             </label>
           </div>
         </div>
+
+        {role === "DEVELOPER" && (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="companyName" className="text-sm font-medium text-gray-700">
+              Company name
+            </label>
+            <input
+              id="companyName"
+              name="companyName"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+            {state?.errors?.companyName && <FieldError messages={state.errors.companyName} />}
+          </div>
+        )}
 
         <button
           type="submit"

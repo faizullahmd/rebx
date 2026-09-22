@@ -2,9 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireUser } from "@/lib/session";
 import { ListingFormSchema, type ListingFormState } from "@/lib/validation/listing";
+import {
+  DeveloperRequestFieldsSchema,
+  REQUEST_NEW_DEVELOPER_VALUE,
+} from "@/lib/validation/developer-request";
+import { sendDeveloperRequestNotification } from "@/lib/email";
 
 function parseImageUrls(raw: string | undefined) {
   if (!raw) return [];
@@ -23,6 +29,52 @@ function slugify(title: string) {
   return `${base}-${suffix}`;
 }
 
+async function createDeveloperRequest(
+  listingId: string,
+  listingTitle: string,
+  agentId: string,
+  agentName: string,
+  formData: FormData
+) {
+  const existingPending = await prisma.developerRequest.findFirst({
+    where: { listingId, status: "PENDING" },
+  });
+  if (existingPending) {
+    return "A developer request for this listing is already pending admin approval.";
+  }
+
+  const { requestDeveloperCompanyName, requestDeveloperContactName, requestDeveloperEmail, requestDeveloperPhone } =
+    DeveloperRequestFieldsSchema.parse(Object.fromEntries(formData));
+
+  await prisma.developerRequest.create({
+    data: {
+      listingId,
+      requestedById: agentId,
+      companyName: requestDeveloperCompanyName,
+      contactName: requestDeveloperContactName,
+      contactEmail: requestDeveloperEmail,
+      contactPhone: requestDeveloperPhone || null,
+    },
+  });
+
+  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+  const host = (await headers()).get("host") ?? "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+
+  await sendDeveloperRequestNotification(
+    admins.map((a) => a.email),
+    {
+      companyName: requestDeveloperCompanyName,
+      contactName: requestDeveloperContactName,
+      listingTitle,
+      requestedByName: agentName,
+      reviewUrl: `${protocol}://${host}/admin/dashboard/developer-requests`,
+    }
+  );
+
+  return null;
+}
+
 export async function createListing(
   _prevState: ListingFormState,
   formData: FormData
@@ -34,7 +86,23 @@ export async function createListing(
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { imageUrls, developerId, ...data } = validatedFields.data;
+  const requestingNewDeveloper = validatedFields.data.developerId === REQUEST_NEW_DEVELOPER_VALUE;
+  if (requestingNewDeveloper) {
+    const fieldsValidation = DeveloperRequestFieldsSchema.safeParse(Object.fromEntries(formData));
+    if (!fieldsValidation.success) {
+      return { errors: fieldsValidation.error.flatten().fieldErrors };
+    }
+  }
+
+  const {
+    imageUrls,
+    developerId,
+    requestDeveloperCompanyName: _requestDeveloperCompanyName,
+    requestDeveloperContactName: _requestDeveloperContactName,
+    requestDeveloperEmail: _requestDeveloperEmail,
+    requestDeveloperPhone: _requestDeveloperPhone,
+    ...data
+  } = validatedFields.data;
 
   const listing = await prisma.listing.create({
     data: {
@@ -43,12 +111,18 @@ export async function createListing(
       postalCode: data.postalCode || null,
       slug: slugify(data.title),
       agentId: agent.id,
-      developerId: developerId || null,
+      developerId: requestingNewDeveloper ? null : developerId || null,
       images: {
         create: parseImageUrls(imageUrls).map((url, sortOrder) => ({ url, sortOrder })),
       },
     },
   });
+
+  if (requestingNewDeveloper) {
+    // A brand-new listing can't already have a pending request, so the "already
+    // pending" branch of createDeveloperRequest never applies here.
+    await createDeveloperRequest(listing.id, listing.title, agent.id, agent.name, formData);
+  }
 
   revalidatePath("/agent/dashboard/listings");
   revalidatePath("/listings");
@@ -75,7 +149,23 @@ export async function updateListing(
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { imageUrls, developerId, ...data } = validatedFields.data;
+  const requestingNewDeveloper = validatedFields.data.developerId === REQUEST_NEW_DEVELOPER_VALUE;
+  if (requestingNewDeveloper) {
+    const fieldsValidation = DeveloperRequestFieldsSchema.safeParse(Object.fromEntries(formData));
+    if (!fieldsValidation.success) {
+      return { errors: fieldsValidation.error.flatten().fieldErrors };
+    }
+  }
+
+  const {
+    imageUrls,
+    developerId,
+    requestDeveloperCompanyName: _requestDeveloperCompanyName,
+    requestDeveloperContactName: _requestDeveloperContactName,
+    requestDeveloperEmail: _requestDeveloperEmail,
+    requestDeveloperPhone: _requestDeveloperPhone,
+    ...data
+  } = validatedFields.data;
   const urls = parseImageUrls(imageUrls);
 
   await prisma.$transaction([
@@ -85,7 +175,7 @@ export async function updateListing(
         ...data,
         state: data.state || null,
         postalCode: data.postalCode || null,
-        developerId: developerId || null,
+        ...(requestingNewDeveloper ? {} : { developerId: developerId || null }),
       },
     }),
     prisma.listingImage.deleteMany({ where: { listingId } }),
@@ -98,13 +188,24 @@ export async function updateListing(
       : []),
   ]);
 
+  let requestMessage: string | null = null;
+  if (requestingNewDeveloper) {
+    requestMessage = await createDeveloperRequest(
+      listingId,
+      existing.title,
+      user.id,
+      user.name,
+      formData
+    );
+  }
+
   revalidatePath("/agent/dashboard/listings");
   revalidatePath("/developer/dashboard");
   revalidatePath("/admin/dashboard/listings");
   revalidatePath("/listings");
   revalidatePath(`/listings/${existing.slug}`);
 
-  return { message: "Listing updated." };
+  return { message: requestMessage ?? "Listing updated." };
 }
 
 export async function deleteListing(listingId: string) {

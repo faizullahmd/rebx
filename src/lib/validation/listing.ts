@@ -19,6 +19,10 @@ export const ListingFormSchema = z.object({
   status: z.enum(["DRAFT", "ACTIVE", "UNDER_OFFER", "SOLD"]),
   developerId: z.string().trim().optional().or(z.literal("")),
   imageUrls: z.string().trim().optional().or(z.literal("")),
+  requestDeveloperCompanyName: z.string().trim().optional().or(z.literal("")),
+  requestDeveloperContactName: z.string().trim().optional().or(z.literal("")),
+  requestDeveloperEmail: z.string().trim().optional().or(z.literal("")),
+  requestDeveloperPhone: z.string().trim().optional().or(z.literal("")),
 });
 
 export type ListingFormState =

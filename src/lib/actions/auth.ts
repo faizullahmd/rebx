@@ -20,13 +20,14 @@ export async function signup(
     email: formData.get("email"),
     password: formData.get("password"),
     role: formData.get("role"),
+    companyName: formData.get("companyName"),
   });
 
   if (!validatedFields.success) {
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { name, email, password, role } = validatedFields.data;
+  const { name, email, password, role, companyName } = validatedFields.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -43,7 +44,9 @@ export async function signup(
       role,
       ...(role === "AGENT"
         ? { agentProfile: { create: {} } }
-        : { customerProfile: { create: {} } }),
+        : role === "DEVELOPER"
+          ? { developerProfile: { create: { companyName: companyName || "" } } }
+          : { customerProfile: { create: {} } }),
     },
   });
 

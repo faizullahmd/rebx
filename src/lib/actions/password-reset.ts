@@ -1,11 +1,11 @@
 "use server";
 
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { hashToken, createPasswordResetToken, buildResetUrl } from "@/lib/password-reset-tokens";
 import {
   ForgotPasswordSchema,
   ResetPasswordSchema,
@@ -15,10 +15,6 @@ import {
 
 const GENERIC_MESSAGE = "If an account exists for that email, we've sent a password reset link.";
 const TOKEN_TTL_MS = 60 * 60 * 1000;
-
-function hashToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
 
 export async function requestPasswordReset(
   _prevState: ForgotPasswordState,
@@ -35,19 +31,9 @@ export async function requestPasswordReset(
   if (user) {
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
 
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    await prisma.passwordResetToken.create({
-      data: {
-        tokenHash: hashToken(rawToken),
-        userId: user.id,
-        expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
-      },
-    });
-
-    const headerList = await headers();
-    const host = headerList.get("host");
-    const protocol = host?.startsWith("localhost") ? "http" : "https";
-    const resetUrl = `${protocol}://${host}/reset-password/${rawToken}`;
+    const rawToken = await createPasswordResetToken(user.id, TOKEN_TTL_MS);
+    const host = (await headers()).get("host") ?? "";
+    const resetUrl = buildResetUrl(host, rawToken);
 
     await sendPasswordResetEmail(email, resetUrl);
   }

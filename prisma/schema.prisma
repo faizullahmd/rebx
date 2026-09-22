@@ -43,6 +43,12 @@ enum CommissionStatus {
   RECEIVED
 }
 
+enum DeveloperRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -65,6 +71,9 @@ model User {
   commissionsAsAgent Commission[] @relation("AgentCommissions")
 
   passwordResetTokens PasswordResetToken[]
+
+  developerRequestsMade      DeveloperRequest[] @relation("DeveloperRequestsMade")
+  developerRequestsResolved  DeveloperRequest[] @relation("DeveloperRequestsResolved")
 
   @@index([role])
 }
@@ -125,6 +134,7 @@ model Listing {
 
   images      ListingImage[]
   deals       Deal[]
+  developerRequests DeveloperRequest[]
 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -213,4 +223,31 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+model DeveloperRequest {
+  id              String                 @id @default(cuid())
+  status          DeveloperRequestStatus @default(PENDING)
+  companyName     String
+  contactName     String
+  contactEmail    String
+  contactPhone    String?
+  rejectionReason String?                @db.Text
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  requestedById String
+  requestedBy   User   @relation("DeveloperRequestsMade", fields: [requestedById], references: [id])
+
+  createdDeveloperId String?
+  createdDeveloper   User?   @relation("DeveloperRequestsResolved", fields: [createdDeveloperId], references: [id])
+
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([listingId])
+  @@index([requestedById])
+  @@index([status])
 }
