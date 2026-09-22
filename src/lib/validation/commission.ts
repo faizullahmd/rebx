@@ -18,6 +18,7 @@ export type CommissionFormState =
 
 export const UpdateCommissionStatusSchema = z.object({
   status: z.enum(COMMISSION_STATUSES),
+  amount: z.coerce.number().positive("Amount must be a positive number."),
   notes: z.string().trim().optional().or(z.literal("")),
 });
 

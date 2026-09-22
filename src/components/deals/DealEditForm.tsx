@@ -19,7 +19,7 @@ export function DealEditForm({
   deal,
   action,
 }: {
-  deal: Deal;
+  deal: Omit<Deal, "offerAmount"> & { offerAmount: number | null };
   action: (state: UpdateDealState, formData: FormData) => Promise<UpdateDealState>;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);

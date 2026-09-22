@@ -22,7 +22,7 @@ export default async function EditListingPage({
       <h1 className="text-2xl font-semibold">Edit listing</h1>
       <ListingForm
         action={updateListing.bind(null, id)}
-        listing={listing}
+        listing={{ ...listing, price: Number(listing.price) }}
         developers={developers}
         submitLabel="Save changes"
       />

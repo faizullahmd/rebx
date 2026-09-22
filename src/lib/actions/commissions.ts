@@ -84,12 +84,13 @@ export async function updateCommissionStatus(
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { status, notes } = validatedFields.data;
+  const { status, amount, notes } = validatedFields.data;
 
   await prisma.commission.update({
     where: { id: commissionId },
     data: {
       status,
+      amount,
       notes: notes || null,
       ...(status === "INVOICED" && existing.status !== "INVOICED"
         ? { invoicedAt: new Date() }

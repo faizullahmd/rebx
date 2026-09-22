@@ -5,16 +5,12 @@ import type { Commission, CommissionSource } from "@prisma/client";
 import { createCommission, updateCommissionStatus, deleteCommission } from "@/lib/actions/commissions";
 import type { CommissionFormState, UpdateCommissionStatusState } from "@/lib/validation/commission";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
 const sourceLabels: Record<CommissionSource, string> = {
   DEVELOPER: "Developer",
   CUSTOMER: "Customer",
 };
+
+type ClientCommission = Omit<Commission, "amount"> & { amount: number };
 
 export function CommissionPanel({
   dealId,
@@ -23,7 +19,7 @@ export function CommissionPanel({
 }: {
   dealId: string;
   hasDeveloper: boolean;
-  commissions: Commission[];
+  commissions: ClientCommission[];
 }) {
   const sources: CommissionSource[] = hasDeveloper ? ["DEVELOPER", "CUSTOMER"] : ["CUSTOMER"];
 
@@ -92,7 +88,7 @@ function NewCommissionForm({ dealId, source }: { dealId: string; source: Commiss
   );
 }
 
-function ExistingCommissionCard({ commission }: { commission: Commission }) {
+function ExistingCommissionCard({ commission }: { commission: ClientCommission }) {
   const [state, formAction, pending] = useActionState<UpdateCommissionStatusState, FormData>(
     updateCommissionStatus.bind(null, commission.id),
     undefined
@@ -103,9 +99,23 @@ function ExistingCommissionCard({ commission }: { commission: Commission }) {
       <p className="text-sm font-medium text-gray-900">
         {sourceLabels[commission.source]} commission
       </p>
-      <p className="text-lg font-semibold">{currencyFormatter.format(Number(commission.amount))}</p>
       {state?.message && <p className="text-xs text-gray-600">{state.message}</p>}
       <form action={formAction} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
+          <label htmlFor={`amount-${commission.id}`} className="text-xs text-gray-500">
+            Amount
+          </label>
+          <input
+            id={`amount-${commission.id}`}
+            name="amount"
+            type="number"
+            defaultValue={String(commission.amount)}
+            className="rounded-md border border-gray-300 px-2 py-1 text-sm font-semibold"
+          />
+          {state?.errors?.amount && (
+            <p className="text-xs text-red-600">{state.errors.amount[0]}</p>
+          )}
+        </div>
         <select
           name="status"
           defaultValue={commission.status}

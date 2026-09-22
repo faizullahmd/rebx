@@ -19,6 +19,8 @@ export default async function AgentDealDetailPage({
     notFound();
   }
 
+  const { commissions, ...dealWithoutCommissions } = deal;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -50,13 +52,19 @@ export default async function AgentDealDetailPage({
         )}
       </div>
 
-      <DealEditForm deal={deal} action={updateDeal.bind(null, deal.id)} />
+      <DealEditForm
+        deal={{
+          ...dealWithoutCommissions,
+          offerAmount: deal.offerAmount ? Number(deal.offerAmount) : null,
+        }}
+        action={updateDeal.bind(null, deal.id)}
+      />
 
       {deal.stage === "CLOSED_WON" && (
         <CommissionPanel
           dealId={deal.id}
           hasDeveloper={deal.listing.developerId !== null}
-          commissions={deal.commissions}
+          commissions={commissions.map((c) => ({ ...c, amount: Number(c.amount) }))}
         />
       )}
 

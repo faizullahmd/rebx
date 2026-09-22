@@ -13,7 +13,7 @@ export function ListingForm({
   submitLabel,
 }: {
   action: (state: ListingFormState, formData: FormData) => Promise<ListingFormState>;
-  listing?: Listing & { images: ListingImage[] };
+  listing?: Omit<Listing, "price"> & { price: number; images: ListingImage[] };
   developers: Developer[];
   submitLabel: string;
 }) {
