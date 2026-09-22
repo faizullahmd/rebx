@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
+import { sendWelcomeEmail } from "@/lib/email";
 import {
   LoginFormSchema,
   SignupFormSchema,
@@ -20,7 +21,7 @@ export async function signup(
     email: formData.get("email"),
     password: formData.get("password"),
     role: formData.get("role"),
-    companyName: formData.get("companyName"),
+    companyName: formData.get("companyName") || "",
   });
 
   if (!validatedFields.success) {
@@ -49,6 +50,8 @@ export async function signup(
           : { customerProfile: { create: {} } }),
     },
   });
+
+  await sendWelcomeEmail(email, name);
 
   await signIn("credentials", {
     email,

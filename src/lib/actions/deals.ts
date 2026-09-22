@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireUser } from "@/lib/session";
+import { sendNewLeadNotification, sendInquiryConfirmation } from "@/lib/email";
 import {
   CustomerInquirySchema,
   InquiryFormSchema,
@@ -29,7 +31,10 @@ export async function createInquiry(
   _prevState: InquiryFormState,
   formData: FormData
 ): Promise<InquiryFormState> {
-  const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    include: { agent: { select: { name: true, email: true } } },
+  });
   if (!listing || listing.status !== "ACTIVE") {
     return { message: "This listing is no longer accepting inquiries." };
   }
@@ -37,40 +42,76 @@ export async function createInquiry(
   const session = await auth();
   const isCustomer = session?.user?.role === "CUSTOMER";
 
+  let contactName: string;
+  let contactEmail: string;
+  let contactPhone: string | null;
+  let message: string | null;
+  let dealId: string;
+
   if (isCustomer) {
     const validatedFields = CustomerInquirySchema.safeParse(Object.fromEntries(formData));
     if (!validatedFields.success) {
       return { errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    await prisma.deal.create({
+    contactName = session!.user.name;
+    contactEmail = session!.user.email;
+    contactPhone = validatedFields.data.contactPhone || null;
+    message = validatedFields.data.message || null;
+
+    const deal = await prisma.deal.create({
       data: {
         listingId,
         agentId: listing.agentId,
         customerId: session!.user.id,
-        contactName: session!.user.name,
-        contactEmail: session!.user.email,
-        contactPhone: validatedFields.data.contactPhone || null,
-        message: validatedFields.data.message || null,
+        contactName,
+        contactEmail,
+        contactPhone,
+        message,
       },
     });
+    dealId = deal.id;
   } else {
     const validatedFields = InquiryFormSchema.safeParse(Object.fromEntries(formData));
     if (!validatedFields.success) {
       return { errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    await prisma.deal.create({
+    contactName = validatedFields.data.contactName;
+    contactEmail = validatedFields.data.contactEmail;
+    contactPhone = validatedFields.data.contactPhone || null;
+    message = validatedFields.data.message || null;
+
+    const deal = await prisma.deal.create({
       data: {
         listingId,
         agentId: listing.agentId,
-        contactName: validatedFields.data.contactName,
-        contactEmail: validatedFields.data.contactEmail,
-        contactPhone: validatedFields.data.contactPhone || null,
-        message: validatedFields.data.message || null,
+        contactName,
+        contactEmail,
+        contactPhone,
+        message,
       },
     });
+    dealId = deal.id;
   }
+
+  const host = (await headers()).get("host") ?? "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const dealUrl = `${protocol}://${host}/agent/dashboard/deals/${dealId}`;
+
+  await sendNewLeadNotification(listing.agent.email, {
+    listingTitle: listing.title,
+    contactName,
+    contactEmail,
+    contactPhone,
+    message,
+    dealUrl,
+  });
+
+  await sendInquiryConfirmation(contactEmail, {
+    listingTitle: listing.title,
+    agentName: listing.agent.name,
+  });
 
   revalidateDealPaths(listing.slug);
   return { message: "Thanks! The listing agent will be in touch soon." };
