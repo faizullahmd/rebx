@@ -174,9 +174,11 @@ async function main() {
     },
   ];
 
+  const seededListings: Record<string, { id: string; slug: string }> = {};
+
   for (const [index, data] of listings.entries()) {
     const slug = slugify(data.title, String(index + 1));
-    await prisma.listing.upsert({
+    const listing = await prisma.listing.upsert({
       where: { slug },
       update: {},
       create: {
@@ -198,7 +200,85 @@ async function main() {
         developerId: data.developerId,
       },
     });
+    seededListings[data.title] = { id: listing.id, slug: listing.slug };
   }
+
+  // Demo deals + commissions, so the pipeline has example data beyond raw listings.
+  const northgate12B = seededListings["Northgate Tower Unit 12B"];
+  const historicBungalow = seededListings["Historic Bungalow"];
+
+  const dealDeveloperSale = await prisma.deal.upsert({
+    where: { id: "seed-deal-northgate-12b" },
+    update: {},
+    create: {
+      id: "seed-deal-northgate-12b",
+      listingId: northgate12B.id,
+      agentId: agent1.id,
+      stage: "CLOSED_WON",
+      contactName: "Jordan Buyer",
+      contactEmail: "jordan.buyer@example.com",
+      contactPhone: "555-0142",
+      offerAmount: 512000,
+      closedAt: new Date(),
+    },
+  });
+  await prisma.listing.update({
+    where: { id: northgate12B.id },
+    data: { status: "SOLD" },
+  });
+
+  await prisma.commission.upsert({
+    where: { dealId_source: { dealId: dealDeveloperSale.id, source: "DEVELOPER" } },
+    update: {},
+    create: {
+      dealId: dealDeveloperSale.id,
+      agentId: agent1.id,
+      source: "DEVELOPER",
+      amount: 15360,
+      status: "INVOICED",
+      invoicedAt: new Date(),
+    },
+  });
+  await prisma.commission.upsert({
+    where: { dealId_source: { dealId: dealDeveloperSale.id, source: "CUSTOMER" } },
+    update: {},
+    create: {
+      dealId: dealDeveloperSale.id,
+      agentId: agent1.id,
+      source: "CUSTOMER",
+      amount: 5120,
+      status: "PENDING",
+    },
+  });
+
+  const dealResale = await prisma.deal.upsert({
+    where: { id: "seed-deal-historic-bungalow" },
+    update: {},
+    create: {
+      id: "seed-deal-historic-bungalow",
+      listingId: historicBungalow.id,
+      agentId: agent2.id,
+      stage: "CLOSED_WON",
+      contactName: "Morgan Buyer",
+      contactEmail: "morgan.buyer@example.com",
+      offerAmount: 315000,
+      closedAt: new Date(),
+    },
+  });
+
+  await prisma.commission.upsert({
+    where: { dealId_source: { dealId: dealResale.id, source: "CUSTOMER" } },
+    update: {},
+    create: {
+      dealId: dealResale.id,
+      agentId: agent2.id,
+      source: "CUSTOMER",
+      amount: 9450,
+      status: "RECEIVED",
+      invoicedAt: new Date(),
+      receivedAt: new Date(),
+    },
+  });
 
   console.log("Seed complete.");
   console.log(`Admin:     ${admin.email} / ${SEED_PASSWORD}`);
