@@ -1,32 +1,51 @@
-# React + TypeScript + Vite
+# REBX
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Real estate broker exchange platform. Agents list properties; the platform is a CRM tracking each
+listing from creation through to commission received from developers and customers.
 
-Currently, two official plugins are available:
+This is the **foundation** build: project setup, auth, role-based dashboards, and property listing
+CRUD. Leads, the deal pipeline, and commission tracking are a later pass.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- Next.js 16 (App Router), TypeScript, Tailwind CSS
+- Postgres via Prisma ORM
+- NextAuth.js (Auth.js) v5, Credentials provider, JWT sessions
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Roles
 
-## Expanding the Oxlint configuration
+`AGENT` · `DEVELOPER` · `CUSTOMER` · `ADMIN`. Signup only offers Agent or Customer — Developer and
+Admin accounts are promoted by an existing admin from `/admin/dashboard/users`.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Getting started
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+Local Postgres runs via Docker Compose (or [Colima](https://github.com/abiosoft/colima) if you
+don't have Docker Desktop installed).
+
+```bash
+docker compose up -d
+npm install
+npx prisma migrate dev
+npm run db:seed
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open [http://localhost:3000](http://localhost:3000).
+
+Seeded accounts (password `password123` for all):
+
+| Role      | Email                |
+| --------- | --------------------- |
+| Admin     | admin@rebx.dev        |
+| Agent     | agent1@rebx.dev        |
+| Agent     | agent2@rebx.dev        |
+| Developer | developer@rebx.dev     |
+| Customer  | customer1@rebx.dev     |
+| Customer  | customer2@rebx.dev     |
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run db:migrate` — run Prisma migrations
+- `npm run db:seed` — reseed the database
+- `npm run db:studio` — open Prisma Studio

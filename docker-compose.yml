@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rebx
+      POSTGRES_PASSWORD: rebx_dev_password
+      POSTGRES_DB: rebx
+    ports:
+      - "5432:5432"
+    volumes:
+      - rebx_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rebx"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rebx_pgdata:
