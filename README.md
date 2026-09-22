@@ -3,13 +3,13 @@
 Real estate broker exchange platform. Agents list properties; the platform is a CRM tracking each
 listing from creation through to commission received from developers and customers.
 
-This is the **foundation** build: project setup, auth, role-based dashboards, and property listing
-CRUD. Leads, the deal pipeline, and commission tracking are a later pass.
+Foundation (auth, role-based dashboards, listing CRUD) and the leads/deal pipeline are built.
+Commission tracking is a later pass.
 
 ## Stack
 
 - Next.js 16 (App Router), TypeScript, Tailwind CSS
-- Postgres via Prisma ORM
+- MySQL via Prisma ORM
 - NextAuth.js (Auth.js) v5, Credentials provider, JWT sessions
 
 ## Roles
@@ -19,8 +19,8 @@ Admin accounts are promoted by an existing admin from `/admin/dashboard/users`.
 
 ## Getting started
 
-Local Postgres runs via Docker Compose (or [Colima](https://github.com/abiosoft/colima) if you
-don't have Docker Desktop installed).
+Local MySQL runs via Docker Compose (or [Colima](https://github.com/abiosoft/colima) if you don't
+have Docker Desktop installed).
 
 ```bash
 docker compose up -d
@@ -31,6 +31,16 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Production (DigitalOcean)
+
+Set `DATABASE_URL` and `AUTH_SECRET` as environment variables/secrets in the DigitalOcean app
+settings — never commit real credentials. DigitalOcean's managed MySQL requires TLS; download the
+cluster's CA certificate from the DO control panel and append it to the connection string, e.g.
+`mysql://user:pass@host:25060/rebx?sslcert=/path/to/ca-certificate.crt&sslaccept=strict` (check
+[DigitalOcean's connection docs](https://docs.digitalocean.com/products/databases/mysql/how-to/connect/)
+for the exact host/port/cert for your cluster). Run `npx prisma migrate deploy` against that URL to
+apply the schema before the app's first request.
 
 Seeded accounts (password `password123` for all):
 

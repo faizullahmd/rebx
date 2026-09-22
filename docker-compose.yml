@@ -1,20 +1,21 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8
     restart: unless-stopped
     environment:
-      POSTGRES_USER: rebx
-      POSTGRES_PASSWORD: rebx_dev_password
-      POSTGRES_DB: rebx
+      MYSQL_ROOT_PASSWORD: rebx_root_password
+      MYSQL_DATABASE: rebx
+      MYSQL_USER: rebx
+      MYSQL_PASSWORD: rebx_dev_password
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - rebx_pgdata:/var/lib/postgresql/data
+      - rebx_mysqldata:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rebx"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "rebx", "-prebx_dev_password"]
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
-  rebx_pgdata:
+  rebx_mysqldata:

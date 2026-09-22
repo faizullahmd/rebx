@@ -46,7 +46,7 @@ export function getPublicActiveListings(filters: PublicListingFilters = {}) {
   return prisma.listing.findMany({
     where: {
       status: "ACTIVE",
-      ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}),
+      ...(filters.city ? { city: { contains: filters.city } } : {}),
       ...(filters.bedrooms ? { bedrooms: { gte: filters.bedrooms } } : {}),
       ...(filters.minPrice || filters.maxPrice
         ? {

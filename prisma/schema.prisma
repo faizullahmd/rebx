@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -61,7 +61,7 @@ model AgentProfile {
   agencyName String?
   licenseNo  String?
   phone      String?
-  bio        String?
+  bio        String? @db.Text
 }
 
 model DeveloperProfile {
@@ -84,7 +84,7 @@ model Listing {
   id          String        @id @default(cuid())
   slug        String        @unique
   title       String
-  description String
+  description String        @db.Text
   price       Decimal       @db.Decimal(12, 2)
   currency    String        @default("USD")
 
@@ -147,10 +147,10 @@ model Deal {
   contactName  String
   contactEmail String
   contactPhone String?
-  message      String?
+  message      String? @db.Text
 
   offerAmount Decimal? @db.Decimal(12, 2)
-  notes       String?
+  notes       String?  @db.Text
 
   closedAt  DateTime?
   createdAt DateTime  @default(now())
