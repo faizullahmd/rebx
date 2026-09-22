@@ -21,6 +21,17 @@ enum ListingStatus {
   SOLD
 }
 
+enum DealStage {
+  NEW
+  CONTACTED
+  VIEWING_SCHEDULED
+  OFFER_MADE
+  NEGOTIATION
+  UNDER_CONTRACT
+  CLOSED_WON
+  CLOSED_LOST
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -36,6 +47,9 @@ model User {
 
   listingsAsAgent     Listing[] @relation("AgentListings")
   listingsAsDeveloper Listing[] @relation("DeveloperListings")
+
+  dealsAsAgent    Deal[] @relation("AgentDeals")
+  dealsAsCustomer Deal[] @relation("CustomerDeals")
 
   @@index([role])
 }
@@ -95,6 +109,7 @@ model Listing {
   developer   User?         @relation("DeveloperListings", fields: [developerId], references: [id])
 
   images      ListingImage[]
+  deals       Deal[]
 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -114,4 +129,35 @@ model ListingImage {
   createdAt DateTime @default(now())
 
   @@index([listingId])
+}
+
+model Deal {
+  id    String    @id @default(cuid())
+  stage DealStage @default(NEW)
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  agentId String
+  agent   User   @relation("AgentDeals", fields: [agentId], references: [id])
+
+  customerId String?
+  customer   User?   @relation("CustomerDeals", fields: [customerId], references: [id])
+
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  message      String?
+
+  offerAmount Decimal? @db.Decimal(12, 2)
+  notes       String?
+
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([listingId])
+  @@index([agentId])
+  @@index([customerId])
+  @@index([stage])
 }

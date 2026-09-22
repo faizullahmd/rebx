@@ -5,6 +5,7 @@ const items = [
   { href: "/admin/dashboard", label: "Overview" },
   { href: "/admin/dashboard/users", label: "Users" },
   { href: "/admin/dashboard/listings", label: "All listings" },
+  { href: "/admin/dashboard/deals", label: "Deals" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

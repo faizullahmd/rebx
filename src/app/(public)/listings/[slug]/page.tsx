@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getListingBySlug } from "@/lib/data/listings";
+import { InquiryForm } from "@/components/deals/InquiryForm";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -20,8 +21,9 @@ export default async function ListingDetailPage({
     notFound();
   }
 
+  const session = await auth();
+
   if (listing.status !== "ACTIVE") {
-    const session = await auth();
     const isOwnerOrAdmin =
       session?.user &&
       (session.user.id === listing.agentId || session.user.role === "ADMIN");
@@ -80,6 +82,10 @@ export default async function ListingDetailPage({
         <p className="text-gray-600">{listing.agent.name}</p>
         <p className="text-gray-600">{listing.agent.email}</p>
       </div>
+
+      {listing.status === "ACTIVE" && (
+        <InquiryForm listingId={listing.id} isLoggedInCustomer={session?.user?.role === "CUSTOMER"} />
+      )}
     </article>
   );
 }

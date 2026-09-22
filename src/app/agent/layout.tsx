@@ -4,6 +4,7 @@ import { DashboardSidebar } from "@/components/nav/DashboardSidebar";
 const items = [
   { href: "/agent/dashboard", label: "Overview" },
   { href: "/agent/dashboard/listings", label: "My listings" },
+  { href: "/agent/dashboard/deals", label: "Deals" },
 ];
 
 export default async function AgentLayout({ children }: { children: React.ReactNode }) {

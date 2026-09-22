@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const optionalNumber = (schema: z.ZodType<number>) =>
+export const optionalNumber = (schema: z.ZodType<number>) =>
   z.preprocess((val) => (val === "" || val === undefined || val === null ? undefined : val), schema.optional());
 
 export const ListingFormSchema = z.object({
