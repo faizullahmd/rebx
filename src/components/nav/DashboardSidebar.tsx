@@ -15,8 +15,9 @@ export function DashboardSidebar({
   return (
     <aside className="flex w-60 shrink-0 flex-col justify-between border-r border-gray-200 px-4 py-6">
       <div>
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          REBX
+        <Link href="/" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="REBX" className="h-8 w-auto" />
         </Link>
         <p className="mt-1 text-xs uppercase tracking-wide text-gray-400">{roleLabel}</p>
         <nav className="mt-6 flex flex-col gap-1 text-sm">

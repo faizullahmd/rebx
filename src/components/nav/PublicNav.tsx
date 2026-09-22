@@ -8,8 +8,9 @@ export async function PublicNav() {
   return (
     <header className="border-b border-gray-200">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          REBX
+        <Link href="/" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="REBX" className="h-9 w-auto" />
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           <Link href="/listings" className="text-gray-600 hover:text-gray-900">
