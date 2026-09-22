@@ -32,6 +32,17 @@ enum DealStage {
   CLOSED_LOST
 }
 
+enum CommissionSource {
+  DEVELOPER
+  CUSTOMER
+}
+
+enum CommissionStatus {
+  PENDING
+  INVOICED
+  RECEIVED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -50,6 +61,8 @@ model User {
 
   dealsAsAgent    Deal[] @relation("AgentDeals")
   dealsAsCustomer Deal[] @relation("CustomerDeals")
+
+  commissionsAsAgent Commission[] @relation("AgentCommissions")
 
   @@index([role])
 }
@@ -156,8 +169,34 @@ model Deal {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  commissions Commission[]
+
   @@index([listingId])
   @@index([agentId])
   @@index([customerId])
   @@index([stage])
+}
+
+model Commission {
+  id     String            @id @default(cuid())
+  source CommissionSource
+  status CommissionStatus  @default(PENDING)
+  amount Decimal           @db.Decimal(12, 2)
+  notes  String?           @db.Text
+
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  agentId String
+  agent   User   @relation("AgentCommissions", fields: [agentId], references: [id])
+
+  invoicedAt DateTime?
+  receivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([dealId, source])
+  @@index([dealId])
+  @@index([agentId])
+  @@index([status])
 }

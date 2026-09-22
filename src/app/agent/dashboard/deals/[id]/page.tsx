@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/session";
 import { getDealById } from "@/lib/data/deals";
 import { updateDeal, deleteDeal } from "@/lib/actions/deals";
 import { DealEditForm } from "@/components/deals/DealEditForm";
+import { CommissionPanel } from "@/components/commissions/CommissionPanel";
 
 export default async function AgentDealDetailPage({
   params,
@@ -50,6 +51,14 @@ export default async function AgentDealDetailPage({
       </div>
 
       <DealEditForm deal={deal} action={updateDeal.bind(null, deal.id)} />
+
+      {deal.stage === "CLOSED_WON" && (
+        <CommissionPanel
+          dealId={deal.id}
+          hasDeveloper={deal.listing.developerId !== null}
+          commissions={deal.commissions}
+        />
+      )}
 
       <form action={deleteDeal.bind(null, deal.id)}>
         <button type="submit" className="text-sm text-red-600 hover:text-red-800">

@@ -12,7 +12,12 @@ export function getDealsForAgent(agentId: string) {
 export function getDealById(id: string) {
   return prisma.deal.findUnique({
     where: { id },
-    include: { listing: { select: { id: true, title: true, slug: true, agentId: true } } },
+    include: {
+      listing: {
+        select: { id: true, title: true, slug: true, agentId: true, developerId: true },
+      },
+      commissions: true,
+    },
   });
 }
 
