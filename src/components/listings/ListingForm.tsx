@@ -75,6 +75,69 @@ export function ListingForm({
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
       )}
 
+      <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <p className="text-sm font-medium text-gray-700">What are you listing?</p>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="transactionType" className="text-sm font-medium text-gray-700">
+              Transaction type
+            </label>
+            <select
+              id="transactionType"
+              name="transactionType"
+              value={transactionType}
+              onChange={(e) => handleTransactionTypeChange(e.target.value as TransactionType)}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              {TRANSACTION_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {TRANSACTION_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="propertyCategory" className="text-sm font-medium text-gray-700">
+              Category
+            </label>
+            <select
+              id="propertyCategory"
+              name="propertyCategory"
+              value={propertyCategory}
+              onChange={(e) => handleCategoryChange(e.target.value as PropertyCategory | "")}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Select category</option>
+              {availableCategories.map((value) => (
+                <option key={value} value={value}>
+                  {CATEGORY_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="propertyType" className="text-sm font-medium text-gray-700">
+              Property type
+            </label>
+            <select
+              id="propertyType"
+              name="propertyType"
+              value={propertyType}
+              onChange={(e) => setPropertyType(e.target.value as PropertyType | "")}
+              disabled={!propertyCategory}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
+            >
+              <option value="">Select type</option>
+              {availableTypes.map((value) => (
+                <option key={value} value={value}>
+                  {PROPERTY_TYPE_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       <Field label="Title" name="title" defaultValue={listing?.title} errors={state?.errors?.title} />
       <div className="flex flex-col gap-1">
         <label htmlFor="description" className="text-sm font-medium text-gray-700">
@@ -149,66 +212,6 @@ export function ListingForm({
           type="number"
           defaultValue={listing?.areaSqFt?.toString()}
         />
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="transactionType" className="text-sm font-medium text-gray-700">
-            Transaction type
-          </label>
-          <select
-            id="transactionType"
-            name="transactionType"
-            value={transactionType}
-            onChange={(e) => handleTransactionTypeChange(e.target.value as TransactionType)}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            {TRANSACTION_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {TRANSACTION_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="propertyCategory" className="text-sm font-medium text-gray-700">
-            Category
-          </label>
-          <select
-            id="propertyCategory"
-            name="propertyCategory"
-            value={propertyCategory}
-            onChange={(e) => handleCategoryChange(e.target.value as PropertyCategory | "")}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="">Select category</option>
-            {availableCategories.map((value) => (
-              <option key={value} value={value}>
-                {CATEGORY_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="propertyType" className="text-sm font-medium text-gray-700">
-            Property type
-          </label>
-          <select
-            id="propertyType"
-            name="propertyType"
-            value={propertyType}
-            onChange={(e) => setPropertyType(e.target.value as PropertyType | "")}
-            disabled={!propertyCategory}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
-          >
-            <option value="">Select type</option>
-            {availableTypes.map((value) => (
-              <option key={value} value={value}>
-                {PROPERTY_TYPE_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {visibility && (visibility.furnishing || visibility.parking || visibility.facing || visibility.availability || visibility.age) && (
