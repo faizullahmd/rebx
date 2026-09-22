@@ -27,6 +27,11 @@ declare module "@auth/core/jwt" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
+  // Platforms like DigitalOcean App Platform terminate TLS at a reverse proxy and
+  // forward requests internally (e.g. as localhost:8080), so Auth.js can't verify
+  // the public host itself. Trusting it here is safe since that proxy is the only
+  // way to reach this app.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
