@@ -6,6 +6,7 @@ const items = [
   { href: "/agent/dashboard/listings", label: "My listings" },
   { href: "/agent/dashboard/deals", label: "Deals" },
   { href: "/agent/dashboard/commissions", label: "Commissions" },
+  { href: "/account", label: "Account settings" },
 ];
 
 export default async function AgentLayout({ children }: { children: React.ReactNode }) {

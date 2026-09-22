@@ -64,6 +64,8 @@ model User {
 
   commissionsAsAgent Commission[] @relation("AgentCommissions")
 
+  passwordResetTokens PasswordResetToken[]
+
   @@index([role])
 }
 
@@ -199,4 +201,16 @@ model Commission {
   @@index([dealId])
   @@index([agentId])
   @@index([status])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }

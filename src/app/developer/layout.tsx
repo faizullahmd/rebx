@@ -1,7 +1,10 @@
 import { requireRole } from "@/lib/session";
 import { DashboardSidebar } from "@/components/nav/DashboardSidebar";
 
-const items = [{ href: "/developer/dashboard", label: "My properties" }];
+const items = [
+  { href: "/developer/dashboard", label: "My properties" },
+  { href: "/account", label: "Account settings" },
+];
 
 export default async function DeveloperLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole("DEVELOPER");

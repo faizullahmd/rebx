@@ -13,10 +13,11 @@ const roleForPrefix: Record<string, Role> = {
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  const isAccount = pathname === "/account" || pathname.startsWith("/account/");
   const prefix = Object.keys(roleForPrefix).find(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
-  if (!prefix) {
+  if (!isAccount && !prefix) {
     return NextResponse.next();
   }
 
@@ -27,7 +28,7 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (session.user.role !== roleForPrefix[prefix]) {
+  if (!isAccount && session.user.role !== roleForPrefix[prefix!]) {
     return NextResponse.redirect(new URL("/unauthorized", req.nextUrl));
   }
 
@@ -35,5 +36,11 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/agent/:path*", "/developer/:path*", "/customer/:path*", "/admin/:path*"],
+  matcher: [
+    "/agent/:path*",
+    "/developer/:path*",
+    "/customer/:path*",
+    "/admin/:path*",
+    "/account/:path*",
+  ],
 };

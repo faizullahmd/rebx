@@ -11,3 +11,10 @@ export function getAllUsers() {
 export function getUserCounts() {
   return prisma.user.groupBy({ by: ["role"], _count: true });
 }
+
+export function getUserWithProfile(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { agentProfile: true, developerProfile: true, customerProfile: true },
+  });
+}

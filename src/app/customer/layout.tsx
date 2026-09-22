@@ -1,7 +1,10 @@
 import { requireRole } from "@/lib/session";
 import { DashboardSidebar } from "@/components/nav/DashboardSidebar";
 
-const items = [{ href: "/customer/dashboard", label: "Overview" }];
+const items = [
+  { href: "/customer/dashboard", label: "Overview" },
+  { href: "/account", label: "Account settings" },
+];
 
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole("CUSTOMER");
