@@ -1,4 +1,5 @@
 import "server-only";
+import type { TransactionType, PropertyCategory, PropertyType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export function getListingsForAgent(agentId: string) {
@@ -40,6 +41,9 @@ export type PublicListingFilters = {
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;
+  transactionType?: TransactionType;
+  propertyCategory?: PropertyCategory;
+  propertyType?: PropertyType;
 };
 
 export function getPublicActiveListings(filters: PublicListingFilters = {}) {
@@ -48,6 +52,9 @@ export function getPublicActiveListings(filters: PublicListingFilters = {}) {
       status: "ACTIVE",
       ...(filters.city ? { city: { contains: filters.city } } : {}),
       ...(filters.bedrooms ? { bedrooms: { gte: filters.bedrooms } } : {}),
+      ...(filters.transactionType ? { transactionType: filters.transactionType } : {}),
+      ...(filters.propertyCategory ? { propertyCategory: filters.propertyCategory } : {}),
+      ...(filters.propertyType ? { propertyType: filters.propertyType } : {}),
       ...(filters.minPrice || filters.maxPrice
         ? {
             price: {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Listing, ListingImage } from "@prisma/client";
+import { TRANSACTION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/property-taxonomy";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -39,6 +40,11 @@ export function ListingCard({
           {listing.state ? `, ${listing.state}` : ""}
         </p>
         <h3 className="mt-1 truncate font-medium text-gray-900">{listing.title}</h3>
+        {listing.propertyType && (
+          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+            {PROPERTY_TYPE_LABELS[listing.propertyType]} · {TRANSACTION_LABELS[listing.transactionType]}
+          </p>
+        )}
         <p className="mt-2 text-lg font-semibold">
           {currencyFormatter.format(Number(listing.price))}
         </p>

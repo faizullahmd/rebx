@@ -49,6 +49,61 @@ enum DeveloperRequestStatus {
   REJECTED
 }
 
+enum TransactionType {
+  FOR_SALE
+  FOR_RENT
+  FOR_LEASE
+  AUCTION
+}
+
+enum PropertyCategory {
+  RESIDENTIAL
+  COMMERCIAL
+  LAND_PLOT
+  INDUSTRIAL
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  INDEPENDENT_HOUSE
+  BUILDER_FLOOR
+  PENTHOUSE
+  STUDIO
+  OFFICE
+  SHOP
+  SHOWROOM
+  WAREHOUSE
+  RESIDENTIAL_PLOT
+  COMMERCIAL_PLOT
+  AGRICULTURAL_LAND
+  FACTORY
+  INDUSTRIAL_BUILDING
+  INDUSTRIAL_LAND
+}
+
+enum FurnishingStatus {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FURNISHED
+}
+
+enum FacingDirection {
+  NORTH
+  SOUTH
+  EAST
+  WEST
+  NORTH_EAST
+  NORTH_WEST
+  SOUTH_EAST
+  SOUTH_WEST
+}
+
+enum AvailabilityStatus {
+  READY_TO_MOVE
+  UNDER_CONSTRUCTION
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -126,6 +181,15 @@ model Listing {
 
   status      ListingStatus @default(DRAFT)
 
+  transactionType  TransactionType    @default(FOR_SALE)
+  propertyCategory PropertyCategory?
+  propertyType     PropertyType?
+  furnishing       FurnishingStatus?
+  parkingSpots     Int?
+  facing           FacingDirection?
+  propertyAgeYears Int?
+  availability     AvailabilityStatus?
+
   agentId     String
   agent       User          @relation("AgentListings", fields: [agentId], references: [id])
 
@@ -143,6 +207,9 @@ model Listing {
   @@index([agentId])
   @@index([developerId])
   @@index([city])
+  @@index([transactionType])
+  @@index([propertyCategory])
+  @@index([propertyType])
 }
 
 model ListingImage {

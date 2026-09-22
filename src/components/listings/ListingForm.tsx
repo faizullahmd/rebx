@@ -1,9 +1,27 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import type { Listing, ListingImage } from "@prisma/client";
+import type {
+  Listing,
+  ListingImage,
+  TransactionType,
+  PropertyCategory,
+  PropertyType,
+} from "@prisma/client";
 import type { ListingFormState } from "@/lib/validation/listing";
 import { REQUEST_NEW_DEVELOPER_VALUE } from "@/lib/validation/developer-request";
+import {
+  TRANSACTION_TYPES,
+  TRANSACTION_LABELS,
+  CATEGORY_LABELS,
+  PROPERTY_TYPE_LABELS,
+  FURNISHING_LABELS,
+  FACING_LABELS,
+  AVAILABILITY_LABELS,
+  FIELD_VISIBILITY,
+  categoriesFor,
+  typesFor,
+} from "@/lib/property-taxonomy";
 
 type Developer = { id: string; name: string; developerProfile: { companyName: string } | null };
 
@@ -21,6 +39,35 @@ export function ListingForm({
   const [state, formAction, pending] = useActionState(action, undefined);
   const [developerSelection, setDeveloperSelection] = useState(listing?.developerId ?? "");
   const isRequestingNewDeveloper = developerSelection === REQUEST_NEW_DEVELOPER_VALUE;
+
+  const [transactionType, setTransactionType] = useState<TransactionType>(
+    listing?.transactionType ?? "FOR_SALE"
+  );
+  const [propertyCategory, setPropertyCategory] = useState<PropertyCategory | "">(
+    listing?.propertyCategory ?? ""
+  );
+  const [propertyType, setPropertyType] = useState<PropertyType | "">(listing?.propertyType ?? "");
+
+  const availableCategories = categoriesFor(transactionType);
+  const availableTypes = typesFor(transactionType, propertyCategory);
+  const visibility = propertyCategory ? FIELD_VISIBILITY[propertyCategory] : null;
+
+  function handleTransactionTypeChange(value: TransactionType) {
+    setTransactionType(value);
+    const nextCategories = categoriesFor(value);
+    if (propertyCategory && !nextCategories.includes(propertyCategory)) {
+      setPropertyCategory("");
+      setPropertyType("");
+    }
+  }
+
+  function handleCategoryChange(value: PropertyCategory | "") {
+    setPropertyCategory(value);
+    const nextTypes = typesFor(transactionType, value);
+    if (propertyType && !nextTypes.includes(propertyType)) {
+      setPropertyType("");
+    }
+  }
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -80,18 +127,22 @@ export function ListingForm({
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Field
-          label="Bedrooms"
-          name="bedrooms"
-          type="number"
-          defaultValue={listing?.bedrooms?.toString()}
-        />
-        <Field
-          label="Bathrooms"
-          name="bathrooms"
-          type="number"
-          defaultValue={listing?.bathrooms?.toString()}
-        />
+        {(!propertyCategory || visibility?.bedBath) && (
+          <>
+            <Field
+              label="Bedrooms"
+              name="bedrooms"
+              type="number"
+              defaultValue={listing?.bedrooms?.toString()}
+            />
+            <Field
+              label="Bathrooms"
+              name="bathrooms"
+              type="number"
+              defaultValue={listing?.bathrooms?.toString()}
+            />
+          </>
+        )}
         <Field
           label="Area (sqft)"
           name="areaSqFt"
@@ -99,6 +150,147 @@ export function ListingForm({
           defaultValue={listing?.areaSqFt?.toString()}
         />
       </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="transactionType" className="text-sm font-medium text-gray-700">
+            Transaction type
+          </label>
+          <select
+            id="transactionType"
+            name="transactionType"
+            value={transactionType}
+            onChange={(e) => handleTransactionTypeChange(e.target.value as TransactionType)}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          >
+            {TRANSACTION_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {TRANSACTION_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="propertyCategory" className="text-sm font-medium text-gray-700">
+            Category
+          </label>
+          <select
+            id="propertyCategory"
+            name="propertyCategory"
+            value={propertyCategory}
+            onChange={(e) => handleCategoryChange(e.target.value as PropertyCategory | "")}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">Select category</option>
+            {availableCategories.map((value) => (
+              <option key={value} value={value}>
+                {CATEGORY_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="propertyType" className="text-sm font-medium text-gray-700">
+            Property type
+          </label>
+          <select
+            id="propertyType"
+            name="propertyType"
+            value={propertyType}
+            onChange={(e) => setPropertyType(e.target.value as PropertyType | "")}
+            disabled={!propertyCategory}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
+          >
+            <option value="">Select type</option>
+            {availableTypes.map((value) => (
+              <option key={value} value={value}>
+                {PROPERTY_TYPE_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {visibility && (visibility.furnishing || visibility.parking || visibility.facing || visibility.availability || visibility.age) && (
+        <div className="grid grid-cols-3 gap-4">
+          {visibility.furnishing && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="furnishing" className="text-sm font-medium text-gray-700">
+                Furnishing
+              </label>
+              <select
+                id="furnishing"
+                name="furnishing"
+                defaultValue={listing?.furnishing ?? ""}
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Not specified</option>
+                {Object.entries(FURNISHING_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {visibility.parking && (
+            <Field
+              label="Parking spots"
+              name="parkingSpots"
+              type="number"
+              defaultValue={listing?.parkingSpots?.toString()}
+            />
+          )}
+          {visibility.facing && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="facing" className="text-sm font-medium text-gray-700">
+                Facing
+              </label>
+              <select
+                id="facing"
+                name="facing"
+                defaultValue={listing?.facing ?? ""}
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Not specified</option>
+                {Object.entries(FACING_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {visibility.availability && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="availability" className="text-sm font-medium text-gray-700">
+                Availability
+              </label>
+              <select
+                id="availability"
+                name="availability"
+                defaultValue={listing?.availability ?? ""}
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Not specified</option>
+                {Object.entries(AVAILABILITY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {visibility.age && (
+            <Field
+              label="Property age (years)"
+              name="propertyAgeYears"
+              type="number"
+              defaultValue={listing?.propertyAgeYears?.toString()}
+            />
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="status" className="text-sm font-medium text-gray-700">
