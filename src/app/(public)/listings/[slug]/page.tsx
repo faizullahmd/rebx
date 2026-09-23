@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
+import { ListingImageCarousel } from "@/components/listings/ListingImageCarousel";
 import {
   TRANSACTION_LABELS,
   CATEGORY_LABELS,
@@ -49,19 +50,7 @@ export default async function ListingDetailPage({
         </p>
       )}
 
-      {listing.images.length > 0 && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {listing.images.map((image) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={image.id}
-              src={image.url}
-              alt={listing.title}
-              className="aspect-[4/3] w-full rounded-lg object-cover"
-            />
-          ))}
-        </div>
-      )}
+      <ListingImageCarousel images={listing.images} alt={listing.title} />
 
       <div>
         <p className="text-sm text-gray-500">
