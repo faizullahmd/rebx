@@ -52,61 +52,67 @@ export default async function ListingDetailPage({
 
       <ListingImageCarousel images={listing.images} alt={listing.title} />
 
-      <div>
-        <p className="text-sm text-gray-500">
-          {listing.addressLine}, {listing.city}
-          {listing.state ? `, ${listing.state}` : ""}, {listing.country}
-        </p>
-        <h1 className="mt-1 text-3xl font-semibold">{listing.title}</h1>
-        {(listing.propertyCategory || listing.propertyType) && (
-          <p className="mt-1 text-sm font-medium uppercase tracking-wide text-gray-500">
-            {[
-              listing.propertyType ? PROPERTY_TYPE_LABELS[listing.propertyType] : null,
-              listing.propertyCategory ? CATEGORY_LABELS[listing.propertyCategory] : null,
-              TRANSACTION_LABELS[listing.transactionType],
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        )}
-        <p className="mt-2 text-2xl font-semibold text-gray-900">
-          {currencyFormatter.format(Number(listing.price))}
-        </p>
-        <p className="mt-1 text-sm text-gray-500">
-          {[
-            listing.bedrooms ? `${listing.bedrooms} bedrooms` : null,
-            listing.bathrooms ? `${listing.bathrooms} bathrooms` : null,
-            listing.areaSqFt ? `${listing.areaSqFt} sqft` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-        {(listing.furnishing || listing.parkingSpots || listing.facing || listing.availability || listing.propertyAgeYears != null) && (
-          <p className="mt-1 text-sm text-gray-500">
-            {[
-              listing.furnishing ? FURNISHING_LABELS[listing.furnishing] : null,
-              listing.parkingSpots ? `${listing.parkingSpots} parking` : null,
-              listing.facing ? `${FACING_LABELS[listing.facing]} facing` : null,
-              listing.availability ? AVAILABILITY_LABELS[listing.availability] : null,
-              listing.propertyAgeYears != null ? `${listing.propertyAgeYears} yrs old` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        )}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <div>
+            <p className="text-sm text-gray-500">
+              {listing.addressLine}, {listing.city}
+              {listing.state ? `, ${listing.state}` : ""}, {listing.country}
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold">{listing.title}</h1>
+            {(listing.propertyCategory || listing.propertyType) && (
+              <p className="mt-1 text-sm font-medium uppercase tracking-wide text-gray-500">
+                {[
+                  listing.propertyType ? PROPERTY_TYPE_LABELS[listing.propertyType] : null,
+                  listing.propertyCategory ? CATEGORY_LABELS[listing.propertyCategory] : null,
+                  TRANSACTION_LABELS[listing.transactionType],
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
+              {currencyFormatter.format(Number(listing.price))}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              {[
+                listing.bedrooms ? `${listing.bedrooms} bedrooms` : null,
+                listing.bathrooms ? `${listing.bathrooms} bathrooms` : null,
+                listing.areaSqFt ? `${listing.areaSqFt} sqft` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            {(listing.furnishing || listing.parkingSpots || listing.facing || listing.availability || listing.propertyAgeYears != null) && (
+              <p className="mt-1 text-sm text-gray-500">
+                {[
+                  listing.furnishing ? FURNISHING_LABELS[listing.furnishing] : null,
+                  listing.parkingSpots ? `${listing.parkingSpots} parking` : null,
+                  listing.facing ? `${FACING_LABELS[listing.facing]} facing` : null,
+                  listing.availability ? AVAILABILITY_LABELS[listing.availability] : null,
+                  listing.propertyAgeYears != null ? `${listing.propertyAgeYears} yrs old` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+          </div>
+
+          <p className="whitespace-pre-wrap text-gray-700">{listing.description}</p>
+        </div>
+
+        <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+          <div className="rounded-lg border border-gray-200 p-3 text-sm">
+            <p className="font-medium text-gray-900">Listed by</p>
+            <p className="text-gray-600">{listing.agent.name}</p>
+            <p className="text-gray-600">{listing.agent.email}</p>
+          </div>
+
+          {listing.status === "ACTIVE" && (
+            <InquiryForm listingId={listing.id} isLoggedInCustomer={session?.user?.role === "CUSTOMER"} />
+          )}
+        </div>
       </div>
-
-      <p className="max-w-2xl whitespace-pre-wrap text-gray-700">{listing.description}</p>
-
-      <div className="rounded-lg border border-gray-200 p-4 text-sm">
-        <p className="font-medium text-gray-900">Listed by</p>
-        <p className="text-gray-600">{listing.agent.name}</p>
-        <p className="text-gray-600">{listing.agent.email}</p>
-      </div>
-
-      {listing.status === "ACTIVE" && (
-        <InquiryForm listingId={listing.id} isLoggedInCustomer={session?.user?.role === "CUSTOMER"} />
-      )}
     </article>
   );
 }
