@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createInquiry } from "@/lib/actions/deals";
 import type { InquiryFormState } from "@/lib/validation/deal";
 
@@ -16,6 +16,7 @@ export function InquiryForm({
     action,
     undefined
   );
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   return (
     <div className="rounded-lg border border-gray-200 p-3 shadow-sm">
@@ -51,9 +52,19 @@ export function InquiryForm({
           />
         </div>
 
+        <label className="mt-1 flex items-start gap-2 text-xs text-gray-600">
+          <input
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 flex-none rounded border-gray-300"
+          />
+          I agree to be contacted about this inquiry and accept the Terms &amp; Conditions.
+        </label>
+
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || !agreedToTerms}
           className="mt-1 w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
         >
           {pending ? "Sending…" : "Contact agent"}

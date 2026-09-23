@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
 import { ListingImageCarousel } from "@/components/listings/ListingImageCarousel";
+import { Avatar } from "@/components/ui/Avatar";
 import {
   TRANSACTION_LABELS,
   CATEGORY_LABELS,
@@ -102,10 +103,13 @@ export default async function ListingDetailPage({
         </div>
 
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-lg border border-gray-200 p-3 text-sm">
-            <p className="font-medium text-gray-900">Listed by</p>
-            <p className="text-gray-600">{listing.agent.name}</p>
-            <p className="text-gray-600">{listing.agent.email}</p>
+          <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 text-sm">
+            <Avatar name={listing.agent.name} />
+            <div>
+              <p className="font-medium text-gray-900">{listing.agent.name}</p>
+              <p className="text-xs text-gray-500">Listing agent</p>
+              <p className="text-gray-600">{listing.agent.email}</p>
+            </div>
           </div>
 
           {listing.status === "ACTIVE" && (
