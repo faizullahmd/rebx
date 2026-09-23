@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { TransactionType, PropertyCategory, PropertyType } from "@prisma/client";
 import {
   TRANSACTION_TYPES,
@@ -36,6 +37,7 @@ export function ListingFilters({
 
   const availableCategories = transactionType ? categoriesFor(transactionType) : [];
   const availableTypes = transactionType ? typesFor(transactionType, propertyCategory) : [];
+  const hasActiveFilters = Object.values(defaultValues).some((value) => !!value);
 
   function handleTransactionTypeChange(value: TransactionType | "") {
     setTransactionType(value);
@@ -172,6 +174,14 @@ export function ListingFilters({
       >
         Search
       </button>
+      {hasActiveFilters && (
+        <Link
+          href="/listings"
+          className="text-sm font-medium text-gray-500 underline-offset-2 hover:text-gray-900 hover:underline"
+        >
+          Clear filters
+        </Link>
+      )}
     </form>
   );
 }
