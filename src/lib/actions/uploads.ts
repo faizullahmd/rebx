@@ -27,7 +27,9 @@ export async function createUploadUrl(fileName: string, contentType: string) {
       ContentType: contentType,
       ACL: "public-read",
     }),
-    { expiresIn: 300 }
+    // DigitalOcean Spaces only honors ACL when it's a real request header, not a hoisted
+    // query param (the SDK's default) — force it to stay a header the client must send.
+    { expiresIn: 300, unhoistableHeaders: new Set(["x-amz-acl"]) }
   );
 
   return { uploadUrl, publicUrl: buildPublicUrl(key) };
