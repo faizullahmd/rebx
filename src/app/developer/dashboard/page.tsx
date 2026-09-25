@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { getListingsForDeveloper } from "@/lib/data/listings";
 import { getCommissionsForDeveloper } from "@/lib/data/commissions";
+import { getBookingsForDeveloper } from "@/lib/data/bookings";
+import { markCommissionPaidOut } from "@/lib/actions/commissions";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -16,13 +19,25 @@ const statusLabels: Record<string, string> = {
 
 export default async function DeveloperDashboardPage() {
   const user = await requireRole("DEVELOPER");
-  const [listings, commissions] = await Promise.all([
+  const [listings, commissions, bookings] = await Promise.all([
     getListingsForDeveloper(user.id),
     getCommissionsForDeveloper(user.id),
+    getBookingsForDeveloper(user.id),
   ]);
+  const pendingBookings = bookings.filter((booking) => booking.status === "PENDING_CONFIRMATION");
 
   return (
     <div className="flex flex-col gap-6">
+      {pendingBookings.length > 0 && (
+        <Link
+          href="/developer/dashboard/bookings"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
+        >
+          {pendingBookings.length} booking{pendingBookings.length === 1 ? "" : "s"} awaiting your
+          confirmation →
+        </Link>
+      )}
+
       <div>
         <h1 className="text-2xl font-semibold">My properties</h1>
         <p className="text-gray-600">Listings agents have linked to your company.</p>
@@ -62,9 +77,7 @@ export default async function DeveloperDashboardPage() {
 
       <div>
         <h2 className="text-xl font-semibold">Commissions owed to agents</h2>
-        <p className="text-gray-600">
-          For deals closed on your linked properties, for reference only.
-        </p>
+        <p className="text-gray-600">For deals closed on your linked properties.</p>
       </div>
 
       {commissions.length === 0 ? (
@@ -77,7 +90,8 @@ export default async function DeveloperDashboardPage() {
               <th className="py-2 font-medium">Agent</th>
               <th className="py-2 font-medium">Amount</th>
               <th className="py-2 font-medium">Status</th>
-              <th className="py-2 font-medium">Updated</th>
+              <th className="py-2 font-medium">Payout</th>
+              <th className="py-2 font-medium" />
             </tr>
           </thead>
           <tbody>
@@ -90,8 +104,24 @@ export default async function DeveloperDashboardPage() {
                 </td>
                 <td className="py-3 text-gray-600">{statusLabels[commission.status]}</td>
                 <td className="py-3 text-gray-600">
-                  {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-                    commission.updatedAt
+                  {commission.paidOutAt ? (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                      Paid out {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(commission.paidOutAt)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">Not yet</span>
+                  )}
+                </td>
+                <td className="py-3 text-right">
+                  {!commission.paidOutAt && (
+                    <form action={markCommissionPaidOut.bind(null, commission.id)}>
+                      <button
+                        type="submit"
+                        className="rounded-md border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50"
+                      >
+                        Mark paid out
+                      </button>
+                    </form>
                   )}
                 </td>
               </tr>

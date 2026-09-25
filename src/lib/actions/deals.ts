@@ -6,7 +6,11 @@ import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireUser } from "@/lib/session";
-import { sendNewLeadNotification, sendInquiryConfirmation } from "@/lib/email";
+import {
+  sendNewLeadNotification,
+  sendInquiryConfirmation,
+  sendBookingConfirmationNeededEmail,
+} from "@/lib/email";
 import {
   CustomerInquirySchema,
   InquiryFormSchema,
@@ -159,7 +163,21 @@ export async function updateDeal(
 
   const existing = await prisma.deal.findUnique({
     where: { id: dealId },
-    include: { listing: true },
+    include: {
+      listing: {
+        include: {
+          developer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              developerProfile: { select: { companyName: true } },
+            },
+          },
+        },
+      },
+      booking: true,
+    },
   });
   if (!existing) {
     return { message: "Deal not found." };
@@ -176,6 +194,9 @@ export async function updateDeal(
   const { stage, offerAmount, notes } = validatedFields.data;
   const closingNow =
     (stage === "CLOSED_WON" || stage === "CLOSED_LOST") && existing.stage !== stage;
+  const winningNow = closingNow && stage === "CLOSED_WON";
+  const needsNewBooking = winningNow && !existing.booking;
+  const developer = existing.listing.developer;
 
   const listingUpdate =
     stage === "CLOSED_WON"
@@ -197,10 +218,37 @@ export async function updateDeal(
     ...(listingUpdate
       ? [prisma.listing.update({ where: { id: existing.listingId }, data: listingUpdate })]
       : []),
+    ...(needsNewBooking
+      ? [
+          prisma.booking.create({
+            data: {
+              dealId,
+              saleAmount: offerAmount ?? existing.listing.price,
+              status: developer ? "PENDING_CONFIRMATION" : "CONFIRMED",
+              ...(developer ? {} : { confirmedAt: new Date() }),
+            },
+          }),
+        ]
+      : []),
   ]);
+
+  if (needsNewBooking && developer) {
+    const host = (await headers()).get("host") ?? "";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const bookingUrl = `${protocol}://${host}/agent/dashboard/deals/${dealId}`;
+
+    await sendBookingConfirmationNeededEmail(developer.email, {
+      listingTitle: existing.listing.title,
+      agentName: user.name,
+      saleAmount: Number(offerAmount ?? existing.listing.price),
+      bookingUrl,
+    });
+  }
 
   revalidateDealPaths(existing.listing.slug);
   revalidatePath(`/agent/dashboard/deals/${dealId}`);
+  revalidatePath("/developer/dashboard/bookings");
+  revalidatePath("/admin/dashboard/bookings");
 
   return { message: "Deal updated." };
 }

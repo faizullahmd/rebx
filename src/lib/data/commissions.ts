@@ -4,7 +4,10 @@ import { prisma } from "@/lib/prisma";
 export function getCommissionsForAgent(agentId: string) {
   return prisma.commission.findMany({
     where: { agentId },
-    include: { deal: { include: { listing: { select: { title: true, slug: true } } } } },
+    include: {
+      deal: { include: { listing: { select: { title: true, slug: true } } } },
+      paidOutBy: { select: { name: true } },
+    },
     orderBy: { updatedAt: "desc" },
   });
 }
@@ -15,6 +18,7 @@ export function getCommissionsForDeveloper(developerId: string) {
     include: {
       agent: { select: { name: true, email: true } },
       deal: { include: { listing: { select: { title: true, slug: true } } } },
+      paidOutBy: { select: { name: true } },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -25,6 +29,7 @@ export function getAllCommissionsAdmin() {
     include: {
       agent: { select: { name: true, email: true } },
       deal: { include: { listing: { select: { title: true, slug: true } } } },
+      paidOutBy: { select: { name: true } },
     },
     orderBy: { updatedAt: "desc" },
   });

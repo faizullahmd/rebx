@@ -6,6 +6,7 @@ const items = [
   { href: "/admin/dashboard/users", label: "Users" },
   { href: "/admin/dashboard/listings", label: "All listings" },
   { href: "/admin/dashboard/deals", label: "Deals" },
+  { href: "/admin/dashboard/bookings", label: "Bookings" },
   { href: "/admin/dashboard/commissions", label: "Commissions" },
   { href: "/admin/dashboard/developer-requests", label: "Developer requests" },
   { href: "/account", label: "Account settings" },

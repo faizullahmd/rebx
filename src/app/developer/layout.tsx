@@ -3,6 +3,7 @@ import { DashboardSidebar } from "@/components/nav/DashboardSidebar";
 
 const items = [
   { href: "/developer/dashboard", label: "My properties" },
+  { href: "/developer/dashboard/bookings", label: "Bookings" },
   { href: "/account", label: "Account settings" },
 ];
 

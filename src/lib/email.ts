@@ -115,3 +115,53 @@ export async function sendInquiryConfirmation(
     `,
   });
 }
+
+export async function sendBookingConfirmationNeededEmail(
+  to: string,
+  details: { listingTitle: string; agentName: string; saleAmount: number; bookingUrl: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Booking awaiting your confirmation: ${details.listingTitle}`,
+    html: `
+      <p>${escapeHtml(details.agentName)} closed a deal on "${escapeHtml(details.listingTitle)}"
+      for ${details.saleAmount.toLocaleString("en-US")} and recorded a booking. Please confirm it
+      so the agent can log their commission.</p>
+      <p><a href="${details.bookingUrl}">Review this booking</a></p>
+    `,
+  });
+}
+
+export async function sendBookingConfirmedEmail(
+  to: string,
+  details: { listingTitle: string; developerCompanyName: string; bookingUrl: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Booking confirmed: ${details.listingTitle}`,
+    html: `
+      <p>${escapeHtml(details.developerCompanyName)} confirmed the booking on
+      "${escapeHtml(details.listingTitle)}". You can now log your commission for this deal.</p>
+      <p><a href="${details.bookingUrl}">View this deal</a></p>
+    `,
+  });
+}
+
+export async function sendCommissionPaidOutEmail(
+  to: string,
+  details: { listingTitle: string; amount: number; source: string; dealUrl: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Commission paid out: ${details.listingTitle}`,
+    html: `
+      <p>Your ${escapeHtml(details.source.toLowerCase())} commission of
+      ${details.amount.toLocaleString("en-US")} on "${escapeHtml(details.listingTitle)}" has been
+      marked as paid out.</p>
+      <p><a href="${details.dealUrl}">View this deal</a></p>
+    `,
+  });
+}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAllCommissionsAdmin } from "@/lib/data/commissions";
-import { deleteCommission } from "@/lib/actions/commissions";
+import { deleteCommission, markCommissionPaidOut } from "@/lib/actions/commissions";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -31,6 +31,7 @@ export default async function AdminCommissionsPage() {
               <th className="py-2 font-medium">Source</th>
               <th className="py-2 font-medium">Amount</th>
               <th className="py-2 font-medium">Status</th>
+              <th className="py-2 font-medium">Payout</th>
               <th className="py-2 font-medium" />
             </tr>
           </thead>
@@ -54,6 +55,22 @@ export default async function AdminCommissionsPage() {
                   {currencyFormatter.format(Number(commission.amount))}
                 </td>
                 <td className="py-3 text-gray-600">{statusLabels[commission.status]}</td>
+                <td className="py-3 text-gray-600">
+                  {commission.paidOutAt ? (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                      Paid out
+                    </span>
+                  ) : (
+                    <form action={markCommissionPaidOut.bind(null, commission.id)}>
+                      <button
+                        type="submit"
+                        className="rounded-md border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50"
+                      >
+                        Mark paid out
+                      </button>
+                    </form>
+                  )}
+                </td>
                 <td className="py-3 text-right">
                   <form action={deleteCommission.bind(null, commission.id)}>
                     <button type="submit" className="text-red-600 hover:text-red-800">

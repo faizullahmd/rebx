@@ -17,6 +17,7 @@ export function getDealById(id: string) {
         select: { id: true, title: true, slug: true, agentId: true, developerId: true },
       },
       commissions: true,
+      booking: true,
     },
   });
 }

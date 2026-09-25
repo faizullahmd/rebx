@@ -49,6 +49,11 @@ enum DeveloperRequestStatus {
   REJECTED
 }
 
+enum BookingStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+}
+
 enum TransactionType {
   FOR_SALE
   FOR_RENT
@@ -124,6 +129,7 @@ model User {
   dealsAsCustomer Deal[] @relation("CustomerDeals")
 
   commissionsAsAgent Commission[] @relation("AgentCommissions")
+  commissionsPaidOut Commission[] @relation("CommissionsPaidOut")
 
   passwordResetTokens PasswordResetToken[]
 
@@ -249,11 +255,31 @@ model Deal {
   updatedAt DateTime  @updatedAt
 
   commissions Commission[]
+  booking     Booking?
 
   @@index([listingId])
   @@index([agentId])
   @@index([customerId])
   @@index([stage])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  status        BookingStatus @default(PENDING_CONFIRMATION)
+  bookingNumber String?
+  unitNumber    String?
+  saleAmount    Decimal       @db.Decimal(12, 2)
+  bookingDate   DateTime      @default(now())
+  confirmedAt   DateTime?
+  notes         String?       @db.Text
+
+  dealId String @unique
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 model Commission {
@@ -271,6 +297,11 @@ model Commission {
 
   invoicedAt DateTime?
   receivedAt DateTime?
+
+  paidOutAt   DateTime?
+  paidOutById String?
+  paidOutBy   User?     @relation("CommissionsPaidOut", fields: [paidOutById], references: [id])
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

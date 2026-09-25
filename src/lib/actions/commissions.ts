@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { sendCommissionPaidOutEmail } from "@/lib/email";
 import {
   CommissionFormSchema,
   UpdateCommissionStatusSchema,
@@ -27,7 +29,7 @@ export async function createCommission(
 ): Promise<CommissionFormState> {
   const user = await requireUser();
 
-  const deal = await prisma.deal.findUnique({ where: { id: dealId } });
+  const deal = await prisma.deal.findUnique({ where: { id: dealId }, include: { booking: true } });
   if (!deal) {
     return { message: "Deal not found." };
   }
@@ -36,6 +38,9 @@ export async function createCommission(
   }
   if (deal.stage !== "CLOSED_WON") {
     return { message: "Commission can only be logged once a deal is closed won." };
+  }
+  if (deal.booking?.status !== "CONFIRMED") {
+    return { message: "Commission can only be logged once the booking is confirmed." };
   }
 
   const validatedFields = CommissionFormSchema.safeParse({
@@ -115,6 +120,49 @@ export async function deleteCommission(commissionId: string) {
   }
 
   await prisma.commission.delete({ where: { id: commissionId } });
+
+  revalidateCommissionPaths(existing.dealId);
+}
+
+export async function markCommissionPaidOut(commissionId: string) {
+  const user = await requireUser();
+
+  const existing = await prisma.commission.findUnique({
+    where: { id: commissionId },
+    include: {
+      agent: { select: { email: true } },
+      deal: {
+        include: { listing: { select: { title: true, developerId: true } } },
+      },
+    },
+  });
+  if (!existing) return;
+
+  const isLinkedDeveloper =
+    user.role === "DEVELOPER" &&
+    existing.source === "DEVELOPER" &&
+    existing.deal.listing.developerId === user.id;
+  if (user.role !== "ADMIN" && !isLinkedDeveloper) {
+    throw new Error("You are not allowed to mark this commission as paid out.");
+  }
+
+  if (!existing.paidOutAt) {
+    await prisma.commission.update({
+      where: { id: commissionId },
+      data: { paidOutAt: new Date(), paidOutById: user.id },
+    });
+
+    const host = (await headers()).get("host") ?? "";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const dealUrl = `${protocol}://${host}/agent/dashboard/deals/${existing.dealId}`;
+
+    await sendCommissionPaidOutEmail(existing.agent.email, {
+      listingTitle: existing.deal.listing.title,
+      amount: Number(existing.amount),
+      source: existing.source,
+      dealUrl,
+    });
+  }
 
   revalidateCommissionPaths(existing.dealId);
 }

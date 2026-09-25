@@ -5,6 +5,7 @@ import { getDealById } from "@/lib/data/deals";
 import { updateDeal, deleteDeal } from "@/lib/actions/deals";
 import { DealEditForm } from "@/components/deals/DealEditForm";
 import { CommissionPanel } from "@/components/commissions/CommissionPanel";
+import { BookingPanel } from "@/components/bookings/BookingPanel";
 
 export default async function AgentDealDetailPage({
   params,
@@ -19,7 +20,7 @@ export default async function AgentDealDetailPage({
     notFound();
   }
 
-  const { commissions, ...dealWithoutCommissions } = deal;
+  const { commissions, booking, ...dealWithoutCommissions } = deal;
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,13 +61,22 @@ export default async function AgentDealDetailPage({
         action={updateDeal.bind(null, deal.id)}
       />
 
-      {deal.stage === "CLOSED_WON" && (
-        <CommissionPanel
-          dealId={deal.id}
-          hasDeveloper={deal.listing.developerId !== null}
-          commissions={commissions.map((c) => ({ ...c, amount: Number(c.amount) }))}
-        />
+      {deal.stage === "CLOSED_WON" && booking && (
+        <BookingPanel booking={{ ...booking, saleAmount: Number(booking.saleAmount) }} />
       )}
+
+      {deal.stage === "CLOSED_WON" &&
+        (booking?.status === "CONFIRMED" ? (
+          <CommissionPanel
+            dealId={deal.id}
+            hasDeveloper={deal.listing.developerId !== null}
+            commissions={commissions.map((c) => ({ ...c, amount: Number(c.amount) }))}
+          />
+        ) : (
+          <p className="max-w-2xl rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500">
+            Commission can be logged once the developer confirms the booking above.
+          </p>
+        ))}
 
       <form action={deleteDeal.bind(null, deal.id)}>
         <button type="submit" className="text-sm text-red-600 hover:text-red-800">

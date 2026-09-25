@@ -34,6 +34,7 @@ export default async function AgentCommissionsPage() {
               <th className="py-2 font-medium">Source</th>
               <th className="py-2 font-medium">Amount</th>
               <th className="py-2 font-medium">Status</th>
+              <th className="py-2 font-medium">Payout</th>
               <th className="py-2 font-medium">Updated</th>
             </tr>
           </thead>
@@ -55,6 +56,16 @@ export default async function AgentCommissionsPage() {
                   {currencyFormatter.format(Number(commission.amount))}
                 </td>
                 <td className="py-3 text-gray-600">{statusLabels[commission.status]}</td>
+                <td className="py-3 text-gray-600">
+                  {commission.paidOutAt ? (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                      Paid out
+                      {commission.paidOutBy ? ` by ${commission.paidOutBy.name}` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">Not yet</span>
+                  )}
+                </td>
                 <td className="py-3 text-gray-600">
                   {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
                     commission.updatedAt
