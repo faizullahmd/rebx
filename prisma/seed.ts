@@ -59,7 +59,7 @@ async function main() {
     },
   });
 
-  await prisma.user.upsert({
+  const customer1 = await prisma.user.upsert({
     where: { email: "customer1@rebx.dev" },
     update: {},
     create: {
@@ -227,6 +227,17 @@ async function main() {
     data: { status: "SOLD" },
   });
 
+  await prisma.booking.upsert({
+    where: { dealId: dealDeveloperSale.id },
+    update: {},
+    create: {
+      dealId: dealDeveloperSale.id,
+      status: "CONFIRMED",
+      saleAmount: 512000,
+      confirmedAt: new Date(),
+    },
+  });
+
   await prisma.commission.upsert({
     where: { dealId_source: { dealId: dealDeveloperSale.id, source: "DEVELOPER" } },
     update: {},
@@ -266,6 +277,17 @@ async function main() {
     },
   });
 
+  await prisma.booking.upsert({
+    where: { dealId: dealResale.id },
+    update: {},
+    create: {
+      dealId: dealResale.id,
+      status: "CONFIRMED",
+      saleAmount: 315000,
+      confirmedAt: new Date(),
+    },
+  });
+
   await prisma.commission.upsert({
     where: { dealId_source: { dealId: dealResale.id, source: "CUSTOMER" } },
     update: {},
@@ -277,6 +299,198 @@ async function main() {
       status: "RECEIVED",
       invoicedAt: new Date(),
       receivedAt: new Date(),
+    },
+  });
+
+  // Lead pipeline test data — one deal per DealStage (plus guest vs. logged-in-customer
+  // variants and the three Booking substates) so the agent dashboard, developer dashboard,
+  // and admin views all have realistic data to exercise.
+  const downtown = seededListings["Downtown 2BR Condo"];
+  const lakeside = seededListings["Lakeside Family Home"];
+  const suburbanRanch = seededListings["Suburban Ranch House"];
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-new-guest" },
+    update: {},
+    create: {
+      id: "seed-lead-new-guest",
+      listingId: downtown.id,
+      agentId: agent1.id,
+      stage: "NEW",
+      contactName: "Taylor Prospect",
+      contactEmail: "taylor.prospect@example.com",
+      contactPhone: "555-0101",
+      message: "Is this still available? I'd love a weekend tour.",
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-new-customer" },
+    update: {},
+    create: {
+      id: "seed-lead-new-customer",
+      listingId: downtown.id,
+      agentId: agent1.id,
+      customerId: customer1.id,
+      stage: "NEW",
+      contactName: customer1.name,
+      contactEmail: customer1.email,
+      message: "Submitted through my account — interested in financing options.",
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-contacted" },
+    update: {},
+    create: {
+      id: "seed-lead-contacted",
+      listingId: downtown.id,
+      agentId: agent1.id,
+      stage: "CONTACTED",
+      contactName: "Jamie Inquirer",
+      contactEmail: "jamie.inquirer@example.com",
+      notes: "Left a voicemail, waiting to hear back.",
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-under-contract" },
+    update: {},
+    create: {
+      id: "seed-lead-under-contract",
+      listingId: downtown.id,
+      agentId: agent1.id,
+      stage: "UNDER_CONTRACT",
+      contactName: "Drew Buyer",
+      contactEmail: "drew.buyer@example.com",
+      offerAmount: 420000,
+      notes: "Inspection scheduled for next week.",
+    },
+  });
+  await prisma.listing.update({ where: { id: downtown.id }, data: { status: "UNDER_OFFER" } });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-viewing" },
+    update: {},
+    create: {
+      id: "seed-lead-viewing",
+      listingId: lakeside.id,
+      agentId: agent1.id,
+      stage: "VIEWING_SCHEDULED",
+      contactName: "Sam Looker",
+      contactEmail: "sam.looker@example.com",
+      contactPhone: "555-0117",
+      notes: "Touring Saturday at 2pm.",
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-offer" },
+    update: {},
+    create: {
+      id: "seed-lead-offer",
+      listingId: lakeside.id,
+      agentId: agent1.id,
+      stage: "OFFER_MADE",
+      contactName: "Robin Hopeful",
+      contactEmail: "robin.hopeful@example.com",
+      offerAmount: 670000,
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-negotiation" },
+    update: {},
+    create: {
+      id: "seed-lead-negotiation",
+      listingId: lakeside.id,
+      agentId: agent1.id,
+      stage: "NEGOTIATION",
+      contactName: "Casey Bargainer",
+      contactEmail: "casey.bargainer@example.com",
+      offerAmount: 675000,
+      notes: "Buyer negotiating on closing costs.",
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-closed-lost" },
+    update: {},
+    create: {
+      id: "seed-lead-closed-lost",
+      listingId: lakeside.id,
+      agentId: agent1.id,
+      stage: "CLOSED_LOST",
+      contactName: "Pat Walkedaway",
+      contactEmail: "pat.walkedaway@example.com",
+      offerAmount: 660000,
+      notes: "Buyer chose another property.",
+      closedAt: new Date(),
+    },
+  });
+
+  // Booking pending developer confirmation — no commission possible yet.
+  const dealBookingPending = await prisma.deal.upsert({
+    where: { id: "seed-lead-booking-pending" },
+    update: {},
+    create: {
+      id: "seed-lead-booking-pending",
+      listingId: northgate12B.id,
+      agentId: agent1.id,
+      stage: "CLOSED_WON",
+      contactName: "Harper Newowner",
+      contactEmail: "harper.newowner@example.com",
+      offerAmount: 520000,
+      closedAt: new Date(),
+    },
+  });
+  await prisma.booking.upsert({
+    where: { dealId: dealBookingPending.id },
+    update: {},
+    create: {
+      dealId: dealBookingPending.id,
+      status: "PENDING_CONFIRMATION",
+      saleAmount: 520000,
+    },
+  });
+
+  // Booking confirmed but no commission logged yet.
+  const dealBookingConfirmed = await prisma.deal.upsert({
+    where: { id: "seed-lead-booking-confirmed" },
+    update: {},
+    create: {
+      id: "seed-lead-booking-confirmed",
+      listingId: northgate12B.id,
+      agentId: agent1.id,
+      stage: "CLOSED_WON",
+      contactName: "Quinn Settledup",
+      contactEmail: "quinn.settledup@example.com",
+      offerAmount: 530000,
+      closedAt: new Date(),
+    },
+  });
+  await prisma.booking.upsert({
+    where: { dealId: dealBookingConfirmed.id },
+    update: {},
+    create: {
+      dealId: dealBookingConfirmed.id,
+      status: "CONFIRMED",
+      saleAmount: 530000,
+      confirmedAt: new Date(),
+    },
+  });
+
+  // A lead on agent2's listing, to verify agent1 cannot see it.
+  await prisma.deal.upsert({
+    where: { id: "seed-lead-agent2-new" },
+    update: {},
+    create: {
+      id: "seed-lead-agent2-new",
+      listingId: suburbanRanch.id,
+      agentId: agent2.id,
+      stage: "NEW",
+      contactName: "Avery Other",
+      contactEmail: "avery.other@example.com",
     },
   });
 
