@@ -36,7 +36,7 @@ export default async function ListingDetailPage({
   if (listing.status !== "ACTIVE") {
     const isOwnerOrAdmin =
       session?.user &&
-      (session.user.id === listing.agentId || session.user.role === "ADMIN");
+      (Number(session.user.id) === listing.agentId || session.user.role === "ADMIN");
     if (!isOwnerOrAdmin) {
       notFound();
     }

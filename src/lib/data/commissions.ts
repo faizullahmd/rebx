@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
-export function getCommissionsForAgent(agentId: string) {
+export function getCommissionsForAgent(agentId: number) {
   return prisma.commission.findMany({
     where: { agentId },
     include: {
@@ -12,7 +12,7 @@ export function getCommissionsForAgent(agentId: string) {
   });
 }
 
-export function getCommissionsForDeveloper(developerId: string) {
+export function getCommissionsForDeveloper(developerId: number) {
   return prisma.commission.findMany({
     where: { source: "DEVELOPER", deal: { listing: { developerId } } },
     include: {

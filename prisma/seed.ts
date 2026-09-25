@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma, type Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { nextUserId } from "../src/lib/user-id";
 
 const prisma = new PrismaClient();
 
@@ -9,78 +10,54 @@ function slugify(title: string, suffix: string) {
   return `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${suffix}`;
 }
 
+// Only draws a new numeric id from the counter when actually creating a user, so
+// re-running the seed against an already-seeded database doesn't burn id ranges.
+async function upsertUser(email: string, role: Role, create: Omit<Prisma.UserCreateInput, "id" | "email" | "role">) {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return existing;
+
+  return prisma.$transaction(async (tx) => {
+    const id = await nextUserId(tx, role);
+    return tx.user.create({ data: { id, email, role, ...create } });
+  });
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@rebx.dev" },
-    update: {},
-    create: {
-      name: "Ava Admin",
-      email: "admin@rebx.dev",
-      passwordHash,
-      role: "ADMIN",
-    },
+  const admin = await upsertUser("admin@rebx.dev", "ADMIN", {
+    name: "Ava Admin",
+    passwordHash,
   });
 
-  const agent1 = await prisma.user.upsert({
-    where: { email: "agent1@rebx.dev" },
-    update: {},
-    create: {
-      name: "Alex Agent",
-      email: "agent1@rebx.dev",
-      passwordHash,
-      role: "AGENT",
-      agentProfile: { create: { agencyName: "Skyline Realty" } },
-    },
+  const agent1 = await upsertUser("agent1@rebx.dev", "AGENT", {
+    name: "Alex Agent",
+    passwordHash,
+    agentProfile: { create: { agencyName: "Skyline Realty" } },
   });
 
-  const agent2 = await prisma.user.upsert({
-    where: { email: "agent2@rebx.dev" },
-    update: {},
-    create: {
-      name: "Bailey Broker",
-      email: "agent2@rebx.dev",
-      passwordHash,
-      role: "AGENT",
-      agentProfile: { create: { agencyName: "Harbor Homes" } },
-    },
+  const agent2 = await upsertUser("agent2@rebx.dev", "AGENT", {
+    name: "Bailey Broker",
+    passwordHash,
+    agentProfile: { create: { agencyName: "Harbor Homes" } },
   });
 
-  const developer = await prisma.user.upsert({
-    where: { email: "developer@rebx.dev" },
-    update: {},
-    create: {
-      name: "Devon Developer",
-      email: "developer@rebx.dev",
-      passwordHash,
-      role: "DEVELOPER",
-      developerProfile: { create: { companyName: "Northgate Developments" } },
-    },
+  const developer = await upsertUser("developer@rebx.dev", "DEVELOPER", {
+    name: "Devon Developer",
+    passwordHash,
+    developerProfile: { create: { companyName: "Northgate Developments" } },
   });
 
-  const customer1 = await prisma.user.upsert({
-    where: { email: "customer1@rebx.dev" },
-    update: {},
-    create: {
-      name: "Casey Customer",
-      email: "customer1@rebx.dev",
-      passwordHash,
-      role: "CUSTOMER",
-      customerProfile: { create: {} },
-    },
+  const customer1 = await upsertUser("customer1@rebx.dev", "CUSTOMER", {
+    name: "Casey Customer",
+    passwordHash,
+    customerProfile: { create: {} },
   });
 
-  await prisma.user.upsert({
-    where: { email: "customer2@rebx.dev" },
-    update: {},
-    create: {
-      name: "Riley Renter",
-      email: "customer2@rebx.dev",
-      passwordHash,
-      role: "CUSTOMER",
-      customerProfile: { create: {} },
-    },
+  await upsertUser("customer2@rebx.dev", "CUSTOMER", {
+    name: "Riley Renter",
+    passwordHash,
+    customerProfile: { create: {} },
   });
 
   const listings = [

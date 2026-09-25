@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
+import { nextUserId } from "@/lib/user-id";
 import { createPasswordResetToken, buildResetUrl } from "@/lib/password-reset-tokens";
 import { sendDeveloperWelcomeEmail } from "@/lib/email";
 import { RejectDeveloperRequestSchema } from "@/lib/validation/developer-request";
@@ -36,8 +37,10 @@ export async function approveDeveloperRequest(requestId: string) {
   const placeholderPasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
 
   const newDeveloper = await prisma.$transaction(async (tx) => {
+    const id = await nextUserId(tx, "DEVELOPER");
     const user = await tx.user.create({
       data: {
+        id,
         name: request.contactName,
         email: request.contactEmail,
         passwordHash: placeholderPasswordHash,

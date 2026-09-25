@@ -67,7 +67,7 @@ export async function createInquiry(
       data: {
         listingId,
         agentId: listing.agentId,
-        customerId: session!.user.id,
+        customerId: Number(session!.user.id),
         contactName,
         contactEmail,
         contactPhone,

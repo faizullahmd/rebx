@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
+import { nextUserId } from "@/lib/user-id";
 import { sendWelcomeEmail } from "@/lib/email";
 import {
   LoginFormSchema,
@@ -37,18 +38,22 @@ export async function signup(
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      role,
-      ...(role === "AGENT"
-        ? { agentProfile: { create: {} } }
-        : role === "DEVELOPER"
-          ? { developerProfile: { create: { companyName: companyName || "" } } }
-          : { customerProfile: { create: {} } }),
-    },
+  await prisma.$transaction(async (tx) => {
+    const id = await nextUserId(tx, role);
+    await tx.user.create({
+      data: {
+        id,
+        name,
+        email,
+        passwordHash,
+        role,
+        ...(role === "AGENT"
+          ? { agentProfile: { create: {} } }
+          : role === "DEVELOPER"
+            ? { developerProfile: { create: { companyName: companyName || "" } } }
+            : { customerProfile: { create: {} } }),
+      },
+    });
   });
 
   await sendWelcomeEmail(email, name);

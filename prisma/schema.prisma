@@ -109,8 +109,13 @@ enum AvailabilityStatus {
   UNDER_CONSTRUCTION
 }
 
+model IdCounter {
+  key   String @id
+  value Int
+}
+
 model User {
-  id           String   @id @default(cuid())
+  id           Int      @id
   name         String
   email        String   @unique
   passwordHash String
@@ -141,7 +146,7 @@ model User {
 
 model AgentProfile {
   id         String  @id @default(cuid())
-  userId     String  @unique
+  userId     Int     @unique
   user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   agencyName String?
   licenseNo  String?
@@ -151,7 +156,7 @@ model AgentProfile {
 
 model DeveloperProfile {
   id          String  @id @default(cuid())
-  userId      String  @unique
+  userId      Int     @unique
   user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyName String
   phone       String?
@@ -160,7 +165,7 @@ model DeveloperProfile {
 
 model CustomerProfile {
   id     String  @id @default(cuid())
-  userId String  @unique
+  userId Int     @unique
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   phone  String?
 }
@@ -196,10 +201,10 @@ model Listing {
   propertyAgeYears Int?
   availability     AvailabilityStatus?
 
-  agentId     String
+  agentId     Int
   agent       User          @relation("AgentListings", fields: [agentId], references: [id])
 
-  developerId String?
+  developerId Int?
   developer   User?         @relation("DeveloperListings", fields: [developerId], references: [id])
 
   images      ListingImage[]
@@ -236,10 +241,10 @@ model Deal {
   listingId String
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  agentId String
+  agentId Int
   agent   User   @relation("AgentDeals", fields: [agentId], references: [id])
 
-  customerId String?
+  customerId Int?
   customer   User?   @relation("CustomerDeals", fields: [customerId], references: [id])
 
   contactName  String
@@ -292,14 +297,14 @@ model Commission {
   dealId String
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
-  agentId String
+  agentId Int
   agent   User   @relation("AgentCommissions", fields: [agentId], references: [id])
 
   invoicedAt DateTime?
   receivedAt DateTime?
 
   paidOutAt   DateTime?
-  paidOutById String?
+  paidOutById Int?
   paidOutBy   User?     @relation("CommissionsPaidOut", fields: [paidOutById], references: [id])
 
   createdAt  DateTime  @default(now())
@@ -314,7 +319,7 @@ model Commission {
 model PasswordResetToken {
   id        String    @id @default(cuid())
   tokenHash String    @unique
-  userId    String
+  userId    Int
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
@@ -335,10 +340,10 @@ model DeveloperRequest {
   listingId String
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  requestedById String
+  requestedById Int
   requestedBy   User   @relation("DeveloperRequestsMade", fields: [requestedById], references: [id])
 
-  createdDeveloperId String?
+  createdDeveloperId Int?
   createdDeveloper   User?   @relation("DeveloperRequestsResolved", fields: [createdDeveloperId], references: [id])
 
   reviewedAt DateTime?

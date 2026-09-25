@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
-export function getBookingsForDeveloper(developerId: string) {
+export function getBookingsForDeveloper(developerId: number) {
   return prisma.booking.findMany({
     where: { deal: { listing: { developerId } } },
     include: {

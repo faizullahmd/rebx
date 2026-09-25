@@ -6,7 +6,7 @@ export function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function createPasswordResetToken(userId: string, ttlMs: number) {
+export async function createPasswordResetToken(userId: number, ttlMs: number) {
   const rawToken = crypto.randomBytes(32).toString("hex");
   await prisma.passwordResetToken.create({
     data: {

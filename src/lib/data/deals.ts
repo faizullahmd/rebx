@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
-export function getDealsForAgent(agentId: string) {
+export function getDealsForAgent(agentId: number) {
   return prisma.deal.findMany({
     where: { agentId },
     include: { listing: { select: { id: true, title: true, slug: true } } },
@@ -22,7 +22,7 @@ export function getDealById(id: string) {
   });
 }
 
-export function getDealsForCustomer(customerId: string) {
+export function getDealsForCustomer(customerId: number) {
   return prisma.deal.findMany({
     where: { customerId },
     include: { listing: { select: { id: true, title: true, slug: true } } },

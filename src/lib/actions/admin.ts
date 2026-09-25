@@ -7,7 +7,7 @@ import type { Role } from "@prisma/client";
 
 const VALID_ROLES: Role[] = ["AGENT", "DEVELOPER", "CUSTOMER", "ADMIN"];
 
-export async function updateUserRole(userId: string, formData: FormData) {
+export async function updateUserRole(userId: number, formData: FormData) {
   await requireRole("ADMIN");
 
   const role = formData.get("role");

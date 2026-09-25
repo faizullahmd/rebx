@@ -20,6 +20,12 @@ function parseImageUrls(raw: string | undefined) {
     .filter(Boolean);
 }
 
+function parseDeveloperId(raw: string | undefined) {
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function slugify(title: string) {
   const base = title
     .toLowerCase()
@@ -32,7 +38,7 @@ function slugify(title: string) {
 async function createDeveloperRequest(
   listingId: string,
   listingTitle: string,
-  agentId: string,
+  agentId: number,
   agentName: string,
   formData: FormData
 ) {
@@ -118,7 +124,7 @@ export async function createListing(
       availability: data.availability || null,
       slug: slugify(data.title),
       agentId: agent.id,
-      developerId: requestingNewDeveloper ? null : developerId || null,
+      developerId: requestingNewDeveloper ? null : parseDeveloperId(developerId),
       images: {
         create: parseImageUrls(imageUrls).map((url, sortOrder) => ({ url, sortOrder })),
       },
@@ -189,7 +195,7 @@ export async function updateListing(
         facing: data.facing || null,
         propertyAgeYears: data.propertyAgeYears ?? null,
         availability: data.availability || null,
-        ...(requestingNewDeveloper ? {} : { developerId: developerId || null }),
+        ...(requestingNewDeveloper ? {} : { developerId: parseDeveloperId(developerId) }),
       },
     }),
     prisma.listingImage.deleteMany({ where: { listingId } }),

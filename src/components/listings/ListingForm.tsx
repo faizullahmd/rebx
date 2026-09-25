@@ -24,7 +24,7 @@ import {
   typesFor,
 } from "@/lib/property-taxonomy";
 
-type Developer = { id: string; name: string; developerProfile: { companyName: string } | null };
+type Developer = { id: number; name: string; developerProfile: { companyName: string } | null };
 type ListingWithImages = Omit<Listing, "price"> & { price: number; images: ListingImage[] };
 
 const STEPS = ["What are you listing", "Location", "Details & attributes", "Photos", "Title & review"];
@@ -101,7 +101,9 @@ export function ListingForm({
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const [step, setStep] = useState(0);
-  const [developerSelection, setDeveloperSelection] = useState(listing?.developerId ?? "");
+  const [developerSelection, setDeveloperSelection] = useState<string>(
+    listing?.developerId != null ? String(listing.developerId) : ""
+  );
   const isRequestingNewDeveloper = developerSelection === REQUEST_NEW_DEVELOPER_VALUE;
 
   const [transactionType, setTransactionType] = useState<TransactionType>(

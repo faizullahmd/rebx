@@ -10,6 +10,8 @@ declare module "next-auth" {
   }
   interface Session {
     user: {
+      // Kept as a string at the NextAuth boundary (JWT/session conventions expect a
+      // string id) — src/lib/session.ts parses this back to the real numeric User.id.
       id: string;
       name: string;
       email: string;
@@ -55,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!passwordsMatch) return null;
 
         return {
-          id: user.id,
+          id: String(user.id),
           name: user.name,
           email: user.email,
           role: user.role,
@@ -66,6 +68,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, user }) {
       if (user) {
+        // authorize() above always returns a real string id; the cast just works around
+        // next-auth's base User type declaring id as optional.
         token.id = user.id as string;
         token.role = user.role;
       }

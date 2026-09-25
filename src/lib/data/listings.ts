@@ -2,7 +2,7 @@ import "server-only";
 import type { TransactionType, PropertyCategory, PropertyType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export function getListingsForAgent(agentId: string) {
+export function getListingsForAgent(agentId: number) {
   return prisma.listing.findMany({
     where: { agentId },
     include: { images: true },
@@ -10,7 +10,7 @@ export function getListingsForAgent(agentId: string) {
   });
 }
 
-export function getListingsForDeveloper(developerId: string) {
+export function getListingsForDeveloper(developerId: number) {
   return prisma.listing.findMany({
     where: { developerId },
     include: { images: true, agent: { select: { name: true, email: true } } },
