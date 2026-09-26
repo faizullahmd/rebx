@@ -13,8 +13,13 @@ export default async function AgentDealDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const dealId = Number(id);
+  if (Number.isNaN(dealId)) {
+    notFound();
+  }
+
   const user = await requireRole("AGENT");
-  const deal = await getDealById(id);
+  const deal = await getDealById(dealId);
 
   if (!deal || deal.agentId !== user.id) {
     notFound();

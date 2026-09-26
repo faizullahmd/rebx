@@ -6,7 +6,7 @@ export function ListingImageCarousel({
   images,
   alt,
 }: {
-  images: { id: string; url: string }[];
+  images: { id: number; url: string }[];
   alt: string;
 }) {
   const [index, setIndex] = useState(0);

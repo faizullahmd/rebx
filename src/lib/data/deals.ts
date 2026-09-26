@@ -9,7 +9,7 @@ export function getDealsForAgent(agentId: number) {
   });
 }
 
-export function getDealById(id: string) {
+export function getDealById(id: number) {
   return prisma.deal.findUnique({
     where: { id },
     include: {

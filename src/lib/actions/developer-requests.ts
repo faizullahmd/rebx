@@ -19,7 +19,7 @@ function revalidateDeveloperRequestPaths() {
   revalidatePath("/developer/dashboard");
 }
 
-export async function approveDeveloperRequest(requestId: string) {
+export async function approveDeveloperRequest(requestId: number) {
   await requireRole("ADMIN");
 
   const request = await prisma.developerRequest.findUnique({ where: { id: requestId } });
@@ -76,7 +76,7 @@ export async function approveDeveloperRequest(requestId: string) {
   revalidateDeveloperRequestPaths();
 }
 
-export async function rejectDeveloperRequest(requestId: string, formData: FormData) {
+export async function rejectDeveloperRequest(requestId: number, formData: FormData) {
   await requireRole("ADMIN");
 
   const validatedFields = RejectDeveloperRequestSchema.safeParse(Object.fromEntries(formData));

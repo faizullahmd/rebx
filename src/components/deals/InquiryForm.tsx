@@ -8,7 +8,7 @@ export function InquiryForm({
   listingId,
   isLoggedInCustomer,
 }: {
-  listingId: string;
+  listingId: number;
   isLoggedInCustomer: boolean;
 }) {
   const action = createInquiry.bind(null, listingId);

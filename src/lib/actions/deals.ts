@@ -31,7 +31,7 @@ function revalidateDealPaths(listingSlug?: string) {
 }
 
 export async function createInquiry(
-  listingId: string,
+  listingId: number,
   _prevState: InquiryFormState,
   formData: FormData
 ): Promise<InquiryFormState> {
@@ -50,7 +50,7 @@ export async function createInquiry(
   let contactEmail: string;
   let contactPhone: string | null;
   let message: string | null;
-  let dealId: string;
+  let dealId: number;
 
   if (isCustomer) {
     const validatedFields = CustomerInquirySchema.safeParse(Object.fromEntries(formData));
@@ -155,7 +155,7 @@ export async function createManualDeal(
 }
 
 export async function updateDeal(
-  dealId: string,
+  dealId: number,
   _prevState: UpdateDealState,
   formData: FormData
 ): Promise<UpdateDealState> {
@@ -253,7 +253,7 @@ export async function updateDeal(
   return { message: "Deal updated." };
 }
 
-export async function deleteDeal(dealId: string) {
+export async function deleteDeal(dealId: number) {
   const user = await requireUser();
 
   const existing = await prisma.deal.findUnique({ where: { id: dealId }, include: { listing: true } });

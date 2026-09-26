@@ -32,7 +32,7 @@ export type InquiryFormState =
   | undefined;
 
 export const ManualDealSchema = InquiryFormSchema.extend({
-  listingId: z.string().trim().min(1, "Please select a listing."),
+  listingId: z.coerce.number().int().positive("Please select a listing."),
 });
 
 export const UpdateDealSchema = z.object({

@@ -13,7 +13,7 @@ import {
 } from "@/lib/validation/commission";
 import type { CommissionSource } from "@prisma/client";
 
-function revalidateCommissionPaths(dealId: string) {
+function revalidateCommissionPaths(dealId: number) {
   revalidatePath(`/agent/dashboard/deals/${dealId}`);
   revalidatePath("/agent/dashboard/commissions");
   revalidatePath("/agent/dashboard");
@@ -22,7 +22,7 @@ function revalidateCommissionPaths(dealId: string) {
 }
 
 export async function createCommission(
-  dealId: string,
+  dealId: number,
   source: CommissionSource,
   _prevState: CommissionFormState,
   formData: FormData
@@ -70,7 +70,7 @@ export async function createCommission(
 }
 
 export async function updateCommissionStatus(
-  commissionId: string,
+  commissionId: number,
   _prevState: UpdateCommissionStatusState,
   formData: FormData
 ): Promise<UpdateCommissionStatusState> {
@@ -110,7 +110,7 @@ export async function updateCommissionStatus(
   return { message: "Commission updated." };
 }
 
-export async function deleteCommission(commissionId: string) {
+export async function deleteCommission(commissionId: number) {
   const user = await requireUser();
 
   const existing = await prisma.commission.findUnique({ where: { id: commissionId } });
@@ -124,7 +124,7 @@ export async function deleteCommission(commissionId: string) {
   revalidateCommissionPaths(existing.dealId);
 }
 
-export async function markCommissionPaidOut(commissionId: string) {
+export async function markCommissionPaidOut(commissionId: number) {
   const user = await requireUser();
 
   const existing = await prisma.commission.findUnique({

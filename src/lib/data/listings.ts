@@ -29,7 +29,7 @@ export function getAllListingsAdmin() {
   });
 }
 
-export function getListingById(id: string) {
+export function getListingById(id: number) {
   return prisma.listing.findUnique({
     where: { id },
     include: { images: true },

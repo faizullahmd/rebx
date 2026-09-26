@@ -36,7 +36,7 @@ function slugify(title: string) {
 }
 
 async function createDeveloperRequest(
-  listingId: string,
+  listingId: number,
   listingTitle: string,
   agentId: number,
   agentName: string,
@@ -143,7 +143,7 @@ export async function createListing(
 }
 
 export async function updateListing(
-  listingId: string,
+  listingId: number,
   _prevState: ListingFormState,
   formData: FormData
 ): Promise<ListingFormState> {
@@ -228,7 +228,7 @@ export async function updateListing(
   return { message: requestMessage ?? "Listing updated." };
 }
 
-export async function deleteListing(listingId: string) {
+export async function deleteListing(listingId: number) {
   const user = await requireUser();
 
   const existing = await prisma.listing.findUnique({ where: { id: listingId } });

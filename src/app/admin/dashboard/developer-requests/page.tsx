@@ -102,7 +102,7 @@ export default async function DeveloperRequestsPage() {
   );
 }
 
-function RejectForm({ requestId }: { requestId: string }) {
+function RejectForm({ requestId }: { requestId: number }) {
   return (
     <form action={rejectDeveloperRequest.bind(null, requestId)} className="flex flex-col gap-1">
       <input

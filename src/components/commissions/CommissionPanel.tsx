@@ -17,7 +17,7 @@ export function CommissionPanel({
   hasDeveloper,
   commissions,
 }: {
-  dealId: string;
+  dealId: number;
   hasDeveloper: boolean;
   commissions: ClientCommission[];
 }) {
@@ -40,7 +40,7 @@ export function CommissionPanel({
   );
 }
 
-function NewCommissionForm({ dealId, source }: { dealId: string; source: CommissionSource }) {
+function NewCommissionForm({ dealId, source }: { dealId: number; source: CommissionSource }) {
   const action = createCommission.bind(null, dealId, source);
   const [state, formAction, pending] = useActionState<CommissionFormState, FormData>(
     action,

@@ -171,7 +171,7 @@ model CustomerProfile {
 }
 
 model Listing {
-  id          String        @id @default(cuid())
+  id          Int           @id @default(autoincrement())
   slug        String        @unique
   title       String
   description String        @db.Text
@@ -224,8 +224,8 @@ model Listing {
 }
 
 model ListingImage {
-  id        String   @id @default(cuid())
-  listingId String
+  id        Int      @id @default(autoincrement())
+  listingId Int
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   url       String
   sortOrder Int      @default(0)
@@ -235,10 +235,10 @@ model ListingImage {
 }
 
 model Deal {
-  id    String    @id @default(cuid())
+  id    Int       @id @default(autoincrement())
   stage DealStage @default(NEW)
 
-  listingId String
+  listingId Int
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   agentId Int
@@ -269,7 +269,7 @@ model Deal {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
+  id            Int           @id @default(autoincrement())
   status        BookingStatus @default(PENDING_CONFIRMATION)
   bookingNumber String?
   unitNumber    String?
@@ -278,7 +278,7 @@ model Booking {
   confirmedAt   DateTime?
   notes         String?       @db.Text
 
-  dealId String @unique
+  dealId Int @unique
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -288,13 +288,13 @@ model Booking {
 }
 
 model Commission {
-  id     String            @id @default(cuid())
+  id     Int               @id @default(autoincrement())
   source CommissionSource
   status CommissionStatus  @default(PENDING)
   amount Decimal           @db.Decimal(12, 2)
   notes  String?           @db.Text
 
-  dealId String
+  dealId Int
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   agentId Int
@@ -329,7 +329,7 @@ model PasswordResetToken {
 }
 
 model DeveloperRequest {
-  id              String                 @id @default(cuid())
+  id              Int                    @id @default(autoincrement())
   status          DeveloperRequestStatus @default(PENDING)
   companyName     String
   contactName     String
@@ -337,7 +337,7 @@ model DeveloperRequest {
   contactPhone    String?
   rejectionReason String?                @db.Text
 
-  listingId String
+  listingId Int
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   requestedById Int

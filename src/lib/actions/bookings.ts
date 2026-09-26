@@ -10,7 +10,7 @@ import {
   type BookingFormState,
 } from "@/lib/validation/booking";
 
-function revalidateBookingPaths(dealId: string) {
+function revalidateBookingPaths(dealId: number) {
   revalidatePath(`/agent/dashboard/deals/${dealId}`);
   revalidatePath("/agent/dashboard/deals");
   revalidatePath("/developer/dashboard");
@@ -19,7 +19,7 @@ function revalidateBookingPaths(dealId: string) {
 }
 
 export async function updateBooking(
-  bookingId: string,
+  bookingId: number,
   _prevState: BookingFormState,
   formData: FormData
 ): Promise<BookingFormState> {
@@ -58,7 +58,7 @@ export async function updateBooking(
   return { message: "Booking updated." };
 }
 
-export async function confirmBooking(bookingId: string) {
+export async function confirmBooking(bookingId: number) {
   const user = await requireUser();
 
   const existing = await prisma.booking.findUnique({
