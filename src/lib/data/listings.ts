@@ -83,7 +83,14 @@ export function getListingBySlug(slug: string) {
     where: { slug },
     include: {
       images: true,
-      agent: { select: { id: true, name: true, email: true } },
+      agent: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          agentProfile: { select: { phone: true, agencyName: true } },
+        },
+      },
     },
   });
 }

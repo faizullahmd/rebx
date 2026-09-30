@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
+import { BrokerCard } from "@/components/listings/BrokerCard";
 import { ListingImageCarousel } from "@/components/listings/ListingImageCarousel";
-import { Avatar } from "@/components/ui/Avatar";
 import {
   TRANSACTION_LABELS,
   CATEGORY_LABELS,
@@ -41,6 +41,8 @@ export default async function ListingDetailPage({
       notFound();
     }
   }
+
+  const agentPhone = listing.agent.agentProfile?.phone || "+1 (512) 555-0198";
 
   return (
     <article className="flex flex-col gap-6">
@@ -103,17 +105,15 @@ export default async function ListingDetailPage({
         </div>
 
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-          <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 text-sm">
-            <Avatar name={listing.agent.name} />
-            <div>
-              <p className="font-medium text-gray-900">{listing.agent.name}</p>
-              <p className="text-xs text-gray-500">Listing agent</p>
-              <p className="text-gray-600">{listing.agent.email}</p>
-            </div>
-          </div>
+          {/* Broker Card with Mobile Number and Ratings & Reviews */}
+          <BrokerCard agentName={listing.agent.name} agentPhone={agentPhone} />
 
+          {/* Interest Card */}
           {listing.status === "ACTIVE" && (
-            <InquiryForm listingId={listing.id} isLoggedInCustomer={session?.user?.role === "CUSTOMER"} />
+            <InquiryForm
+              listingId={listing.id}
+              isLoggedInCustomer={session?.user?.role === "CUSTOMER"}
+            />
           )}
         </div>
       </div>

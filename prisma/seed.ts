@@ -42,13 +42,13 @@ async function main() {
   const agent1 = await upsertUser("agent1@rebx.dev", "AGENT", {
     name: "Alex Agent",
     passwordHash,
-    agentProfile: { create: { agencyName: "Skyline Realty" } },
+    agentProfile: { create: { agencyName: "Skyline Realty", phone: "+1 (512) 555-0143" } },
   });
 
   const agent2 = await upsertUser("agent2@rebx.dev", "AGENT", {
     name: "Bailey Broker",
     passwordHash,
-    agentProfile: { create: { agencyName: "Harbor Homes" } },
+    agentProfile: { create: { agencyName: "Harbor Homes", phone: "+1 (512) 555-0198" } },
   });
 
   const developer = await upsertUser("developer@rebx.dev", "DEVELOPER", {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import type {
   Listing,
   ListingImage,
@@ -65,6 +65,8 @@ function initialValues(listing?: ListingWithImages) {
     description: listing?.description ?? "",
     price: listing ? String(listing.price) : "",
     currency: listing?.currency ?? "USD",
+    reraId: "",
+    possessionStarts: "",
     addressLine: listing?.addressLine ?? "",
     city: listing?.city ?? "",
     state: listing?.state ?? "",
@@ -128,6 +130,44 @@ export function ListingForm({
   const availableCategories = categoriesFor(transactionType);
   const availableTypes = typesFor(transactionType, propertyCategory);
   const visibility = propertyCategory ? FIELD_VISIBILITY[propertyCategory] : null;
+
+  const [customAvgPrice, setCustomAvgPrice] = useState<string>("");
+
+  const calculatedAvgPrice = useMemo(() => {
+    const numPrice = Number(values.price);
+    const numArea = Number(values.areaSqFt);
+    const currency = values.currency?.trim() || "USD";
+    const symbol =
+      currency === "INR" || currency === "₹"
+        ? "₹"
+        : currency === "USD" || currency === "$"
+          ? "$"
+          : currency === "EUR" || currency === "€"
+            ? "€"
+            : currency === "GBP" || currency === "£"
+              ? "£"
+              : currency.length <= 3
+                ? `${currency} `
+                : "";
+
+    if (numPrice > 0 && numArea > 0) {
+      const rate = numPrice / numArea;
+      if (rate >= 10000000) {
+        return `${symbol}${(rate / 10000000).toFixed(2)} Cr/sq.ft`;
+      }
+      if (rate >= 100000) {
+        return `${symbol}${(rate / 100000).toFixed(2)} L/sq.ft`;
+      }
+      if (rate >= 1000) {
+        return `${symbol}${(rate / 1000).toFixed(1)} K/sq.ft`;
+      }
+      return `${symbol}${Math.round(rate).toLocaleString()}/sq.ft`;
+    }
+
+    return "";
+  }, [values.price, values.areaSqFt, values.currency]);
+
+  const avgPriceValue = customAvgPrice !== "" ? customAvgPrice : calculatedAvgPrice;
 
   useEffect(() => {
     if (!state?.errors) return;
@@ -302,7 +342,7 @@ export function ListingForm({
 
       {/* Step 3: Details & attributes */}
       <div className={stepClass(2)}>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field
             label="Price"
             name="price"
@@ -318,9 +358,17 @@ export function ListingForm({
             onChange={(v) => setField("currency", v)}
             errors={state?.errors?.currency}
           />
+          <Field
+            label="Rera Id"
+            name="reraId"
+            type="text"
+            value={values.reraId}
+            onChange={(v) => setField("reraId", v)}
+            placeholder=""
+          />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {(!propertyCategory || visibility?.bedBath) && (
             <>
               <Field
@@ -345,6 +393,14 @@ export function ListingForm({
             type="number"
             value={values.areaSqFt}
             onChange={(v) => setField("areaSqFt", v)}
+          />
+          <Field
+            label="Avg Price/sq.ft"
+            name="avgPricePerSqFt"
+            type="text"
+            value={avgPriceValue}
+            onChange={(v) => setCustomAvgPrice(v)}
+            placeholder=""
           />
         </div>
 
@@ -430,6 +486,16 @@ export function ListingForm({
                   type="number"
                   value={values.propertyAgeYears}
                   onChange={(v) => setField("propertyAgeYears", v)}
+                />
+              )}
+              {(propertyType === "APARTMENT" || propertyType === "VILLA") && (
+                <Field
+                  label="Possession Starts"
+                  name="possessionStarts"
+                  type="text"
+                  value={values.possessionStarts}
+                  onChange={(v) => setField("possessionStarts", v)}
+                  placeholder=""
                 />
               )}
             </div>
@@ -596,6 +662,7 @@ function Field({
   value,
   onChange,
   errors,
+  placeholder = "",
 }: {
   label: string;
   name: string;
@@ -603,6 +670,7 @@ function Field({
   value: string;
   onChange: (value: string) => void;
   errors?: string[];
+  placeholder?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -614,6 +682,7 @@ function Field({
         name={name}
         type={type}
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="rounded-md border border-gray-300 px-3 py-2 text-sm"
       />

@@ -13,6 +13,19 @@ const roleForPrefix: Record<string, Role> = {
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (pathname === "/list-property") {
+    const session = await auth();
+    if (!session?.user) {
+      const loginUrl = new URL("/login", req.nextUrl);
+      loginUrl.searchParams.set("callbackUrl", "/agent/dashboard/listings/new");
+      return NextResponse.redirect(loginUrl);
+    }
+    if (session.user.role === "AGENT" || session.user.role === "ADMIN") {
+      return NextResponse.redirect(new URL("/agent/dashboard/listings/new", req.nextUrl));
+    }
+    return NextResponse.next();
+  }
+
   const isAccount = pathname === "/account" || pathname.startsWith("/account/");
   const prefix = Object.keys(roleForPrefix).find(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
@@ -42,5 +55,6 @@ export const config = {
     "/customer/:path*",
     "/admin/:path*",
     "/account/:path*",
+    "/list-property",
   ],
 };

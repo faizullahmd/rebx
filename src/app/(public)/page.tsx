@@ -7,6 +7,18 @@ export default async function HomePage() {
   const session = await auth();
   const listings = await getRecentActiveListings(6);
   const agentHref = session?.user ? "/agent/dashboard" : "/login";
+  const developerHref =
+    session?.user?.role === "DEVELOPER"
+      ? "/developer/dashboard"
+      : "/signup";
+  const listPropertyHref =
+    session?.user?.role === "AGENT" || session?.user?.role === "ADMIN"
+      ? "/agent/dashboard/listings/new"
+      : session?.user?.role === "CUSTOMER"
+        ? "/list-property"
+        : session?.user
+          ? "/developer/dashboard"
+          : "/login?callbackUrl=%2Fagent%2Fdashboard%2Flistings%2Fnew";
 
   return (
     <div className="flex flex-col">
@@ -402,8 +414,97 @@ export default async function HomePage() {
       <section className="border-b border-neutral-200/80 bg-neutral-50/50 py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
-            {/* Left Image */}
-            <div className="order-2 lg:order-1 lg:col-span-6">
+            {/* Left Image (stacks above on mobile, left on desktop) */}
+            <div className="lg:col-span-6">
+              <div className="overflow-hidden rounded-lg border border-neutral-200/90 bg-neutral-100 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/developer-projects.jpg"
+                  alt="Grow Your Real Estate Projects with REBX"
+                  className="aspect-[4/3] w-full object-cover"
+                />
+              </div>
+            </div>
+
+            {/* Right Content */}
+            <div className="flex flex-col items-start lg:col-span-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                PROPERTY DEVELOPERS
+              </span>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+                Grow Your Real Estate Projects with REBX
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
+                Connect your properties with a network of real estate agents and brokers through REBX.
+              </p>
+
+              <ul className="mt-6 flex flex-col gap-3 text-sm text-neutral-700">
+                <li className="flex items-center gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <span>Showcase your properties</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <span>Connect with agents & brokers</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <span>Manage your property opportunities</span>
+                </li>
+              </ul>
+
+              <div className="mt-8">
+                <Link
+                  href={developerHref}
+                  className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800"
+                >
+                  <span>Join as a Developer</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. LIST A PROPERTY */}
+      <section className="border-b border-neutral-200/80 bg-white py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
+            {/* Left Content */}
+            <div className="flex flex-col items-start lg:col-span-6">
+              <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+                Get Your Properties in Front of the Right Network
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
+                List your properties on REBX and connect with a network of real estate professionals who can help bring your properties to potential customers.
+              </p>
+
+              <div className="mt-8">
+                <Link
+                  href={listPropertyHref}
+                  className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800"
+                >
+                  <span>List a Property</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Image */}
+            <div className="lg:col-span-6">
               <div className="overflow-hidden rounded-lg border border-neutral-200/90 bg-neutral-100 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -413,34 +514,11 @@ export default async function HomePage() {
                 />
               </div>
             </div>
-
-            {/* Right Content */}
-            <div className="order-1 flex flex-col items-start lg:order-2 lg:col-span-6">
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-                Property Developers
-              </span>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
-                Get Your Properties in Front of the Right Network
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
-                List your properties on REBX and connect with a network of real estate professionals who can help bring your properties to potential customers.
-              </p>
-
-              <div className="mt-8">
-                <Link
-                  href="/list-property"
-                  className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800"
-                >
-                  <span>List a Property</span>
-                  <span>→</span>
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* 8. FINAL CTA */}
+      {/* 9. FINAL CTA */}
       <section className="bg-white py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border border-neutral-200 bg-neutral-50/80 px-6 py-14 text-center sm:px-12 sm:py-20 lg:px-16">
