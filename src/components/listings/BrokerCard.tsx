@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/Avatar";
 
 interface Review {
@@ -49,10 +50,34 @@ export function BrokerCard({
   agentName: string;
   agentPhone: string;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showWriteReview, setShowWriteReview] = useState(false);
   const [userRating, setUserRating] = useState(5);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (showReviewsModal) {
+      document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setShowReviewsModal(false);
+          setShowWriteReview(false);
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [showReviewsModal]);
 
   return (
     <>
@@ -146,163 +171,178 @@ export function BrokerCard({
         </div>
       </div>
 
-      {/* Ratings & Reviews Modal */}
-      {showReviewsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {agentName}&apos;s Ratings &amp; Reviews
-                </h3>
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="flex items-center text-amber-500">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">4.9</span>
-                  <span className="text-xs text-gray-500">(28 verified reviews)</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowReviewsModal(false);
-                  setShowWriteReview(false);
-                }}
-                className="text-gray-400 hover:text-gray-600 text-xl font-semibold leading-none p-1 cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
-
-            {/* Performance breakdown */}
-            <div className="grid grid-cols-3 gap-2 my-4 rounded-lg bg-gray-50 p-3 text-center text-xs">
-              <div>
-                <p className="font-semibold text-gray-900">5.0 ★</p>
-                <p className="text-[11px] text-gray-500">Communication</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">4.9 ★</p>
-                <p className="text-[11px] text-gray-500">Local Knowledge</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">4.8 ★</p>
-                <p className="text-[11px] text-gray-500">Negotiation</p>
-              </div>
-            </div>
-
-            {/* Write a review form */}
-            {showWriteReview ? (
-              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/40 p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">Leave a Client Review</h4>
-                {reviewSubmitted ? (
-                  <p className="text-xs text-emerald-700 bg-emerald-50 p-2 rounded-md font-medium">
-                    ✓ Thank you! Your review has been submitted for verification.
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-600">Your Rating:</span>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={() => setUserRating(star)}
-                            className="cursor-pointer text-amber-500 hover:scale-110 transition"
-                          >
-                            <svg
-                              className={`h-5 w-5 ${star <= userRating ? "fill-current" : "stroke-current fill-none"}`}
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <textarea
-                      rows={3}
-                      placeholder="Share your experience working with this agent..."
-                      className="w-full rounded-md border border-gray-300 bg-white p-2 text-xs"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowWriteReview(false)}
-                        className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setReviewSubmitted(true)}
-                        className="rounded-md bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-800"
-                      >
-                        Submit Review
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Verified Client Reviews
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowWriteReview(true)}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
-                >
-                  + Write a review
-                </button>
-              </div>
-            )}
-
-            {/* List of sample reviews */}
-            <div className="flex flex-col gap-3">
-              {SAMPLE_REVIEWS.map((rev) => (
-                <div key={rev.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-900">{rev.name}</p>
-                      <p className="text-[10px] text-gray-500">{rev.role}</p>
-                    </div>
+      {/* Ratings & Reviews Modal (Rendered in document.body via Portal to ensure absolute center and above sticky header) */}
+      {mounted &&
+        showReviewsModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowReviewsModal(false);
+                setShowWriteReview(false);
+              }
+            }}
+          >
+            <div
+              className="relative my-auto w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {agentName}&apos;s Ratings &amp; Reviews
+                  </h3>
+                  <div className="mt-1 flex items-center gap-2">
                     <div className="flex items-center text-amber-500">
-                      {[...Array(rev.rating)].map((_, i) => (
-                        <svg key={i} className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="h-4 w-4 fill-current" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
-                      <span className="ml-1 text-[11px] text-gray-400">{rev.date}</span>
                     </div>
+                    <span className="text-sm font-bold text-gray-900">4.9</span>
+                    <span className="text-xs text-gray-500">(28 verified reviews)</span>
                   </div>
-                  <p className="mt-2 text-xs text-gray-700 leading-relaxed">&ldquo;{rev.comment}&rdquo;</p>
                 </div>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReviewsModal(false);
+                    setShowWriteReview(false);
+                  }}
+                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer text-xl leading-none"
+                  aria-label="Close dialog"
+                >
+                  &times;
+                </button>
+              </div>
 
-            <div className="mt-5 border-t border-gray-100 pt-3 text-right">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowReviewsModal(false);
-                  setShowWriteReview(false);
-                }}
-                className="rounded-md bg-gray-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-800 cursor-pointer"
-              >
-                Close
-              </button>
+              {/* Performance breakdown */}
+              <div className="grid grid-cols-3 gap-2 my-4 rounded-xl bg-gray-50 p-3 text-center text-xs">
+                <div>
+                  <p className="font-semibold text-gray-900">5.0 ★</p>
+                  <p className="text-[11px] text-gray-500">Communication</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">4.9 ★</p>
+                  <p className="text-[11px] text-gray-500">Local Knowledge</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">4.8 ★</p>
+                  <p className="text-[11px] text-gray-500">Negotiation</p>
+                </div>
+              </div>
+
+              {/* Write a review form */}
+              {showWriteReview ? (
+                <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Leave a Client Review</h4>
+                  {reviewSubmitted ? (
+                    <p className="text-xs text-emerald-700 bg-emerald-50 p-2.5 rounded-lg font-medium">
+                      ✓ Thank you! Your review has been submitted for verification.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-600">Your Rating:</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setUserRating(star)}
+                              className="cursor-pointer text-amber-500 hover:scale-110 transition"
+                            >
+                              <svg
+                                className={`h-5 w-5 ${star <= userRating ? "fill-current" : "stroke-current fill-none"}`}
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <textarea
+                        rows={3}
+                        placeholder="Share your experience working with this agent..."
+                        className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs focus:border-gray-900 focus:outline-none"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowWriteReview(false)}
+                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReviewSubmitted(true)}
+                          className="rounded-lg bg-gray-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition"
+                        >
+                          Submit Review
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    Verified Client Reviews
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowWriteReview(true)}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer transition"
+                  >
+                    + Write a review
+                  </button>
+                </div>
+              )}
+
+              {/* List of sample reviews */}
+              <div className="flex flex-col gap-3">
+                {SAMPLE_REVIEWS.map((rev) => (
+                  <div key={rev.id} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-900">{rev.name}</p>
+                        <p className="text-[10px] text-gray-500">{rev.role}</p>
+                      </div>
+                      <div className="flex items-center text-amber-500">
+                        {[...Array(rev.rating)].map((_, i) => (
+                          <svg key={i} className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                        <span className="ml-1.5 text-[11px] text-gray-400">{rev.date}</span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-700 leading-relaxed">&ldquo;{rev.comment}&rdquo;</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 border-t border-gray-100 pt-3 text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReviewsModal(false);
+                    setShowWriteReview(false);
+                  }}
+                  className="rounded-lg bg-gray-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-800 cursor-pointer transition"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
