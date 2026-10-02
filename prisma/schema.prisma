@@ -118,6 +118,7 @@ model User {
   id           Int      @id
   name         String
   email        String   @unique
+  username     String?  @unique
   passwordHash String
   role         Role
   createdAt    DateTime @default(now())
@@ -140,6 +141,10 @@ model User {
 
   developerRequestsMade      DeveloperRequest[] @relation("DeveloperRequestsMade")
   developerRequestsResolved  DeveloperRequest[] @relation("DeveloperRequestsResolved")
+
+  videosCreated Video[] @relation("UserVideos")
+
+  reviewsReceived Review[] @relation("AgentReviews")
 
   @@index([role])
 }
@@ -179,6 +184,7 @@ model Listing {
   currency    String        @default("USD")
 
   addressLine String
+  locality    String?
   city        String
   state       String?
   country     String
@@ -189,6 +195,10 @@ model Listing {
   bedrooms    Int?
   bathrooms   Int?
   areaSqFt    Int?
+
+  reraId           String?
+  avgPricePerSqFt  String?
+  possessionStarts String?
 
   status      ListingStatus @default(DRAFT)
 
@@ -207,9 +217,15 @@ model Listing {
   developerId Int?
   developer   User?         @relation("DeveloperListings", fields: [developerId], references: [id])
 
+  videoUrl    String?       @db.Text
+  videoId     Int?
+  video       Video?        @relation("ListingToVideo", fields: [videoId], references: [id], onDelete: SetNull)
+
   images      ListingImage[]
+  videos      ListingVideo[]
   deals       Deal[]
   developerRequests DeveloperRequest[]
+  reviews     Review[]      @relation("ListingReviews")
 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -217,10 +233,28 @@ model Listing {
   @@index([status])
   @@index([agentId])
   @@index([developerId])
+  @@index([videoId])
   @@index([city])
   @@index([transactionType])
   @@index([propertyCategory])
   @@index([propertyType])
+}
+
+model Video {
+  id           Int       @id @default(autoincrement())
+  title        String
+  url          String    @db.Text
+  provider     String
+  videoId      String
+  thumbnailUrl String?   @db.Text
+  createdById  Int
+  createdBy    User      @relation("UserVideos", fields: [createdById], references: [id], onDelete: Cascade)
+  listings     Listing[] @relation("ListingToVideo")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([provider, videoId])
+  @@index([createdById])
 }
 
 model ListingImage {
@@ -228,6 +262,18 @@ model ListingImage {
   listingId Int
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+model ListingVideo {
+  id        Int      @id @default(autoincrement())
+  listingId Int
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String   @db.Text
+  title     String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
@@ -353,4 +399,28 @@ model DeveloperRequest {
   @@index([listingId])
   @@index([requestedById])
   @@index([status])
+}
+
+model Review {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  role                 String?  @default("Verified Buyer")
+  rating               Int      @default(5)
+  comment              String   @db.Text
+  communicationRating  Float?
+  localKnowledgeRating Float?
+  negotiationRating    Float?
+  isVerified           Boolean  @default(true)
+
+  agentId              Int
+  agent                User     @relation("AgentReviews", fields: [agentId], references: [id], onDelete: Cascade)
+
+  listingId            Int?
+  listing              Listing? @relation("ListingReviews", fields: [listingId], references: [id], onDelete: SetNull)
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([listingId])
 }

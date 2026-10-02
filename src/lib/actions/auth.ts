@@ -13,6 +13,9 @@ import {
   type SignupFormState,
 } from "@/lib/validation/auth";
 
+import { normalizeUsername } from "@/lib/validation/username";
+import { Prisma } from "@prisma/client";
+
 export async function signup(
   _prevState: SignupFormState,
   formData: FormData
@@ -22,6 +25,7 @@ export async function signup(
     email: formData.get("email"),
     password: formData.get("password"),
     role: formData.get("role"),
+    username: formData.get("username") || "",
     companyName: formData.get("companyName") || "",
   });
 
@@ -29,32 +33,58 @@ export async function signup(
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { name, email, password, role, companyName } = validatedFields.data;
+  const { name, email, password, role, username, companyName } = validatedFields.data;
+  const normalizedUsername = username ? normalizeUsername(username) : null;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return { message: "An account with this email already exists." };
   }
 
+  if (normalizedUsername) {
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: normalizedUsername },
+    });
+    if (existingUsername) {
+      return {
+        errors: {
+          username: ["This username is already taken. Please choose another."],
+        },
+      };
+    }
+  }
+
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.$transaction(async (tx) => {
-    const id = await nextUserId(tx, role);
-    await tx.user.create({
-      data: {
-        id,
-        name,
-        email,
-        passwordHash,
-        role,
-        ...(role === "AGENT"
-          ? { agentProfile: { create: {} } }
-          : role === "DEVELOPER"
-            ? { developerProfile: { create: { companyName: companyName || "" } } }
-            : { customerProfile: { create: {} } }),
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      const id = await nextUserId(tx, role);
+      await tx.user.create({
+        data: {
+          id,
+          name,
+          email,
+          username: normalizedUsername,
+          passwordHash,
+          role,
+          ...(role === "AGENT"
+            ? { agentProfile: { create: {} } }
+            : role === "DEVELOPER"
+              ? { developerProfile: { create: { companyName: companyName || "" } } }
+              : { customerProfile: { create: {} } }),
+        },
+      });
     });
-  });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        errors: {
+          username: ["This username was just taken. Please choose another."],
+        },
+      };
+    }
+    throw error;
+  }
 
   await sendWelcomeEmail(email, name);
 

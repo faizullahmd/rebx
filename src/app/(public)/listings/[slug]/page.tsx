@@ -4,6 +4,8 @@ import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
 import { BrokerCard } from "@/components/listings/BrokerCard";
 import { ListingImageCarousel } from "@/components/listings/ListingImageCarousel";
+import { ListingVideosSection } from "@/components/listings/ListingVideosSection";
+import { PropertyVideoPlayer } from "@/components/listings/PropertyVideoPlayer";
 import {
   TRANSACTION_LABELS,
   CATEGORY_LABELS,
@@ -31,6 +33,8 @@ export default async function ListingDetailPage({
     notFound();
   }
 
+  console.log("Listing in detail page:", listing.title, "videoUrl:", listing.videoUrl);
+
   const session = await auth();
 
   if (listing.status !== "ACTIVE") {
@@ -54,6 +58,13 @@ export default async function ListingDetailPage({
       )}
 
       <ListingImageCarousel images={listing.images} alt={listing.title} />
+
+      {(listing.video?.url || listing.videoUrl) && (
+        <PropertyVideoPlayer
+          videoUrl={listing.video?.url || listing.videoUrl!}
+          title={listing.video?.title || listing.title}
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
@@ -99,14 +110,35 @@ export default async function ListingDetailPage({
                   .join(" · ")}
               </p>
             )}
+            {((listing as any).avgPricePerSqFt || (listing as any).possessionStarts || (listing as any).reraId) && (
+              <p className="mt-1 text-sm text-gray-500">
+                {[
+                  (listing as any).avgPricePerSqFt ? `Avg: ${(listing as any).avgPricePerSqFt}` : null,
+                  (listing as any).possessionStarts ? `Possession: ${(listing as any).possessionStarts}` : null,
+                  (listing as any).reraId ? `RERA: ${(listing as any).reraId}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
 
           <p className="whitespace-pre-wrap text-gray-700">{listing.description}</p>
+
+          {listing.videos && listing.videos.length > 0 && (
+            <ListingVideosSection videos={listing.videos} />
+          )}
         </div>
 
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
           {/* Broker Card with Mobile Number and Ratings & Reviews */}
-          <BrokerCard agentName={listing.agent.name} agentPhone={agentPhone} />
+          <BrokerCard
+            agentId={listing.agent.id}
+            listingId={listing.id}
+            agentName={listing.agent.name}
+            agentPhone={agentPhone}
+            agentUsername={listing.agent.username}
+          />
 
           {/* Interest Card */}
           {listing.status === "ACTIVE" && (

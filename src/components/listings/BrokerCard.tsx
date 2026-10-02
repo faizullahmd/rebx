@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/Avatar";
+
+import { submitAgentReview } from "@/lib/actions/reviews";
 
 interface Review {
   id: string;
@@ -44,16 +47,24 @@ const SAMPLE_REVIEWS: Review[] = [
 ];
 
 export function BrokerCard({
+  agentId,
+  listingId,
   agentName,
   agentPhone,
+  agentUsername,
 }: {
+  agentId?: number;
+  listingId?: number;
   agentName: string;
   agentPhone: string;
+  agentUsername?: string | null;
 }) {
   const [mounted, setMounted] = useState(false);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showWriteReview, setShowWriteReview] = useState(false);
   const [userRating, setUserRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   useEffect(() => {
@@ -84,10 +95,35 @@ export function BrokerCard({
       <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3.5 text-sm shadow-2xs">
         {/* Broker identity */}
         <div className="flex items-center gap-3">
-          <Avatar name={agentName} />
-          <div>
-            <p className="font-semibold text-gray-900">{agentName}</p>
-            <p className="text-xs text-gray-500">Listing agent</p>
+          {agentUsername ? (
+            <Link href={`/portfolio/${agentUsername}`} className="transition-opacity hover:opacity-85">
+              <Avatar name={agentName} />
+            </Link>
+          ) : (
+            <Avatar name={agentName} />
+          )}
+          <div className="min-w-0 flex-1">
+            {agentUsername ? (
+              <Link
+                href={`/portfolio/${agentUsername}`}
+                className="font-semibold text-gray-900 transition-colors hover:text-blue-600 hover:underline inline-block truncate max-w-full"
+              >
+                {agentName}
+              </Link>
+            ) : (
+              <p className="font-semibold text-gray-900 truncate">{agentName}</p>
+            )}
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-500">Listing agent</p>
+              {agentUsername && (
+                <Link
+                  href={`/portfolio/${agentUsername}`}
+                  className="text-[11px] font-medium text-blue-600 hover:underline"
+                >
+                  Portfolio →
+                </Link>
+              )}
+            </div>
             <a
               href={`tel:${agentPhone}`}
               className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-gray-700 transition hover:text-gray-900"
@@ -267,23 +303,47 @@ export function BrokerCard({
                       </div>
                       <textarea
                         rows={3}
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
                         placeholder="Share your experience working with this agent..."
                         className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs focus:border-gray-900 focus:outline-none"
                       />
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => setShowWriteReview(false)}
+                          onClick={() => {
+                            setShowWriteReview(false);
+                            setReviewComment("");
+                          }}
                           className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition"
                         >
                           Cancel
                         </button>
                         <button
                           type="button"
-                          onClick={() => setReviewSubmitted(true)}
-                          className="rounded-lg bg-gray-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition"
+                          disabled={isSubmittingReview || !reviewComment.trim()}
+                          onClick={async () => {
+                            if (!reviewComment.trim()) return;
+                            setIsSubmittingReview(true);
+                            try {
+                              if (agentId) {
+                                await submitAgentReview({
+                                  agentId,
+                                  listingId,
+                                  rating: userRating,
+                                  comment: reviewComment,
+                                });
+                              }
+                              setReviewSubmitted(true);
+                            } catch (e) {
+                              console.error(e);
+                            } finally {
+                              setIsSubmittingReview(false);
+                            }
+                          }}
+                          className="rounded-lg bg-gray-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition disabled:opacity-50"
                         >
-                          Submit Review
+                          {isSubmittingReview ? "Submitting..." : "Submit Review"}
                         </button>
                       </div>
                     </div>

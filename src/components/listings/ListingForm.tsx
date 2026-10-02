@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import type {
   Listing,
   ListingImage,
+  ListingVideo,
   TransactionType,
   PropertyCategory,
   PropertyType,
@@ -11,6 +12,8 @@ import type {
 import type { ListingFormState } from "@/lib/validation/listing";
 import { REQUEST_NEW_DEVELOPER_VALUE } from "@/lib/validation/developer-request";
 import { ImageUploader } from "@/components/listings/ImageUploader";
+import { VideoUploader } from "@/components/listings/VideoUploader";
+import { VideoSelect, type VideoOption } from "@/components/listings/VideoSelect";
 import {
   TRANSACTION_TYPES,
   TRANSACTION_LABELS,
@@ -23,11 +26,19 @@ import {
   categoriesFor,
   typesFor,
 } from "@/lib/property-taxonomy";
+import { parseVideoUrl } from "@/lib/video";
 
 type Developer = { id: number; name: string; developerProfile: { companyName: string } | null };
-type ListingWithImages = Omit<Listing, "price"> & { price: number; images: ListingImage[] };
+type ListingWithImages = Omit<Listing, "price"> & {
+  price: number;
+  images: ListingImage[];
+  videos?: ListingVideo[];
+  videoUrl?: string | null;
+  videoId?: number | null;
+  video?: { id: number; title: string; thumbnailUrl: string | null } | null;
+};
 
-const STEPS = ["What are you listing", "Location", "Details & attributes", "Photos", "Title & review"];
+const STEPS = ["What are you listing", "Location", "Details & attributes", "Photos & video", "Title & review"];
 
 const FIELD_STEP: Record<string, number> = {
   transactionType: 0,
@@ -55,6 +66,8 @@ const FIELD_STEP: Record<string, number> = {
   requestDeveloperEmail: 2,
   requestDeveloperPhone: 2,
   imageUrls: 3,
+  videoUrl: 3,
+  videoId: 3,
   title: 4,
   description: 4,
 };
@@ -65,8 +78,11 @@ function initialValues(listing?: ListingWithImages) {
     description: listing?.description ?? "",
     price: listing ? String(listing.price) : "",
     currency: listing?.currency ?? "USD",
-    reraId: "",
-    possessionStarts: "",
+    videoUrl: listing?.videoUrl ?? "",
+    videoId: listing?.videoId ? String(listing.videoId) : "",
+    reraId: (listing as any)?.reraId ?? "",
+    possessionStarts: (listing as any)?.possessionStarts ?? "",
+    avgPricePerSqFt: (listing as any)?.avgPricePerSqFt ?? "",
     addressLine: listing?.addressLine ?? "",
     city: listing?.city ?? "",
     state: listing?.state ?? "",
@@ -95,12 +111,24 @@ export function ListingForm({
   listing,
   developers,
   submitLabel,
+  canAddVideo = true,
 }: {
   action: (state: ListingFormState, formData: FormData) => Promise<ListingFormState>;
   listing?: ListingWithImages;
   developers: Developer[];
   submitLabel: string;
+  canAddVideo?: boolean;
 }) {
+  const canAttachVideo = canAddVideo;
+  const [selectedVideoObj, setSelectedVideoObj] = useState<VideoOption | null>(
+    listing?.video
+      ? {
+          id: listing.video.id,
+          title: listing.video.title,
+          thumbnailUrl: listing.video.thumbnailUrl,
+        }
+      : null
+  );
   const [state, formAction, pending] = useActionState(action, undefined);
   const [step, setStep] = useState(0);
   const [developerSelection, setDeveloperSelection] = useState<string>(
@@ -131,7 +159,38 @@ export function ListingForm({
   const availableTypes = typesFor(transactionType, propertyCategory);
   const visibility = propertyCategory ? FIELD_VISIBILITY[propertyCategory] : null;
 
-  const [customAvgPrice, setCustomAvgPrice] = useState<string>("");
+  const [customAvgPrice, setCustomAvgPrice] = useState<string>((listing as any)?.avgPricePerSqFt ?? "");
+  const [vimeoThumb, setVimeoThumb] = useState<string | null>(null);
+
+  const parsedVideo = useMemo(() => {
+    if (!values.videoUrl?.trim()) return null;
+    return parseVideoUrl(values.videoUrl.trim());
+  }, [values.videoUrl]);
+
+  const videoUrlError = useMemo(() => {
+    if (!values.videoUrl?.trim()) return null;
+    if (!parsedVideo) {
+      return "Please enter a valid YouTube or Vimeo URL.";
+    }
+    return null;
+  }, [values.videoUrl, parsedVideo]);
+
+  useEffect(() => {
+    if (parsedVideo?.provider === "vimeo") {
+      fetch(`/api/video-meta?url=${encodeURIComponent(values.videoUrl.trim())}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.thumbnailUrl) setVimeoThumb(data.thumbnailUrl);
+        })
+        .catch(() => {});
+    } else {
+      setVimeoThumb(null);
+    }
+  }, [parsedVideo, values.videoUrl]);
+
+  const activeThumbnail = parsedVideo?.provider === "vimeo"
+    ? (vimeoThumb || parsedVideo.thumbnailUrl)
+    : parsedVideo?.thumbnailUrl;
 
   const calculatedAvgPrice = useMemo(() => {
     const numPrice = Number(values.price);
@@ -577,11 +636,32 @@ export function ListingForm({
         )}
       </div>
 
-      {/* Step 4: Photos */}
+      {/* Step 4: Photos & video */}
       <div className={stepClass(3)}>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Photos</label>
-          <ImageUploader name="imageUrls" initialImages={listing?.images.map((img) => img.url) ?? []} />
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Photos</label>
+            <ImageUploader name="imageUrls" initialImages={listing?.images.map((img) => img.url) ?? []} />
+          </div>
+
+          {canAttachVideo && (
+            <div className="border-t border-gray-200 pt-6">
+              <VideoSelect
+                name="videoId"
+                value={values.videoId}
+                initialVideo={listing?.video}
+                onChange={(vid, videoObj) => {
+                  setField("videoId", vid != null ? String(vid) : "");
+                  setSelectedVideoObj(videoObj);
+                }}
+              />
+              {state?.errors?.videoId && (
+                <p className="mt-1 text-xs font-medium text-red-600">
+                  {state.errors.videoId[0]}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -619,6 +699,37 @@ export function ListingForm({
             .filter(Boolean)
             .join(" · ")}
         </p>
+
+        {/* Selected Video Summary in Review */}
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3 text-sm">
+          <p className="font-semibold text-gray-700 mb-1.5 text-xs uppercase tracking-wider">
+            Selected Video
+          </p>
+          {values.videoId && selectedVideoObj ? (
+            <div className="flex items-center gap-3">
+              {selectedVideoObj.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selectedVideoObj.thumbnailUrl}
+                  alt={selectedVideoObj.title}
+                  className="h-12 w-20 rounded object-cover border border-gray-200 shadow-2xs"
+                />
+              ) : (
+                <div className="h-12 w-20 rounded bg-gray-200 flex items-center justify-center text-[10px] text-gray-500">
+                  Video
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 truncate text-sm">
+                  {selectedVideoObj.title}
+                </p>
+                <p className="text-xs text-emerald-600">Attached from Video Gallery</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 italic text-sm">No video</p>
+          )}
+        </div>
       </div>
 
       <div className="mt-2 flex items-center justify-between">

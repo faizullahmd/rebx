@@ -12,6 +12,8 @@ import {
   type ProfileFormState,
 } from "@/lib/validation/account";
 
+import { normalizeUsername } from "@/lib/validation/username";
+
 function revalidateAccountPaths() {
   revalidatePath("/account");
   revalidatePath("/dashboard");
@@ -32,8 +34,14 @@ export async function updateProfile(
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { name, email, agencyName, licenseNo, companyName, website, phone, bio } =
+  const { name, email, username, agencyName, licenseNo, companyName, website, phone, bio } =
     validatedFields.data;
+
+  const normalizedUsername = username ? normalizeUsername(username) : null;
+
+  if ((user.role === "AGENT" || user.role === "DEVELOPER") && !normalizedUsername) {
+    return { errors: { username: ["Username is required for your public portfolio URL."] } };
+  }
 
   if (email !== user.email) {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -42,49 +50,73 @@ export async function updateProfile(
     }
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { name, email } });
-
-    if (user.role === "AGENT") {
-      await tx.agentProfile.upsert({
-        where: { userId: user.id },
-        update: {
-          agencyName: agencyName || null,
-          licenseNo: licenseNo || null,
-          phone: phone || null,
-          bio: bio || null,
-        },
-        create: {
-          userId: user.id,
-          agencyName: agencyName || null,
-          licenseNo: licenseNo || null,
-          phone: phone || null,
-          bio: bio || null,
-        },
-      });
-    } else if (user.role === "DEVELOPER") {
-      await tx.developerProfile.upsert({
-        where: { userId: user.id },
-        update: {
-          companyName: companyName || "",
-          phone: phone || null,
-          website: website || null,
-        },
-        create: {
-          userId: user.id,
-          companyName: companyName || "",
-          phone: phone || null,
-          website: website || null,
-        },
-      });
-    } else if (user.role === "CUSTOMER") {
-      await tx.customerProfile.upsert({
-        where: { userId: user.id },
-        update: { phone: phone || null },
-        create: { userId: user.id, phone: phone || null },
-      });
+  if (normalizedUsername && normalizedUsername !== user.username?.toLowerCase()) {
+    const existingUserWithUsername = await prisma.user.findUnique({
+      where: { username: normalizedUsername },
+    });
+    if (existingUserWithUsername && existingUserWithUsername.id !== user.id) {
+      return { errors: { username: ["This username is already taken."] } };
     }
-  });
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { name, email, username: normalizedUsername },
+      });
+
+      if (user.role === "AGENT") {
+        await tx.agentProfile.upsert({
+          where: { userId: user.id },
+          update: {
+            agencyName: agencyName || null,
+            licenseNo: licenseNo || null,
+            phone: phone || null,
+            bio: bio || null,
+          },
+          create: {
+            userId: user.id,
+            agencyName: agencyName || null,
+            licenseNo: licenseNo || null,
+            phone: phone || null,
+            bio: bio || null,
+          },
+        });
+      } else if (user.role === "DEVELOPER") {
+        await tx.developerProfile.upsert({
+          where: { userId: user.id },
+          update: {
+            companyName: companyName || "",
+            phone: phone || null,
+            website: website || null,
+          },
+          create: {
+            userId: user.id,
+            companyName: companyName || "",
+            phone: phone || null,
+            website: website || null,
+          },
+        });
+      } else if (user.role === "CUSTOMER") {
+        await tx.customerProfile.upsert({
+          where: { userId: user.id },
+          update: { phone: phone || null },
+          create: { userId: user.id, phone: phone || null },
+        });
+      }
+    });
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return { errors: { username: ["This username is already taken."] } };
+    }
+    throw error;
+  }
 
   revalidateAccountPaths();
   return { message: "Profile updated." };

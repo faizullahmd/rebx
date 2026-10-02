@@ -90,6 +90,30 @@ export default function SignupPage() {
           </div>
         </div>
 
+        {(role === "AGENT" || role === "DEVELOPER") && (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="username" className="text-sm font-medium text-gray-700">
+              Username <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-xs focus-within:border-black focus-within:ring-1 focus-within:ring-black">
+              <span className="text-gray-400 select-none text-xs sm:text-sm">rebx.app/portfolio/</span>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                placeholder="e.g. alex-agent"
+                className="ml-1 w-full bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
+              />
+            </div>
+            <p className="text-xs text-gray-500">
+              Your public portfolio URL. Lowercase letters, numbers, and hyphens (3–30 chars).
+            </p>
+            {state?.errors?.username && <FieldError messages={state.errors.username} />}
+          </div>
+        )}
+
         {role === "DEVELOPER" && (
           <div className="flex flex-col gap-1">
             <label htmlFor="companyName" className="text-sm font-medium text-gray-700">

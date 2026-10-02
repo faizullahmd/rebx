@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidVideoUrl } from "@/lib/video";
 
 export const optionalNumber = (schema: z.ZodType<number>) =>
   z.preprocess((val) => (val === "" || val === undefined || val === null ? undefined : val), schema.optional());
@@ -22,9 +23,21 @@ export const ListingFormSchema = z.object({
   bedrooms: optionalNumber(z.coerce.number().int().nonnegative()),
   bathrooms: optionalNumber(z.coerce.number().int().nonnegative()),
   areaSqFt: optionalNumber(z.coerce.number().int().positive()),
+  reraId: z.string().trim().optional().or(z.literal("")),
+  avgPricePerSqFt: z.string().trim().optional().or(z.literal("")),
+  possessionStarts: z.string().trim().optional().or(z.literal("")),
   status: z.enum(["DRAFT", "ACTIVE", "UNDER_OFFER", "SOLD"]),
   developerId: z.string().trim().optional().or(z.literal("")),
   imageUrls: z.string().trim().optional().or(z.literal("")),
+  videoUrl: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || isValidVideoUrl(val), {
+      message: "Please enter a valid YouTube or Vimeo URL.",
+    }),
+  videoId: optionalNumber(z.coerce.number().int().positive()),
   requestDeveloperCompanyName: z.string().trim().optional().or(z.literal("")),
   requestDeveloperContactName: z.string().trim().optional().or(z.literal("")),
   requestDeveloperEmail: z.string().trim().optional().or(z.literal("")),

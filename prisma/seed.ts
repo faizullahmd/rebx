@@ -36,35 +36,41 @@ async function main() {
 
   const admin = await upsertUser("admin@rebx.dev", "ADMIN", {
     name: "Ava Admin",
+    username: "ava-admin",
     passwordHash,
   });
 
   const agent1 = await upsertUser("agent1@rebx.dev", "AGENT", {
     name: "Alex Agent",
+    username: "alex-agent",
     passwordHash,
     agentProfile: { create: { agencyName: "Skyline Realty", phone: "+1 (512) 555-0143" } },
   });
 
   const agent2 = await upsertUser("agent2@rebx.dev", "AGENT", {
     name: "Bailey Broker",
+    username: "bailey-broker",
     passwordHash,
     agentProfile: { create: { agencyName: "Harbor Homes", phone: "+1 (512) 555-0198" } },
   });
 
   const developer = await upsertUser("developer@rebx.dev", "DEVELOPER", {
     name: "Devon Developer",
+    username: "devon-developer",
     passwordHash,
     developerProfile: { create: { companyName: "Northgate Developments" } },
   });
 
   const customer1 = await upsertUser("customer1@rebx.dev", "CUSTOMER", {
     name: "Casey Customer",
+    username: "casey-customer",
     passwordHash,
     customerProfile: { create: {} },
   });
 
   await upsertUser("customer2@rebx.dev", "CUSTOMER", {
     name: "Riley Renter",
+    username: "riley-renter",
     passwordHash,
     customerProfile: { create: {} },
   });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateUsernameFormat } from "@/lib/validation/username";
 
 export const PasswordSchema = z
   .string()
@@ -12,9 +13,29 @@ export const SignupFormSchema = z
     email: z.string().trim().email("Please enter a valid email."),
     password: PasswordSchema,
     role: z.enum(["AGENT", "CUSTOMER", "DEVELOPER"]),
+    username: z.string().trim().optional().or(z.literal("")),
     companyName: z.string().trim().optional().or(z.literal("")),
   })
   .superRefine((data, ctx) => {
+    if (data.role === "AGENT" || data.role === "DEVELOPER") {
+      if (!data.username) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["username"],
+          message: "Username is required for public portfolio.",
+        });
+      } else {
+        const formatCheck = validateUsernameFormat(data.username);
+        if (!formatCheck.valid) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["username"],
+            message: formatCheck.error || "Invalid username.",
+          });
+        }
+      }
+    }
+
     if (data.role === "DEVELOPER" && !data.companyName) {
       ctx.addIssue({
         code: "custom",
@@ -31,6 +52,7 @@ export type SignupFormState =
         email?: string[];
         password?: string[];
         role?: string[];
+        username?: string[];
         companyName?: string[];
       };
       message?: string;
