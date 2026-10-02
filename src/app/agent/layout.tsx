@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { DashboardSidebar } from "@/components/nav/DashboardSidebar";
 
@@ -11,6 +12,9 @@ const items = [
 
 export default async function AgentLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole("AGENT");
+  if (!user.username) {
+    redirect("/account?required=username");
+  }
 
   return (
     <div className="flex min-h-screen">

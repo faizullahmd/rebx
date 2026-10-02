@@ -25,7 +25,7 @@ export async function requireUser() {
     ? null
     : await prisma.user.findUnique({
         where: { id: numericId },
-        select: { id: true, name: true, email: true, role: true },
+        select: { id: true, name: true, email: true, role: true, username: true },
       });
   if (!current) {
     await signOut({ redirectTo: "/login" });

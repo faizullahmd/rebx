@@ -33,6 +33,7 @@ export default async function EditListingPage({
         listing={{ ...listing, price: Number(listing.price) }}
         developers={developers}
         submitLabel="Save changes"
+        canAddVideo={true}
       />
     </div>
   );
