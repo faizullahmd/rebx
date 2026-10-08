@@ -1,7 +1,11 @@
 import "server-only";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendClient: Resend | undefined;
+function getResend() {
+  resendClient ??= new Resend(process.env.RESEND_API_KEY);
+  return resendClient;
+}
 
 const FROM = process.env.RESEND_FROM_EMAIL || "REBX <onboarding@resend.dev>";
 
@@ -15,7 +19,7 @@ function escapeHtml(value: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: "Reset your REBX password",
@@ -32,7 +36,7 @@ export async function sendDeveloperRequestNotification(
   details: { companyName: string; contactName: string; listingTitle: string; requestedByName: string; reviewUrl: string }
 ) {
   if (adminEmails.length === 0) return;
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: adminEmails,
     subject: `New developer request: ${details.companyName}`,
@@ -50,7 +54,7 @@ export async function sendDeveloperWelcomeEmail(
   companyName: string,
   setPasswordUrl: string
 ) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: "You've been added to REBX",
@@ -63,7 +67,7 @@ export async function sendDeveloperWelcomeEmail(
 }
 
 export async function sendWelcomeEmail(to: string, name: string) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: "Welcome to REBX",
@@ -85,7 +89,7 @@ export async function sendNewLeadNotification(
     dealUrl: string;
   }
 ) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `New inquiry: ${details.listingTitle}`,
@@ -105,7 +109,7 @@ export async function sendInquiryConfirmation(
   to: string,
   details: { listingTitle: string; agentName: string }
 ) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `We received your inquiry on ${details.listingTitle}`,
@@ -120,7 +124,7 @@ export async function sendBookingConfirmationNeededEmail(
   to: string,
   details: { listingTitle: string; agentName: string; saleAmount: number; bookingUrl: string }
 ) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `Booking awaiting your confirmation: ${details.listingTitle}`,
@@ -137,7 +141,7 @@ export async function sendBookingConfirmedEmail(
   to: string,
   details: { listingTitle: string; developerCompanyName: string; bookingUrl: string }
 ) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `Booking confirmed: ${details.listingTitle}`,
@@ -153,7 +157,7 @@ export async function sendCommissionPaidOutEmail(
   to: string,
   details: { listingTitle: string; amount: number; source: string; dealUrl: string }
 ) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `Commission paid out: ${details.listingTitle}`,
