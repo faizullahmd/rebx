@@ -181,7 +181,8 @@ model Listing {
   title       String
   description String        @db.Text
   price       Decimal       @db.Decimal(12, 2)
-  currency    String        @default("USD")
+  priceDisplay String?
+  currency    String        @default("INR")
 
   addressLine String
   locality    String?
@@ -201,6 +202,7 @@ model Listing {
   possessionStarts String?
 
   status      ListingStatus @default(DRAFT)
+  tags        Json?
 
   transactionType  TransactionType    @default(FOR_SALE)
   propertyCategory PropertyCategory?

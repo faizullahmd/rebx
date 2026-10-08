@@ -1,8 +1,7 @@
-import Link from "next/link";
 import type { TransactionType, PropertyCategory, PropertyType } from "@prisma/client";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { ListingFilters } from "@/components/listings/ListingFilters";
-import { getPublicActiveListings, hasActivePropertyVideos } from "@/lib/data/listings";
+import { getPublicActiveListings } from "@/lib/data/listings";
 import { TRANSACTION_TYPES, CATEGORY_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/property-taxonomy";
 
 function paramString(value: string | string[] | undefined) {
@@ -34,18 +33,15 @@ export default async function ListingsPage({
     ? (propertyTypeRaw as PropertyType)
     : undefined;
 
-  const [listings, hasVideos] = await Promise.all([
-    getPublicActiveListings({
-      city: city || undefined,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      bedrooms: bedrooms ? Number(bedrooms) : undefined,
-      transactionType,
-      propertyCategory,
-      propertyType,
-    }),
-    hasActivePropertyVideos(),
-  ]);
+  const listings = await getPublicActiveListings({
+    city: city || undefined,
+    minPrice: minPrice ? Number(minPrice) : undefined,
+    maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    bedrooms: bedrooms ? Number(bedrooms) : undefined,
+    transactionType,
+    propertyCategory,
+    propertyType,
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,24 +64,6 @@ export default async function ListingsPage({
           {listings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}
-        </div>
-      )}
-
-      {hasVideos && (
-        <div className="flex justify-center pt-2 sm:pt-4">
-          <Link
-            href="/videos"
-            className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:underline dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-100 focus:ring-offset-2 rounded-sm py-1 px-2"
-          >
-            <svg
-              className="h-3.5 w-3.5 fill-current shrink-0 text-neutral-500 dark:text-neutral-400"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            <span>Watch all property videos &rarr;</span>
-          </Link>
         </div>
       )}
     </div>

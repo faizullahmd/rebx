@@ -3,7 +3,7 @@
 import { randomUUID } from "crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { requireRole } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { s3Client, SPACES_BUCKET, buildPublicUrl } from "@/lib/storage";
 
 function sanitizeFileName(fileName: string) {
@@ -11,13 +11,20 @@ function sanitizeFileName(fileName: string) {
 }
 
 export async function createUploadUrl(fileName: string, contentType: string) {
-  const agent = await requireRole("AGENT");
+  const user = await requireUser();
+  if (user.role !== "AGENT" && user.role !== "DEVELOPER" && user.role !== "ADMIN") {
+    throw new Error("Only agents and developers can upload listing photos.");
+  }
 
   if (!contentType.startsWith("image/")) {
     throw new Error("Only image files can be uploaded.");
   }
 
-  const key = `listings/${agent.id}/${randomUUID()}-${sanitizeFileName(fileName)}`;
+  if (!SPACES_BUCKET || !SPACES_BUCKET.trim()) {
+    return { uploadUrl: "", publicUrl: "", isConfigured: false };
+  }
+
+  const key = `listings/${user.id}/${randomUUID()}-${sanitizeFileName(fileName)}`;
 
   const uploadUrl = await getSignedUrl(
     s3Client,

@@ -19,6 +19,7 @@ export type VideoGalleryCardItem = {
     title: string;
     slug: string;
     price: number | string;
+    priceDisplay?: string | null;
     currency?: string;
     city: string;
     state?: string | null;
@@ -39,11 +40,7 @@ interface VideoCardProps {
   onSelect: (item: VideoGalleryCardItem) => void;
 }
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 export function VideoCard({ listing: item, onSelect }: VideoCardProps) {
   const parsed = parseVideoUrl(item.url);
@@ -168,7 +165,7 @@ export function VideoCard({ listing: item, onSelect }: VideoCardProps) {
         {listing && (
           <div className="mt-2 flex items-baseline justify-between border-t border-neutral-100 pt-3">
             <span className="text-lg font-bold tracking-tight text-neutral-950">
-              {currencyFormatter.format(Number(listing.price))}
+              {formatListingPrice(listing.price, listing.currency, listing.priceDisplay)}
             </span>
 
             <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium">

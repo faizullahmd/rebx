@@ -12,6 +12,7 @@ import {
 } from "@/lib/validation/developer-request";
 import { sendDeveloperRequestNotification } from "@/lib/email";
 import { canAddVideo, canAttachVideo } from "@/lib/video";
+import { parsePriceInput } from "@/lib/price";
 
 function parseImageUrls(raw: string | undefined) {
   if (!raw) return [];
@@ -125,7 +126,10 @@ export async function createListing(
 
   const validatedFields = ListingFormSchema.safeParse(Object.fromEntries(formData));
   if (!validatedFields.success) {
-    return { errors: validatedFields.error.flatten().fieldErrors };
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Please check the form. Some required fields are missing or invalid.",
+    };
   }
 
   const requestingNewDeveloper = validatedFields.data.developerId === REQUEST_NEW_DEVELOPER_VALUE;
@@ -179,10 +183,14 @@ export async function createListing(
   }
 
   const videos = parseVideoData(formData.get("videoData"));
+  const { numericPrice, priceDisplay } = parsePriceInput(data.price);
 
   const listing = await prisma.listing.create({
     data: {
       ...data,
+      price: numericPrice,
+      priceDisplay: priceDisplay,
+      currency: data.currency?.trim() || "INR",
       videoId: finalVideoId,
       videoUrl: finalVideoUrl,
       state: data.state || null,
@@ -240,15 +248,19 @@ export async function updateListing(
 
   const existing = await prisma.listing.findUnique({ where: { id: listingId } });
   if (!existing) {
-    return { message: "Listing not found." };
+    return { success: false, message: "Listing not found." };
   }
   if (user.role !== "ADMIN" && existing.agentId !== user.id && existing.developerId !== user.id) {
-    return { message: "You are not allowed to edit this listing." };
+    return { success: false, message: "You are not allowed to edit this listing." };
   }
 
   const validatedFields = ListingFormSchema.safeParse(Object.fromEntries(formData));
   if (!validatedFields.success) {
-    return { errors: validatedFields.error.flatten().fieldErrors };
+    return {
+      success: false,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Please check the form. Some required fields are missing or invalid.",
+    };
   }
 
   const isDeveloperUser = user.role === "DEVELOPER";
@@ -318,12 +330,16 @@ export async function updateListing(
 
   const urls = parseImageUrls(imageUrls);
   const videos = parseVideoData(formData.get("videoData"));
+  const { numericPrice, priceDisplay } = parsePriceInput(data.price);
 
   await prisma.$transaction([
     prisma.listing.update({
       where: { id: listingId },
       data: {
         ...data,
+        price: numericPrice,
+        priceDisplay: priceDisplay,
+        currency: data.currency?.trim() || "INR",
         state: data.state || null,
         postalCode: data.postalCode || null,
         reraId: data.reraId || null,
@@ -385,11 +401,17 @@ export async function updateListing(
   revalidatePath("/agent/dashboard/listings");
   revalidatePath("/developer/dashboard");
   revalidatePath("/admin/dashboard/listings");
+  revalidatePath(`/agent/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/developer/dashboard/listings/${listingId}/edit`);
   revalidatePath("/listings");
   revalidatePath("/videos");
   revalidatePath(`/listings/${existing.slug}`);
 
-  return { message: requestMessage ?? "Listing updated." };
+  return {
+    success: true,
+    message: requestMessage ?? "Listing updated successfully.",
+    slug: existing.slug,
+  };
 }
 
 export async function saveListingVideos(
@@ -445,8 +467,56 @@ export async function deleteListing(listingId: number) {
   await prisma.listing.delete({ where: { id: listingId } });
 
   revalidatePath("/agent/dashboard/listings");
+  revalidatePath("/agent/dashboard/portfolio");
   revalidatePath("/developer/dashboard");
   revalidatePath("/admin/dashboard/listings");
   revalidatePath("/listings");
   revalidatePath("/videos");
 }
+
+export async function updateListingTagAction(
+  listingId: number,
+  tag: string | null
+): Promise<{ success: boolean; tag?: string | null; error?: string }> {
+  try {
+    const user = await requireUser();
+
+    const existing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { id: true, agentId: true, developerId: true, slug: true, updatedAt: true },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Listing not found." };
+    }
+
+    if (user.role !== "ADMIN" && existing.agentId !== user.id && existing.developerId !== user.id) {
+      return { success: false, error: "You are not authorized to update this listing." };
+    }
+
+    const validTags = ["new", "featured", "most_viewed", "few_units_left", "exclusive"];
+    const sanitizedTag = tag && validTags.includes(tag) ? tag : null;
+
+    // CRITICAL: Preserve existing.updatedAt so changing the tag never alters table ordering
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        tags: sanitizedTag ? [sanitizedTag] : [],
+        updatedAt: existing.updatedAt,
+      },
+    });
+
+    revalidatePath("/agent/dashboard/listings");
+    revalidatePath("/agent/dashboard/portfolio");
+    revalidatePath(`/listings/${existing.slug}`);
+
+    return { success: true, tag: sanitizedTag };
+  } catch (err: any) {
+    console.error("updateListingTagAction error:", err);
+    return {
+      success: false,
+      error: err?.message || "An unexpected error occurred while updating the tag.",
+    };
+  }
+}
+

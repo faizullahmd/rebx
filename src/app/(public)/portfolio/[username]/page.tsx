@@ -6,7 +6,7 @@ import {
   getAgentPortfolioListings,
   type PortfolioSortOption,
 } from "@/lib/data/portfolio";
-import { AgentHeader } from "@/components/portfolio/AgentHeader";
+import { AgentProfileHeader } from "@/components/portfolio/AgentProfileHeader";
 import { PortfolioFilters } from "@/components/portfolio/PortfolioFilters";
 import { PortfolioPagination } from "@/components/portfolio/PortfolioPagination";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -126,7 +126,7 @@ export default async function PortfolioPage({ params, searchParams }: PortfolioP
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 space-y-6">
       {/* Agent Profile Header */}
-      <AgentHeader
+      <AgentProfileHeader
         name={agent.name}
         username={agent.username!}
         role={agent.role as "AGENT" | "DEVELOPER"}

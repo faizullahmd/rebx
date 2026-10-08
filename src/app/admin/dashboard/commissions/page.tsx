@@ -2,11 +2,7 @@ import Link from "next/link";
 import { getAllCommissionsAdmin } from "@/lib/data/commissions";
 import { deleteCommission, markCommissionPaidOut } from "@/lib/actions/commissions";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 const statusLabels: Record<string, string> = {
   PENDING: "Pending",
@@ -52,7 +48,7 @@ export default async function AdminCommissionsPage() {
                   {commission.source === "DEVELOPER" ? "Developer" : "Customer"}
                 </td>
                 <td className="py-3 text-gray-600">
-                  {currencyFormatter.format(Number(commission.amount))}
+                  {formatListingPrice(commission.amount, "INR")}
                 </td>
                 <td className="py-3 text-gray-600">{statusLabels[commission.status]}</td>
                 <td className="py-3 text-gray-600">

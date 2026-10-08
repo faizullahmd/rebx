@@ -4,11 +4,7 @@ import { getListingsForAgent } from "@/lib/data/listings";
 import { getDealsForAgent } from "@/lib/data/deals";
 import { getCommissionsForAgent } from "@/lib/data/commissions";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 export default async function AgentOverviewPage() {
   const user = await requireRole("AGENT");
@@ -34,18 +30,18 @@ export default async function AgentOverviewPage() {
         <p className="text-gray-600">Here&apos;s what&apos;s happening with your listings.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 sm:gap-4">
         <Stat label="Active" value={active} />
         <Stat label="Draft" value={draft} />
         <Stat label="Under offer" value={underOffer} />
         <Stat label="Sold" value={sold} />
         <Stat label="New leads" value={newLeads} />
-        <Stat label="Pending commissions" value={currencyFormatter.format(pendingCommissions)} />
+        <Stat label="Pending commissions" value={formatListingPrice(pendingCommissions, "INR")} />
       </div>
 
       <Link
         href="/agent/dashboard/listings/new"
-        className="w-fit rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+        className="w-fit rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition"
       >
         + New listing
       </Link>
@@ -55,9 +51,9 @@ export default async function AgentOverviewPage() {
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <div className="rounded-lg border border-gray-200 bg-white p-3.5 sm:p-4 shadow-2xs">
+      <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{label}</p>
+      <p className="mt-1 text-xl sm:text-2xl font-semibold text-neutral-900 truncate">{value}</p>
     </div>
   );
 }

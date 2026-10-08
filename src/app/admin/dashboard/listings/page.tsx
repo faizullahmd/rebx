@@ -2,11 +2,7 @@ import Link from "next/link";
 import { getAllListingsAdmin } from "@/lib/data/listings";
 import { deleteListing } from "@/lib/actions/listings";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 export default async function AdminListingsPage() {
   const listings = await getAllListingsAdmin();
@@ -43,7 +39,7 @@ export default async function AdminListingsPage() {
                 <td className="py-3 text-gray-600">{listing.agent.name}</td>
                 <td className="py-3 text-gray-600">{listing.city}</td>
                 <td className="py-3 text-gray-600">
-                  {currencyFormatter.format(Number(listing.price))}
+                  {formatListingPrice(listing.price, listing.currency, (listing as any).priceDisplay)}
                 </td>
                 <td className="py-3 text-gray-600">{listing.status.replace("_", " ")}</td>
                 <td className="py-3 text-right">

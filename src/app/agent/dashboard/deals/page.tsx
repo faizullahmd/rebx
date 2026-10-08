@@ -14,11 +14,7 @@ const stageLabels: Record<(typeof DEAL_STAGES)[number], string> = {
   CLOSED_LOST: "Closed lost",
 };
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 const relativeTime = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
@@ -69,7 +65,7 @@ export default async function AgentDealsPage() {
                       <p className="mt-1 text-gray-600">{deal.contactName}</p>
                       {deal.offerAmount && (
                         <p className="mt-1 font-medium text-gray-900">
-                          {currencyFormatter.format(Number(deal.offerAmount))}
+                          {formatListingPrice(deal.offerAmount, "INR")}
                         </p>
                       )}
                       <p className="mt-1 text-xs text-gray-400">{timeAgo(deal.updatedAt)}</p>

@@ -154,19 +154,19 @@ export default async function VideoGalleryPage({
     }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       {/* Header section */}
-      <div className="flex flex-col gap-2 border-b border-neutral-200/80 pb-6">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-900">
           <svg className="h-4 w-4 text-neutral-900" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
           </svg>
           REBX Property Tours
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-900">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
           Property Videos
         </h1>
-        <p className="max-w-2xl text-sm sm:text-base text-neutral-600">
+        <p className="max-w-2xl text-xs sm:text-sm text-neutral-600">
           Immerse yourself in high-resolution video walkthroughs, drone flyovers, and virtual
           presentations of properties and development projects.
         </p>

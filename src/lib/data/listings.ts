@@ -6,7 +6,7 @@ export function getListingsForAgent(agentId: number) {
   return prisma.listing.findMany({
     where: { agentId },
     include: { images: true },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
   });
 }
 
@@ -58,7 +58,7 @@ export type PublicListingFilters = {
 export function getPublicActiveListings(filters: PublicListingFilters = {}) {
   return prisma.listing.findMany({
     where: {
-      status: "ACTIVE",
+      status: { in: ["ACTIVE", "UNDER_OFFER"] },
       ...(filters.city ? { city: { contains: filters.city } } : {}),
       ...(filters.bedrooms ? { bedrooms: { gte: filters.bedrooms } } : {}),
       ...(filters.transactionType ? { transactionType: filters.transactionType } : {}),
@@ -80,7 +80,7 @@ export function getPublicActiveListings(filters: PublicListingFilters = {}) {
 
 export function getRecentActiveListings(limit = 6) {
   return prisma.listing.findMany({
-    where: { status: "ACTIVE" },
+    where: { status: { in: ["ACTIVE", "UNDER_OFFER"] } },
     include: { images: true, videos: { orderBy: { sortOrder: "asc" } }, video: true },
     orderBy: { createdAt: "desc" },
     take: limit,

@@ -27,10 +27,12 @@ import {
   typesFor,
 } from "@/lib/property-taxonomy";
 import { parseVideoUrl } from "@/lib/video";
+import { formatListingPrice, parsePriceInput } from "@/lib/price";
 
 type Developer = { id: number; name: string; developerProfile: { companyName: string } | null };
 type ListingWithImages = Omit<Listing, "price"> & {
   price: number;
+  priceDisplay?: string | null;
   images: ListingImage[];
   videos?: ListingVideo[];
   videoUrl?: string | null;
@@ -76,8 +78,8 @@ function initialValues(listing?: ListingWithImages) {
   return {
     title: listing?.title ?? "",
     description: listing?.description ?? "",
-    price: listing ? String(listing.price) : "",
-    currency: listing?.currency ?? "USD",
+    price: (listing as any)?.priceDisplay || (listing ? String(listing.price) : ""),
+    currency: listing?.currency ?? "INR",
     videoUrl: listing?.videoUrl ?? "",
     videoId: listing?.videoId ? String(listing.videoId) : "",
     reraId: (listing as any)?.reraId ?? "",
@@ -151,6 +153,16 @@ export function ListingForm({
   // values here (instead of defaultValue) makes them immune to that reset.
   const [values, setValues] = useState<Values>(() => initialValues(listing));
 
+  useEffect(() => {
+    if (listing) {
+      setValues(initialValues(listing));
+      if (listing.transactionType) setTransactionType(listing.transactionType);
+      if (listing.propertyCategory) setPropertyCategory(listing.propertyCategory);
+      if (listing.propertyType) setPropertyType(listing.propertyType);
+      if (listing.developerId != null) setDeveloperSelection(String(listing.developerId));
+    }
+  }, [listing]);
+
   function setField<K extends keyof Values>(key: K, value: Values[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
@@ -193,9 +205,9 @@ export function ListingForm({
     : parsedVideo?.thumbnailUrl;
 
   const calculatedAvgPrice = useMemo(() => {
-    const numPrice = Number(values.price);
+    const { numericPrice } = parsePriceInput(values.price);
     const numArea = Number(values.areaSqFt);
-    const currency = values.currency?.trim() || "USD";
+    const currency = values.currency?.trim() || "INR";
     const symbol =
       currency === "INR" || currency === "₹"
         ? "₹"
@@ -209,8 +221,8 @@ export function ListingForm({
                 ? `${currency} `
                 : "";
 
-    if (numPrice > 0 && numArea > 0) {
-      const rate = numPrice / numArea;
+    if (numericPrice > 0 && numArea > 0) {
+      const rate = numericPrice / numArea;
       if (rate >= 10000000) {
         return `${symbol}${(rate / 10000000).toFixed(2)} Cr/sq.ft`;
       }
@@ -260,7 +272,45 @@ export function ListingForm({
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       {state?.message && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
+        <div
+          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-3.5 text-sm ${
+            state.errors || state.success === false
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {state.errors || state.success === false ? (
+              <svg className="h-5 w-5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <span className="font-medium">{state.message}</span>
+          </div>
+          {state.success && (
+            <div className="flex items-center gap-3 self-end sm:self-auto text-xs font-semibold">
+              <a
+                href={state.slug ? `/listings/${state.slug}` : "/listings"}
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-700 hover:text-emerald-900 underline underline-offset-2 flex items-center gap-1"
+              >
+                View on site ↗
+              </a>
+              <span className="text-emerald-300">|</span>
+              <a
+                href="/agent/dashboard/listings"
+                className="text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
+              >
+                Back to my listings
+              </a>
+            </div>
+          )}
+        </div>
       )}
 
       <ol className="flex items-center gap-2">
@@ -405,10 +455,11 @@ export function ListingForm({
           <Field
             label="Price"
             name="price"
-            type="number"
+            type="text"
             value={values.price}
             onChange={(v) => setField("price", v)}
             errors={state?.errors?.price}
+            placeholder=""
           />
           <Field
             label="Currency"
@@ -416,6 +467,7 @@ export function ListingForm({
             value={values.currency}
             onChange={(v) => setField("currency", v)}
             errors={state?.errors?.currency}
+            placeholder=""
           />
           <Field
             label="Rera Id"
@@ -694,7 +746,7 @@ export function ListingForm({
             propertyType ? PROPERTY_TYPE_LABELS[propertyType] : null,
             propertyCategory ? CATEGORY_LABELS[propertyCategory] : null,
             TRANSACTION_LABELS[transactionType],
-            values.price ? `${values.currency} ${values.price}` : null,
+            values.price ? formatListingPrice(0, values.currency, values.price) : null,
           ]
             .filter(Boolean)
             .join(" · ")}
