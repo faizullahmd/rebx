@@ -1,23 +1,22 @@
 import Link from "next/link";
 import type { Listing, ListingImage } from "@prisma/client";
 import { TRANSACTION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/property-taxonomy";
+import { getListingTag } from "@/lib/tags";
+import { ListingTagBadge } from "@/components/listings/ListingTagBadge";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 export function ListingCard({
   listing,
 }: {
-  listing: Listing & { images: ListingImage[] };
+  listing: Listing & { images: ListingImage[]; priceDisplay?: string | null };
 }) {
   const cover = listing.images && listing.images.length > 0 && listing.images[0]?.url
     ? listing.images[0].url
     : "/images/property-placeholder.jpg";
 
-  const formattedPrice = currencyFormatter.format(Number(listing.price));
+  const formattedPrice = formatListingPrice(listing.price, listing.currency, listing.priceDisplay);
+  const tag = getListingTag((listing as Record<string, unknown>).tags);
   const isFeatured = Boolean((listing as Record<string, unknown>).featured || (listing as Record<string, unknown>).isFeatured);
 
   return (
@@ -42,6 +41,12 @@ export function ListingCard({
             {TRANSACTION_LABELS[listing.transactionType] || "For Sale"}
           </span>
 
+          {listing.status === "UNDER_OFFER" && (
+            <span className="inline-flex items-center rounded bg-amber-500/95 px-2 py-0.5 text-[11px] font-semibold text-white shadow-xs backdrop-blur-sm">
+              Under Offer
+            </span>
+          )}
+
           {/* Property Type */}
           {listing.propertyType && (
             <span className="inline-flex items-center rounded border border-neutral-200/60 bg-white/90 px-2 py-0.5 text-[11px] font-medium text-neutral-800 backdrop-blur-sm">
@@ -49,12 +54,14 @@ export function ListingCard({
             </span>
           )}
 
-          {/* Only show Featured when the actual listing is explicitly marked as featured */}
-          {isFeatured && (
+          {/* Selected Tag Badge */}
+          {tag ? (
+            <ListingTagBadge tag={tag} />
+          ) : isFeatured ? (
             <span className="inline-flex items-center rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-white">
               Featured
             </span>
-          )}
+          ) : null}
         </div>
       </Link>
 

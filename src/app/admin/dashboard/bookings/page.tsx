@@ -2,11 +2,7 @@ import Link from "next/link";
 import { getAllBookingsAdmin } from "@/lib/data/bookings";
 import { confirmBooking } from "@/lib/actions/bookings";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
@@ -44,7 +40,7 @@ export default async function AdminBookingsPage() {
                 </td>
                 <td className="py-3 text-gray-600">{booking.deal.agent.name}</td>
                 <td className="py-3 text-gray-600">
-                  {currencyFormatter.format(Number(booking.saleAmount))}
+                  {formatListingPrice(booking.saleAmount, "INR")}
                 </td>
                 <td className="py-3 text-gray-600">{dateFormatter.format(booking.bookingDate)}</td>
                 <td className="py-3">

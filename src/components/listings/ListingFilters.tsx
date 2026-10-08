@@ -131,7 +131,7 @@ export function ListingFilters({
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="minPrice" className="text-xs text-gray-500">
-          Min price
+          Min price (₹)
         </label>
         <input
           id="minPrice"
@@ -144,7 +144,7 @@ export function ListingFilters({
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="maxPrice" className="text-xs text-gray-500">
-          Max price
+          Max price (₹)
         </label>
         <input
           id="maxPrice"

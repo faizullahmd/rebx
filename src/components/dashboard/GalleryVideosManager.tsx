@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { addGalleryVideo, deleteGalleryVideo, type AddVideoState } from "@/lib/actions/videos";
-import { parseVideoUrl } from "@/lib/video";
+import { deleteGalleryVideo } from "@/lib/actions/videos";
 
 export type UserVideoItem = {
   id: number;
@@ -22,62 +21,14 @@ export type UserVideoItem = {
 
 interface GalleryVideosManagerProps {
   initialVideos: UserVideoItem[];
-  roleTitle: string;
+  roleTitle?: string;
 }
 
-export function GalleryVideosManager({ initialVideos, roleTitle }: GalleryVideosManagerProps) {
-  const [state, formAction, isPending] = useActionState(
-    addGalleryVideo,
-    undefined
-  );
-
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [vimeoThumb, setVimeoThumb] = useState<string | null>(null);
-
+export function GalleryVideosManager({ initialVideos }: GalleryVideosManagerProps) {
   // Deletion state
   const [videoToDelete, setVideoToDelete] = useState<UserVideoItem | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  // Parse URL live for preview
-  const parsedVideo = useMemo(() => {
-    if (!url.trim()) return null;
-    return parseVideoUrl(url.trim());
-  }, [url]);
-
-  const urlError = useMemo(() => {
-    if (!url.trim()) return null;
-    if (!parsedVideo) return "Please enter a valid YouTube or Vimeo URL.";
-    return null;
-  }, [url, parsedVideo]);
-
-  // Fetch Vimeo thumbnail preview if Vimeo link entered
-  useEffect(() => {
-    if (parsedVideo?.provider === "vimeo") {
-      fetch(`/api/video-meta?url=${encodeURIComponent(url.trim())}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.thumbnailUrl) setVimeoThumb(data.thumbnailUrl);
-        })
-        .catch(() => {});
-    } else {
-      setVimeoThumb(null);
-    }
-  }, [parsedVideo, url]);
-
-  const liveThumbnail = parsedVideo?.provider === "vimeo"
-    ? (vimeoThumb || parsedVideo.thumbnailUrl)
-    : parsedVideo?.thumbnailUrl;
-
-  // Reset form inputs upon successful addition
-  useEffect(() => {
-    if (state?.success) {
-      setTitle("");
-      setUrl("");
-      setVimeoThumb(null);
-    }
-  }, [state?.success]);
 
   function confirmDelete(video: UserVideoItem) {
     setDeleteError(null);
@@ -105,135 +56,7 @@ export function GalleryVideosManager({ initialVideos, roleTitle }: GalleryVideos
         <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
           Video Gallery Management
         </h1>
-        <p className="mt-1 text-sm text-neutral-600">
-          Add property videos and walkthroughs to the REBX Video Gallery. Permitted{" "}
-          {roleTitle.toLowerCase()}s can attach any gallery video to their listings.
-        </p>
       </div>
-
-      {/* Add Video Form Card */}
-      <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-xs">
-        <h2 className="text-base font-bold text-neutral-900">Add Video to Gallery</h2>
-        <p className="text-xs text-neutral-500 mt-0.5">
-          Enter a video title and paste a YouTube or Vimeo link to create a new gallery record.
-        </p>
-
-        {state?.success && state.message && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs sm:text-sm text-emerald-800">
-            <svg className="h-4 w-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>{state.message}</span>
-          </div>
-        )}
-
-        {state?.message && !state.success && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3.5 py-2 text-xs sm:text-sm text-red-800">
-            <svg className="h-4 w-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{state.message}</span>
-          </div>
-        )}
-
-        <form action={formAction} className="mt-4 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Title field */}
-            <div className="md:col-span-5 flex flex-col gap-1">
-              <label htmlFor="video-title-input" className="text-xs font-semibold text-neutral-900">
-                Video Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="video-title-input"
-                name="title"
-                type="text"
-                required
-                placeholder="e.g. Modern Sunset Villa Walkthrough"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className={`h-9 w-full rounded-lg border px-3 text-xs outline-none transition ${
-                  state?.errors?.title
-                    ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
-                }`}
-              />
-              {state?.errors?.title && (
-                <p className="text-[11px] font-medium text-red-600">{state.errors.title[0]}</p>
-              )}
-            </div>
-
-            {/* URL field */}
-            <div className="md:col-span-5 flex flex-col gap-1">
-              <label htmlFor="video-url-input" className="text-xs font-semibold text-neutral-900">
-                Video URL <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="video-url-input"
-                name="url"
-                type="url"
-                required
-                placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className={`h-9 w-full rounded-lg border px-3 text-xs outline-none transition ${
-                  urlError || state?.errors?.url
-                    ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
-                }`}
-              />
-              {(urlError || state?.errors?.url) && (
-                <p className="text-[11px] font-medium text-red-600">
-                  {urlError || state?.errors?.url?.[0]}
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <div className="md:col-span-2">
-              <button
-                type="submit"
-                disabled={isPending || Boolean(urlError) || !title.trim() || !url.trim()}
-                className="h-9 w-full rounded-lg bg-neutral-900 px-3 text-xs font-semibold text-white shadow-2xs hover:bg-neutral-800 disabled:opacity-50 transition cursor-pointer flex items-center justify-center whitespace-nowrap"
-              >
-                {isPending ? "Adding…" : "Add to Gallery"}
-              </button>
-            </div>
-          </div>
-
-          {/* Live Preview Card */}
-          {liveThumbnail && !urlError && (
-            <div className="mt-2.5 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3">
-              <div className="relative aspect-video w-36 overflow-hidden rounded-lg bg-black shadow-xs shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={liveThumbnail}
-                  alt="Live Preview Thumbnail"
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-md">
-                    <svg className="h-3 w-3 text-neutral-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-                <span className="absolute top-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-xs">
-                  {parsedVideo?.provider}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="inline-block rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                  ✓ Valid {parsedVideo?.provider === "youtube" ? "YouTube" : "Vimeo"} Video
-                </span>
-                <p className="mt-0.5 text-xs font-semibold text-neutral-900 truncate">
-                  {title || "Untitled Video"}
-                </p>
-                <p className="text-[11px] text-neutral-500 truncate mt-0.5">{url}</p>
-              </div>
-            </div>
-          )}
-        </form>
-      </section>
 
       {/* List of user added videos */}
       <section className="flex flex-col gap-4">
@@ -260,7 +83,7 @@ export function GalleryVideosManager({ initialVideos, roleTitle }: GalleryVideos
               No gallery videos added yet
             </h3>
             <p className="mt-1 text-xs text-neutral-500 max-w-sm">
-              Use the form above to add property walkthroughs. Once added, you can attach them when creating or editing listings.
+              Videos attached to your property listings will appear here.
             </p>
           </div>
         ) : (

@@ -6,11 +6,7 @@ import { getBookingsForDeveloper } from "@/lib/data/bookings";
 import { markCommissionPaidOut } from "@/lib/actions/commissions";
 import { deleteListing } from "@/lib/actions/listings";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 const statusLabels: Record<string, string> = {
   PENDING: "Pending",
@@ -75,7 +71,7 @@ export default async function DeveloperDashboardPage() {
                 <td className="py-3 text-gray-600">{listing.agent.name}</td>
                 <td className="py-3 text-gray-600">{listing.city}</td>
                 <td className="py-3 text-gray-600">
-                  {currencyFormatter.format(Number(listing.price))}
+                  {formatListingPrice(listing.price, listing.currency, (listing as any).priceDisplay)}
                 </td>
                 <td className="py-3">
                   <StatusBadge status={listing.status} />
@@ -144,7 +140,7 @@ export default async function DeveloperDashboardPage() {
                 <td className="py-3">{commission.deal.listing.title}</td>
                 <td className="py-3 text-gray-600">{commission.agent.name}</td>
                 <td className="py-3 text-gray-600">
-                  {currencyFormatter.format(Number(commission.amount))}
+                  {formatListingPrice(commission.amount, "INR")}
                 </td>
                 <td className="py-3 text-gray-600">{statusLabels[commission.status]}</td>
                 <td className="py-3 text-gray-600">

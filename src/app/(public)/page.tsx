@@ -33,11 +33,11 @@ export default async function HomePage() {
                 Real Estate Broker Exchange
               </span>
 
-              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-neutral-950 sm:text-5xl lg:text-[54px] lg:leading-[1.12]">
+              <h1 className="mt-4 text-2xl sm:text-4xl md:text-5xl lg:text-[54px] font-semibold tracking-tight text-neutral-950 lg:leading-[1.12]">
                 The smarter way to connect, collaborate and close real estate deals.
               </h1>
 
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-neutral-600 sm:text-lg">
+              <p className="mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed text-neutral-600 sm:text-lg">
                 REBX connects agents, developers and customers on one platform — from discovering and listing properties to tracking deals through to commission.
               </p>
 
@@ -109,7 +109,7 @@ export default async function HomePage() {
       <section className="border-b border-neutral-200/80 bg-neutral-50/60 py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+            <h2 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
               Why REBX?
             </h2>
             <p className="mt-3 text-base text-neutral-600 sm:text-lg">
@@ -205,7 +205,7 @@ export default async function HomePage() {
       <section className="border-b border-neutral-200/80 bg-white py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+            <h2 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
               How REBX Works
             </h2>
             <p className="mt-3 text-base text-neutral-600 sm:text-lg">
@@ -274,7 +274,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+              <h2 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
                 Recently Listed Properties
               </h2>
               <p className="mt-3 text-base text-neutral-600">
@@ -334,7 +334,7 @@ export default async function HomePage() {
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 Agent & Broker CRM
               </span>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
                 Built for Real Estate Agents
               </h2>
               <p className="mt-4 text-base leading-relaxed text-neutral-600">
@@ -431,7 +431,7 @@ export default async function HomePage() {
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 PROPERTY DEVELOPERS
               </span>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
                 Grow Your Real Estate Projects with REBX
               </h2>
               <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
@@ -485,7 +485,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
             {/* Left Content */}
             <div className="flex flex-col items-start lg:col-span-6">
-              <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+              <h2 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
                 Get Your Properties in Front of the Right Network
               </h2>
               <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
@@ -522,7 +522,7 @@ export default async function HomePage() {
       <section className="bg-white py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border border-neutral-200 bg-neutral-50/80 px-6 py-14 text-center sm:px-12 sm:py-20 lg:px-16">
-            <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+            <h2 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
               Ready to take the next step in your real estate journey?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base text-neutral-600 sm:text-lg">

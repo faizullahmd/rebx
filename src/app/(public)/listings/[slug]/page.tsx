@@ -14,12 +14,10 @@ import {
   FACING_LABELS,
   AVAILABILITY_LABELS,
 } from "@/lib/property-taxonomy";
+import { getListingTag } from "@/lib/tags";
+import { ListingTagBadge } from "@/components/listings/ListingTagBadge";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 export default async function ListingDetailPage({
   params,
@@ -37,7 +35,7 @@ export default async function ListingDetailPage({
 
   const session = await auth();
 
-  if (listing.status !== "ACTIVE") {
+  if (listing.status !== "ACTIVE" && listing.status !== "UNDER_OFFER") {
     const isOwnerOrAdmin =
       session?.user &&
       (Number(session.user.id) === listing.agentId || session.user.role === "ADMIN");
@@ -47,24 +45,22 @@ export default async function ListingDetailPage({
   }
 
   const agentPhone = listing.agent.agentProfile?.phone || "+1 (512) 555-0198";
+  const tag = getListingTag(listing.tags);
 
   return (
     <article className="flex flex-col gap-6">
-      {listing.status !== "ACTIVE" && (
+      {listing.status === "UNDER_OFFER" ? (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+          This property is currently under offer.
+        </p>
+      ) : listing.status !== "ACTIVE" ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           This listing is {listing.status.replace("_", " ").toLowerCase()} — only visible to
           you as a preview.
         </p>
-      )}
+      ) : null}
 
       <ListingImageCarousel images={listing.images} alt={listing.title} />
-
-      {(listing.video?.url || listing.videoUrl) && (
-        <PropertyVideoPlayer
-          videoUrl={listing.video?.url || listing.videoUrl!}
-          title={listing.video?.title || listing.title}
-        />
-      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
@@ -73,7 +69,10 @@ export default async function ListingDetailPage({
               {listing.addressLine}, {listing.city}
               {listing.state ? `, ${listing.state}` : ""}, {listing.country}
             </p>
-            <h1 className="mt-1 text-3xl font-semibold">{listing.title}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-semibold">{listing.title}</h1>
+              {tag && <ListingTagBadge tag={tag} className="text-xs px-2.5 py-1" />}
+            </div>
             {(listing.propertyCategory || listing.propertyType) && (
               <p className="mt-1 text-sm font-medium uppercase tracking-wide text-gray-500">
                 {[
@@ -86,7 +85,7 @@ export default async function ListingDetailPage({
               </p>
             )}
             <p className="mt-2 text-2xl font-semibold text-gray-900">
-              {currencyFormatter.format(Number(listing.price))}
+              {formatListingPrice(listing.price, listing.currency, listing.priceDisplay)}
             </p>
             <p className="mt-1 text-sm text-gray-500">
               {[
@@ -124,6 +123,13 @@ export default async function ListingDetailPage({
           </div>
 
           <p className="whitespace-pre-wrap text-gray-700">{listing.description}</p>
+
+          {(listing.video?.url || listing.videoUrl) && (
+            <PropertyVideoPlayer
+              videoUrl={listing.video?.url || listing.videoUrl!}
+              title={listing.video?.title || listing.title}
+            />
+          )}
 
           {listing.videos && listing.videos.length > 0 && (
             <ListingVideosSection videos={listing.videos} />

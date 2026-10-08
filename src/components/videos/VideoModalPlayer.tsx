@@ -11,11 +11,7 @@ interface VideoModalPlayerProps {
   onClose: () => void;
 }
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { formatListingPrice } from "@/lib/price";
 
 export function VideoModalPlayer({ listing: item, onClose }: VideoModalPlayerProps) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -87,7 +83,9 @@ export function VideoModalPlayer({ listing: item, onClose }: VideoModalPlayerPro
   }
 
   const listing = item.listing;
-  const formattedPrice = listing ? currencyFormatter.format(Number(listing.price)) : "";
+  const formattedPrice = listing
+    ? formatListingPrice(listing.price, listing.currency, (listing as any).priceDisplay)
+    : "";
 
   return (
     <div

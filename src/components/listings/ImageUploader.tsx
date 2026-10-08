@@ -13,21 +13,35 @@ type UploadItem = {
   previewUrl: string;
 };
 
-function uploadFile(file: File, uploadUrl: string, onProgress: (pct: number) => void) {
-  return new Promise<void>((resolve, reject) => {
+function uploadFile(file: File, onProgress: (pct: number) => void): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader("Content-Type", file.type);
-    xhr.setRequestHeader("x-amz-acl", "public-read");
+    xhr.open("POST", "/api/upload/image");
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
     };
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed (${xhr.status})`));
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.url) resolve(data.url);
+          else reject(new Error(data.error || "Upload failed"));
+        } catch {
+          reject(new Error("Invalid response from server"));
+        }
+      } else {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          reject(new Error(data.error || `Upload failed (${xhr.status})`));
+        } catch {
+          reject(new Error(`Upload failed (${xhr.status})`));
+        }
+      }
     };
-    xhr.onerror = () => reject(new Error("Upload failed"));
-    xhr.send(file);
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    const formData = new FormData();
+    formData.append("file", file);
+    xhr.send(formData);
   });
 }
 
@@ -64,12 +78,11 @@ export function ImageUploader({
 
       setItems((prev) => [...prev, { id, progress: 0, previewUrl }]);
 
-      createUploadUrl(file.name, file.type)
-        .then(({ uploadUrl, publicUrl }) =>
-          uploadFile(file, uploadUrl, (pct) =>
-            setItems((prev) => prev.map((item) => (item.id === id ? { ...item, progress: pct } : item)))
-          ).then(() => publicUrl)
-        )
+      uploadFile(file, (pct) => {
+        setItems((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, progress: pct } : item))
+        );
+      })
         .then((publicUrl) => {
           setItems((prev) =>
             prev.map((item) => (item.id === id ? { ...item, url: publicUrl, progress: 100 } : item))

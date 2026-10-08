@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import type { PropertyType, TransactionType } from "@prisma/client";
+import type { ListingStatus, Prisma, PropertyType, TransactionType } from "@prisma/client";
 
 export type PortfolioSortOption = "newest" | "price-asc" | "price-desc";
 
@@ -54,13 +54,13 @@ export async function getAgentPortfolioByUsername(username: string) {
     prisma.listing.count({
       where: {
         ...locationCondition,
-        status: "ACTIVE",
+        status: { in: ["ACTIVE", "UNDER_OFFER"] },
       },
     }),
     prisma.listing.findMany({
       where: {
         ...locationCondition,
-        status: "ACTIVE",
+        status: { in: ["ACTIVE", "UNDER_OFFER"] },
       },
       select: {
         city: true,
@@ -92,9 +92,9 @@ export async function getAgentPortfolioListings(
   const roleCondition =
     role === "DEVELOPER" ? { developerId: userId } : { agentId: userId };
 
-  const whereClause = {
+  const whereClause: Prisma.ListingWhereInput = {
     ...roleCondition,
-    status: "ACTIVE" as const,
+    status: { in: ["ACTIVE", "UNDER_OFFER"] as ListingStatus[] },
     ...(propertyType ? { propertyType } : {}),
     ...(transactionType ? { transactionType } : {}),
   };

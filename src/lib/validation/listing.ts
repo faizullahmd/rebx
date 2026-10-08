@@ -10,11 +10,25 @@ export const optionalEnum = <U extends string, T extends readonly [U, ...U[]]>(v
     z.enum(values).optional()
   );
 
+import { parsePriceInput } from "@/lib/price";
+
 export const ListingFormSchema = z.object({
   title: z.string().trim().min(5, "Title must be at least 5 characters."),
   description: z.string().trim().min(20, "Description must be at least 20 characters."),
-  price: z.coerce.number().positive("Price must be a positive number."),
-  currency: z.string().trim().min(1).max(8).default("USD"),
+  price: z
+    .string()
+    .trim()
+    .min(1, "Price is required.")
+    .refine(
+      (val) => {
+        const { numericPrice } = parsePriceInput(val);
+        return numericPrice > 0;
+      },
+      {
+        message: "Please enter a valid price (e.g. 10.58 Cr - 11.96 Cr, 1.5 Cr, or 5000000).",
+      }
+    ),
+  currency: z.string().trim().min(1).max(8).default("INR"),
   addressLine: z.string().trim().min(3, "Address is required."),
   city: z.string().trim().min(1, "City is required."),
   state: z.string().trim().optional().or(z.literal("")),
@@ -73,5 +87,7 @@ export type ListingFormState =
   | {
       errors?: Partial<Record<keyof z.infer<typeof ListingFormSchema>, string[]>>;
       message?: string;
+      success?: boolean;
+      slug?: string;
     }
   | undefined;
