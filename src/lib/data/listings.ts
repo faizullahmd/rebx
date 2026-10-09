@@ -169,7 +169,6 @@ export async function getVideoGalleryListings(filters: VideoGalleryFilters = {})
                 { title: { contains: search } },
                 { city: { contains: search } },
                 { state: { contains: search } },
-                { locality: { contains: search } },
                 { addressLine: { contains: search } },
               ],
             },
