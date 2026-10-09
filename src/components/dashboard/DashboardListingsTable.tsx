@@ -20,6 +20,12 @@ export interface DashboardListingItem {
   tags?: any;
 }
 
+export interface DashboardListingsTableProps {
+  listings: DashboardListingItem[];
+  onTagChange?: (listingId: number, nextTag: string | null) => void;
+  emptyMessage?: string;
+}
+
 export function DashboardListingsTable({
   listings,
   onTagChange,
