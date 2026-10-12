@@ -84,7 +84,12 @@ export function VideoModalPlayer({ listing: item, onClose }: VideoModalPlayerPro
 
   const listing = item.listing;
   const formattedPrice = listing
-    ? formatListingPrice(listing.price, listing.currency, (listing as any).priceDisplay)
+    ? formatListingPrice(
+        listing.price,
+        listing.currency,
+        (listing as any).priceDisplay,
+        (listing as any).priceOnRequest
+      )
     : "";
 
   return (

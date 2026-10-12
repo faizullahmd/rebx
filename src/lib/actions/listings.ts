@@ -183,20 +183,29 @@ export async function createListing(
   }
 
   const videos = parseVideoData(formData.get("videoData"));
-  const { numericPrice, priceDisplay } = parsePriceInput(data.price);
+  let finalPrice: number | null = null;
+  let finalPriceDisplay: string | null = null;
+  if (!data.priceOnRequest && data.price) {
+    const parsed = parsePriceInput(data.price);
+    finalPrice = parsed.numericPrice;
+    finalPriceDisplay = parsed.priceDisplay;
+  }
 
   const listing = await prisma.listing.create({
     data: {
       ...data,
-      price: numericPrice,
-      priceDisplay: priceDisplay,
+      price: finalPrice,
+      priceDisplay: finalPriceDisplay,
+      priceOnRequest: Boolean(data.priceOnRequest),
+      projectUnits: data.projectUnits ?? null,
+      projectArea: data.projectArea != null ? data.projectArea : null,
       currency: data.currency?.trim() || "INR",
       videoId: finalVideoId,
       videoUrl: finalVideoUrl,
       state: data.state || null,
       postalCode: data.postalCode || null,
       reraId: data.reraId || null,
-      avgPricePerSqFt: data.avgPricePerSqFt || null,
+      avgPricePerSqFt: data.priceOnRequest ? null : (data.avgPricePerSqFt || null),
       possessionStarts: data.possessionStarts || null,
       propertyCategory: data.propertyCategory || null,
       propertyType: data.propertyType || null,
@@ -330,20 +339,29 @@ export async function updateListing(
 
   const urls = parseImageUrls(imageUrls);
   const videos = parseVideoData(formData.get("videoData"));
-  const { numericPrice, priceDisplay } = parsePriceInput(data.price);
+  let finalPrice: number | null = null;
+  let finalPriceDisplay: string | null = null;
+  if (!data.priceOnRequest && data.price) {
+    const parsed = parsePriceInput(data.price);
+    finalPrice = parsed.numericPrice;
+    finalPriceDisplay = parsed.priceDisplay;
+  }
 
   await prisma.$transaction([
     prisma.listing.update({
       where: { id: listingId },
       data: {
         ...data,
-        price: numericPrice,
-        priceDisplay: priceDisplay,
+        price: finalPrice,
+        priceDisplay: finalPriceDisplay,
+        priceOnRequest: Boolean(data.priceOnRequest),
+        projectUnits: data.projectUnits ?? null,
+        projectArea: data.projectArea != null ? data.projectArea : null,
         currency: data.currency?.trim() || "INR",
         state: data.state || null,
         postalCode: data.postalCode || null,
         reraId: data.reraId || null,
-        avgPricePerSqFt: data.avgPricePerSqFt || null,
+        avgPricePerSqFt: data.priceOnRequest ? null : (data.avgPricePerSqFt || null),
         possessionStarts: data.possessionStarts || null,
         propertyCategory: data.propertyCategory || null,
         propertyType: data.propertyType || null,
@@ -476,8 +494,8 @@ export async function deleteListing(listingId: number) {
 
 export async function updateListingTagAction(
   listingId: number,
-  tag: string | null
-): Promise<{ success: boolean; tag?: string | null; error?: string }> {
+  tagInput: number | string | null
+): Promise<{ success: boolean; tagId?: number | null; tag?: any; error?: string }> {
   try {
     const user = await requireUser();
 
@@ -494,14 +512,53 @@ export async function updateListingTagAction(
       return { success: false, error: "You are not authorized to update this listing." };
     }
 
-    const validTags = ["new", "featured", "most_viewed", "few_units_left", "exclusive"];
-    const sanitizedTag = tag && validTags.includes(tag) ? tag : null;
+    let targetTagId: number | null = null;
+    let resolvedTag: { id: number; name: string; color: string } | null = null;
+
+    if (tagInput !== null && tagInput !== "" && tagInput !== "none") {
+      const numericId = typeof tagInput === "number" ? tagInput : Number(tagInput);
+
+      if (!Number.isNaN(numericId) && numericId > 0) {
+        const tag = await prisma.tag.findUnique({
+          where: { id: numericId },
+          select: { id: true, name: true, color: true, isDefault: true, createdBy: true },
+        });
+
+        if (!tag) {
+          return { success: false, error: "Selected tag does not exist." };
+        }
+
+        if (!tag.isDefault && tag.createdBy !== user.id && user.role !== "ADMIN") {
+          return { success: false, error: "You are not authorized to use this custom tag." };
+        }
+
+        targetTagId = tag.id;
+        resolvedTag = tag;
+      } else if (typeof tagInput === "string") {
+        // Fallback for legacy string tag matching (e.g. "featured")
+        const tag = await prisma.tag.findFirst({
+          where: {
+            OR: [
+              { name: tagInput },
+              { isDefault: true },
+            ],
+          },
+          select: { id: true, name: true, color: true, isDefault: true, createdBy: true },
+        });
+
+        if (tag) {
+          targetTagId = tag.id;
+          resolvedTag = tag;
+        }
+      }
+    }
 
     // CRITICAL: Preserve existing.updatedAt so changing the tag never alters table ordering
     await prisma.listing.update({
       where: { id: listingId },
       data: {
-        tags: sanitizedTag ? [sanitizedTag] : [],
+        tagId: targetTagId,
+        tags: resolvedTag ? [resolvedTag.name.toLowerCase().replace(/\s+/g, "_")] : [],
         updatedAt: existing.updatedAt,
       },
     });
@@ -510,7 +567,7 @@ export async function updateListingTagAction(
     revalidatePath("/agent/dashboard/portfolio");
     revalidatePath(`/listings/${existing.slug}`);
 
-    return { success: true, tag: sanitizedTag };
+    return { success: true, tagId: targetTagId, tag: resolvedTag };
   } catch (err: any) {
     console.error("updateListingTagAction error:", err);
     return {

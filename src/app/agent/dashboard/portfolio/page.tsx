@@ -25,7 +25,9 @@ export default async function AgentPortfolioPage() {
 
   const serializedListings = listings.map((listing) => ({
     ...listing,
-    price: Number(listing.price),
+    price: listing.price != null ? Number(listing.price) : null,
+    projectArea: listing.projectArea != null ? Number(listing.projectArea) : null,
+    tag: (listing as any).tag ? { ...(listing as any).tag } : null,
   }));
 
   return (

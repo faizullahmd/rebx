@@ -1,7 +1,7 @@
 import "server-only";
 import { S3Client } from "@aws-sdk/client-s3";
 
-const region = process.env.SPACES_REGION ?? "";
+const region = process.env.SPACES_REGION || "nyc3";
 const bucket = process.env.SPACES_BUCKET ?? "";
 
 export const SPACES_BUCKET = bucket;

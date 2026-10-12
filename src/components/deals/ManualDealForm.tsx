@@ -5,7 +5,7 @@ import type { Listing } from "@prisma/client";
 import { createManualDeal } from "@/lib/actions/deals";
 import type { InquiryFormState } from "@/lib/validation/deal";
 
-export function ManualDealForm({ listings }: { listings: Listing[] }) {
+export function ManualDealForm({ listings }: { listings: { id: number; title: string }[] }) {
   const [state, formAction, pending] = useActionState<InquiryFormState, FormData>(
     createManualDeal,
     undefined

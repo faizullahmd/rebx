@@ -7,15 +7,18 @@ import { AgentProfileHeader, type AgentProfileHeaderProps } from "@/components/p
 import { getListingTag } from "@/lib/tags";
 import { DashboardListingsTable } from "@/components/dashboard/DashboardListingsTable";
 
-type ListingWithImages = Omit<Listing, "price"> & { price: number; images: ListingImage[] };
+type ListingWithImages = Omit<Listing, "price"> & { price: number | null; images: ListingImage[] };
 
 interface AgentPortfolioManagerProps {
   agentProfile: Omit<AgentProfileHeaderProps, "activeListingCount" | "mode">;
   initialListings: ListingWithImages[];
 }
 
-function isFeatured(listing: ListingWithImages): boolean {
-  return getListingTag(listing.tags) === "featured";
+function isFeatured(listing: any): boolean {
+  return (
+    listing.tag?.name?.toLowerCase() === "featured" ||
+    getListingTag(listing.tags) === "featured"
+  );
 }
 
 function sortListings(items: ListingWithImages[]): ListingWithImages[] {
@@ -34,11 +37,17 @@ export function AgentPortfolioManager({
     (l) => l.status === "ACTIVE" || l.status === "UNDER_OFFER"
   ).length;
 
-  const handleTagChange = (listingId: number, nextTag: string | null) => {
+  const handleTagChange = (listingId: number, nextTag: any) => {
     setListings((prev) => {
       const updated = prev.map((item) =>
         item.id === listingId
-          ? { ...item, tags: nextTag ? [nextTag] : [] }
+          ? {
+              ...item,
+              tag: nextTag && typeof nextTag === "object" ? nextTag : null,
+              tags: nextTag
+                ? [typeof nextTag === "object" ? nextTag.name.toLowerCase() : nextTag]
+                : [],
+            }
           : item
       );
       return sortListings(updated);

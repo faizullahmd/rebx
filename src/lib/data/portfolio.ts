@@ -114,6 +114,7 @@ export async function getAgentPortfolioListings(
         images: {
           orderBy: { sortOrder: "asc" },
         },
+        tag: true,
       },
       orderBy,
       skip: Math.max(0, (page - 1) * pageSize),

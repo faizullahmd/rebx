@@ -19,6 +19,28 @@ import { ListingTagBadge } from "@/components/listings/ListingTagBadge";
 
 import { formatListingPrice } from "@/lib/price";
 
+function formatListingAddress(listing: {
+  addressLine?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+}) {
+  const parts: string[] = [];
+  const raw = listing.addressLine?.trim() || "";
+  const lower = raw.toLowerCase();
+  if (raw) parts.push(raw);
+  if (listing.city && !lower.includes(listing.city.toLowerCase())) {
+    parts.push(listing.city);
+  }
+  if (listing.state && !lower.includes(listing.state.toLowerCase())) {
+    parts.push(listing.state);
+  }
+  if (listing.country && !lower.includes(listing.country.toLowerCase())) {
+    parts.push(listing.country);
+  }
+  return parts.join(", ");
+}
+
 export default async function ListingDetailPage({
   params,
 }: {
@@ -45,7 +67,7 @@ export default async function ListingDetailPage({
   }
 
   const agentPhone = listing.agent.agentProfile?.phone || "+1 (512) 555-0198";
-  const tag = getListingTag(listing.tags);
+  const tag = (listing as any).tag || getListingTag(listing.tags);
 
   return (
     <article className="flex flex-col gap-6">
@@ -66,8 +88,7 @@ export default async function ListingDetailPage({
         <div className="flex flex-col gap-6 lg:col-span-2">
           <div>
             <p className="text-sm text-gray-500">
-              {listing.addressLine}, {listing.city}
-              {listing.state ? `, ${listing.state}` : ""}, {listing.country}
+              {formatListingAddress(listing)}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <h1 className="text-2xl sm:text-3xl font-semibold">{listing.title}</h1>
@@ -85,7 +106,12 @@ export default async function ListingDetailPage({
               </p>
             )}
             <p className="mt-2 text-2xl font-semibold text-gray-900">
-              {formatListingPrice(listing.price, listing.currency, listing.priceDisplay)}
+              {formatListingPrice(
+                listing.price,
+                listing.currency,
+                listing.priceDisplay,
+                (listing as any).priceOnRequest
+              )}
             </p>
             <p className="mt-1 text-sm text-gray-500">
               {[
@@ -109,10 +135,16 @@ export default async function ListingDetailPage({
                   .join(" · ")}
               </p>
             )}
-            {((listing as any).avgPricePerSqFt || (listing as any).possessionStarts || (listing as any).reraId) && (
+            {((listing as any).avgPricePerSqFt ||
+              (listing as any).possessionStarts ||
+              (listing as any).reraId ||
+              (listing as any).projectUnits ||
+              (listing as any).projectArea) && (
               <p className="mt-1 text-sm text-gray-500">
                 {[
-                  (listing as any).avgPricePerSqFt ? `Avg: ${(listing as any).avgPricePerSqFt}` : null,
+                  (listing as any).projectUnits ? `Project Units: ${(listing as any).projectUnits}` : null,
+                  (listing as any).projectArea ? `Project Size: ${(listing as any).projectArea} Acres` : null,
+                  (listing as any).avgPricePerSqFt ? `Avg Price: ${(listing as any).avgPricePerSqFt}` : null,
                   (listing as any).possessionStarts ? `Possession: ${(listing as any).possessionStarts}` : null,
                   (listing as any).reraId ? `RERA: ${(listing as any).reraId}` : null,
                 ]
