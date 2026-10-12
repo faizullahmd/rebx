@@ -79,10 +79,26 @@ export async function POST(req: NextRequest) {
       size: file.size,
     });
   } catch (error: unknown) {
-    console.error("Image upload error:", error);
-    return NextResponse.json(
-      { error: (error as Error)?.message || "Failed to upload image" },
-      { status: 500 }
-    );
+    const detail = describeUploadError(error);
+    console.error("Image upload error:", detail, error);
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
+}
+
+// The SDK often reports "UnknownError" for non-XML responses, so include the HTTP status
+// and a safe summary of the Spaces config (never the key or secret values) to make the
+// real cause diagnosable from the UI.
+function describeUploadError(error: unknown) {
+  const e = error as { name?: string; message?: string; $metadata?: { httpStatusCode?: number }; code?: string };
+  const key = process.env.SPACES_KEY ?? "";
+  const secret = process.env.SPACES_SECRET ?? "";
+  const hasOdd = (v: string) => /^\s|\s$|["']/.test(v);
+  const config =
+    `region=${JSON.stringify(process.env.SPACES_REGION ?? "")} bucket=${JSON.stringify(SPACES_BUCKET)} ` +
+    `keyLen=${key.length}${hasOdd(key) ? "(whitespace/quote!)" : ""} ` +
+    `secretLen=${secret.length}${hasOdd(secret) ? "(whitespace/quote!)" : ""}`;
+  const status = e?.$metadata?.httpStatusCode;
+  return `${e?.name || "Error"}${status ? ` (HTTP ${status})` : ""}${e?.code ? ` [${e.code}]` : ""}: ${
+    e?.message && e.message !== e.name ? e.message : "no detail from storage"
+  } | ${config}`;
 }
