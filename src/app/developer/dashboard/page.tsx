@@ -71,7 +71,7 @@ export default async function DeveloperDashboardPage() {
                 <td className="py-3 text-gray-600">{listing.agent.name}</td>
                 <td className="py-3 text-gray-600">{listing.city}</td>
                 <td className="py-3 text-gray-600">
-                  {formatListingPrice(listing.price, listing.currency, (listing as any).priceDisplay)}
+                  {formatListingPrice(listing.price, listing.currency, (listing as any).priceDisplay, (listing as any).priceOnRequest)}
                 </td>
                 <td className="py-3">
                   <StatusBadge status={listing.status} />

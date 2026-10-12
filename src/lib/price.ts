@@ -99,8 +99,13 @@ export function parsePriceInput(raw: string | number | undefined | null): {
 export function formatListingPrice(
   price: number | string | { toString(): string } | null | undefined,
   currency = "INR",
-  priceDisplay?: string | null
+  priceDisplay?: string | null,
+  priceOnRequest?: boolean | null
 ): string {
+  if (priceOnRequest) {
+    return "Price on request";
+  }
+
   const symbol =
     currency === "INR" || currency === "₹" || currency === "Rs" || !currency
       ? "₹"
@@ -123,7 +128,7 @@ export function formatListingPrice(
 
   const num = typeof price === "number" ? price : parseFloat(String(price || 0));
   if (isNaN(num) || num <= 0) {
-    return "Price on Request";
+    return "Price on request";
   }
 
   // Indian format for INR / ₹

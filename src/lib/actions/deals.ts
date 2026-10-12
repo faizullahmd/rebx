@@ -223,7 +223,7 @@ export async function updateDeal(
           prisma.booking.create({
             data: {
               dealId,
-              saleAmount: offerAmount ?? existing.listing.price,
+              saleAmount: offerAmount ?? existing.listing.price ?? 0,
               status: developer ? "PENDING_CONFIRMATION" : "CONFIRMED",
               ...(developer ? {} : { confirmedAt: new Date() }),
             },

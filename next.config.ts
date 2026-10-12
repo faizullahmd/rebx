@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* server config reloaded */
+  /* server config reload trigger 5 */
 };
 
 export default nextConfig;

@@ -1,28 +1,48 @@
-import { LISTING_TAG_LABELS, type ListingTag } from "@/lib/tags";
+import {
+  LISTING_TAG_LABELS,
+  LEGACY_TAG_COLOR_MAP,
+  getTagBadgeClass,
+  type ListingTag,
+} from "@/lib/tags";
 
-const BADGE_STYLES: Record<ListingTag, string> = {
-  new: "bg-emerald-600 text-white",
-  featured: "bg-amber-600 text-white",
-  most_viewed: "bg-blue-600 text-white",
-  few_units_left: "bg-rose-600 text-white",
-  exclusive: "bg-indigo-600 text-white",
-};
-
-interface ListingTagBadgeProps {
-  tag: string | null | undefined;
-  className?: string;
+export interface TagDisplayInput {
+  name: string;
+  color: string;
 }
 
-export function ListingTagBadge({ tag, className = "" }: ListingTagBadgeProps) {
-  if (!tag || !(tag in LISTING_TAG_LABELS)) return null;
+interface ListingTagBadgeProps {
+  tag: string | TagDisplayInput | null | undefined;
+  className?: string;
+  mode?: "solid" | "soft";
+}
 
-  const validTag = tag as ListingTag;
-  const label = LISTING_TAG_LABELS[validTag];
-  const colorStyle = BADGE_STYLES[validTag] || "bg-neutral-800 text-white";
+export function ListingTagBadge({ tag, className = "", mode = "solid" }: ListingTagBadgeProps) {
+  if (!tag) return null;
+
+  let label = "";
+  let colorKey = "gray";
+
+  if (typeof tag === "object") {
+    label = tag.name;
+    colorKey = tag.color;
+  } else if (typeof tag === "string") {
+    const lower = tag.toLowerCase().trim();
+    if (lower in LISTING_TAG_LABELS) {
+      label = LISTING_TAG_LABELS[lower as ListingTag];
+      colorKey = LEGACY_TAG_COLOR_MAP[lower] || "gray";
+    } else {
+      label = tag;
+      colorKey = "gray";
+    }
+  }
+
+  if (!label) return null;
+
+  const colorStyle = getTagBadgeClass(colorKey, mode);
 
   return (
     <span
-      className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold tracking-wide shadow-xs backdrop-blur-sm ${colorStyle} ${className}`}
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide shadow-2xs backdrop-blur-sm border ${colorStyle} ${className}`}
     >
       {label}
     </span>

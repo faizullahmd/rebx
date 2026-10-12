@@ -165,7 +165,7 @@ export function VideoCard({ listing: item, onSelect }: VideoCardProps) {
         {listing && (
           <div className="mt-2 flex items-baseline justify-between border-t border-neutral-100 pt-3">
             <span className="text-lg font-bold tracking-tight text-neutral-950">
-              {formatListingPrice(listing.price, listing.currency, listing.priceDisplay)}
+              {formatListingPrice(listing.price, listing.currency, listing.priceDisplay, (listing as any).priceOnRequest)}
             </span>
 
             <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium">

@@ -12,35 +12,30 @@ export const optionalEnum = <U extends string, T extends readonly [U, ...U[]]>(v
 
 import { parsePriceInput } from "@/lib/price";
 
-export const ListingFormSchema = z.object({
-  title: z.string().trim().min(5, "Title must be at least 5 characters."),
-  description: z.string().trim().min(20, "Description must be at least 20 characters."),
-  price: z
-    .string()
-    .trim()
-    .min(1, "Price is required.")
-    .refine(
-      (val) => {
-        const { numericPrice } = parsePriceInput(val);
-        return numericPrice > 0;
-      },
-      {
-        message: "Please enter a valid price (e.g. 10.58 Cr - 11.96 Cr, 1.5 Cr, or 5000000).",
-      }
+export const ListingFormSchema = z
+  .object({
+    title: z.string().trim().min(5, "Title must be at least 5 characters."),
+    description: z.string().trim().min(20, "Description must be at least 20 characters."),
+    priceOnRequest: z.preprocess(
+      (val) => val === true || val === "true" || val === "on" || val === 1 || val === "1",
+      z.boolean().default(false)
     ),
-  currency: z.string().trim().min(1).max(8).default("INR"),
-  addressLine: z.string().trim().min(3, "Address is required."),
-  city: z.string().trim().min(1, "City is required."),
-  state: z.string().trim().optional().or(z.literal("")),
-  country: z.string().trim().min(1, "Country is required."),
-  postalCode: z.string().trim().optional().or(z.literal("")),
-  bedrooms: optionalNumber(z.coerce.number().int().nonnegative()),
-  bathrooms: optionalNumber(z.coerce.number().int().nonnegative()),
-  areaSqFt: optionalNumber(z.coerce.number().int().positive()),
-  reraId: z.string().trim().optional().or(z.literal("")),
-  avgPricePerSqFt: z.string().trim().optional().or(z.literal("")),
-  possessionStarts: z.string().trim().optional().or(z.literal("")),
-  status: z.enum(["DRAFT", "ACTIVE", "UNDER_OFFER", "SOLD"]),
+    price: z.string().trim().optional().or(z.literal("")),
+    currency: z.string().trim().min(1).max(8).default("INR"),
+    addressLine: z.string().trim().min(3, "Address is required."),
+    city: z.string().trim().min(1, "City is required."),
+    state: z.string().trim().optional().or(z.literal("")),
+    country: z.string().trim().min(1, "Country is required."),
+    postalCode: z.string().trim().optional().or(z.literal("")),
+    bedrooms: optionalNumber(z.coerce.number().int().nonnegative()),
+    bathrooms: optionalNumber(z.coerce.number().int().nonnegative()),
+    areaSqFt: optionalNumber(z.coerce.number().int().positive()),
+    projectUnits: optionalNumber(z.coerce.number().int().min(1, "Project units must be at least 1.")),
+    projectArea: optionalNumber(z.coerce.number().min(0, "Project area must be at least 0.")),
+    reraId: z.string().trim().optional().or(z.literal("")),
+    avgPricePerSqFt: z.string().trim().optional().or(z.literal("")),
+    possessionStarts: z.string().trim().optional().or(z.literal("")),
+    status: z.enum(["DRAFT", "ACTIVE", "UNDER_OFFER", "SOLD"]),
   developerId: z.string().trim().optional().or(z.literal("")),
   imageUrls: z.string().trim().optional().or(z.literal("")),
   videoUrl: z
@@ -81,6 +76,26 @@ export const ListingFormSchema = z.object({
   facing: optionalEnum(["NORTH", "SOUTH", "EAST", "WEST", "NORTH_EAST", "NORTH_WEST", "SOUTH_EAST", "SOUTH_WEST"]),
   propertyAgeYears: optionalNumber(z.coerce.number().int().nonnegative()),
   availability: optionalEnum(["READY_TO_MOVE", "UNDER_CONSTRUCTION"]),
+})
+.superRefine((data, ctx) => {
+  if (!data.priceOnRequest) {
+    if (!data.price || data.price.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["price"],
+        message: "Price is required.",
+      });
+    } else {
+      const { numericPrice } = parsePriceInput(data.price);
+      if (numericPrice <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["price"],
+          message: "Please enter a valid price (e.g. 10.58 Cr - 11.96 Cr, 1.5 Cr, or 5000000).",
+        });
+      }
+    }
+  }
 });
 
 export type ListingFormState =

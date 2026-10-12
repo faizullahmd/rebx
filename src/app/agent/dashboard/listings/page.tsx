@@ -11,11 +11,14 @@ export default async function AgentListingsPage() {
     id: listing.id,
     title: listing.title,
     city: listing.city,
-    price: Number(listing.price),
+    price: listing.price != null ? Number(listing.price) : null,
     priceDisplay: listing.priceDisplay,
+    priceOnRequest: (listing as any).priceOnRequest,
     currency: listing.currency,
     status: listing.status,
     tags: listing.tags,
+    tagId: (listing as any).tagId,
+    tag: (listing as any).tag,
   }));
 
   return (

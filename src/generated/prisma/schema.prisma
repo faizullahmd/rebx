@@ -1,0 +1,431 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma2"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  AGENT
+  DEVELOPER
+  CUSTOMER
+  ADMIN
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  UNDER_OFFER
+  SOLD
+}
+
+enum DealStage {
+  NEW
+  CONTACTED
+  VIEWING_SCHEDULED
+  OFFER_MADE
+  NEGOTIATION
+  UNDER_CONTRACT
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum CommissionSource {
+  DEVELOPER
+  CUSTOMER
+}
+
+enum CommissionStatus {
+  PENDING
+  INVOICED
+  RECEIVED
+}
+
+enum DeveloperRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+}
+
+enum TransactionType {
+  FOR_SALE
+  FOR_RENT
+  FOR_LEASE
+  AUCTION
+}
+
+enum PropertyCategory {
+  RESIDENTIAL
+  COMMERCIAL
+  LAND_PLOT
+  INDUSTRIAL
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  INDEPENDENT_HOUSE
+  BUILDER_FLOOR
+  PENTHOUSE
+  STUDIO
+  OFFICE
+  SHOP
+  SHOWROOM
+  WAREHOUSE
+  RESIDENTIAL_PLOT
+  COMMERCIAL_PLOT
+  AGRICULTURAL_LAND
+  FACTORY
+  INDUSTRIAL_BUILDING
+  INDUSTRIAL_LAND
+}
+
+enum FurnishingStatus {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FURNISHED
+}
+
+enum FacingDirection {
+  NORTH
+  SOUTH
+  EAST
+  WEST
+  NORTH_EAST
+  NORTH_WEST
+  SOUTH_EAST
+  SOUTH_WEST
+}
+
+enum AvailabilityStatus {
+  READY_TO_MOVE
+  UNDER_CONSTRUCTION
+}
+
+model IdCounter {
+  key   String @id
+  value Int
+}
+
+model User {
+  id           Int      @id
+  name         String
+  email        String   @unique
+  username     String?  @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agentProfile     AgentProfile?
+  developerProfile DeveloperProfile?
+  customerProfile  CustomerProfile?
+
+  listingsAsAgent     Listing[] @relation("AgentListings")
+  listingsAsDeveloper Listing[] @relation("DeveloperListings")
+
+  dealsAsAgent    Deal[] @relation("AgentDeals")
+  dealsAsCustomer Deal[] @relation("CustomerDeals")
+
+  commissionsAsAgent Commission[] @relation("AgentCommissions")
+  commissionsPaidOut Commission[] @relation("CommissionsPaidOut")
+
+  passwordResetTokens PasswordResetToken[]
+
+  developerRequestsMade     DeveloperRequest[] @relation("DeveloperRequestsMade")
+  developerRequestsResolved DeveloperRequest[] @relation("DeveloperRequestsResolved")
+
+  videosCreated Video[] @relation("UserVideos")
+
+  reviewsReceived Review[] @relation("AgentReviews")
+
+  @@index([role])
+}
+
+model AgentProfile {
+  id         String  @id @default(cuid())
+  userId     Int     @unique
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyName String?
+  licenseNo  String?
+  phone      String?
+  bio        String? @db.Text
+}
+
+model DeveloperProfile {
+  id          String  @id @default(cuid())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  phone       String?
+  website     String?
+}
+
+model CustomerProfile {
+  id     String  @id @default(cuid())
+  userId Int     @unique
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone  String?
+}
+
+model Listing {
+  id             Int      @id @default(autoincrement())
+  slug           String   @unique
+  title          String
+  description    String   @db.Text
+  price          Decimal? @db.Decimal(12, 2)
+  priceDisplay   String?
+  currency       String   @default("INR")
+  priceOnRequest Boolean  @default(false)
+
+  addressLine String
+  city        String
+  state       String?
+  country     String
+  postalCode  String?
+  latitude    Float?
+  longitude   Float?
+
+  bedrooms     Int?
+  bathrooms    Int?
+  areaSqFt     Int?
+  projectUnits Int?
+  projectArea  Float?
+
+  reraId           String?
+  avgPricePerSqFt  String?
+  possessionStarts String?
+
+  status ListingStatus @default(DRAFT)
+  tags   Json?
+
+  transactionType  TransactionType     @default(FOR_SALE)
+  propertyCategory PropertyCategory?
+  propertyType     PropertyType?
+  furnishing       FurnishingStatus?
+  parkingSpots     Int?
+  facing           FacingDirection?
+  propertyAgeYears Int?
+  availability     AvailabilityStatus?
+
+  agentId Int
+  agent   User @relation("AgentListings", fields: [agentId], references: [id])
+
+  developerId Int?
+  developer   User? @relation("DeveloperListings", fields: [developerId], references: [id])
+
+  videoUrl String? @db.Text
+  videoId  Int?
+  video    Video?  @relation("ListingToVideo", fields: [videoId], references: [id], onDelete: SetNull)
+
+  images            ListingImage[]
+  videos            ListingVideo[]
+  deals             Deal[]
+  developerRequests DeveloperRequest[]
+  reviews           Review[]           @relation("ListingReviews")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([agentId])
+  @@index([developerId])
+  @@index([videoId])
+  @@index([city])
+  @@index([transactionType])
+  @@index([propertyCategory])
+  @@index([propertyType])
+}
+
+model Video {
+  id           Int       @id @default(autoincrement())
+  title        String
+  url          String    @db.Text
+  provider     String
+  videoId      String
+  thumbnailUrl String?   @db.Text
+  createdById  Int
+  createdBy    User      @relation("UserVideos", fields: [createdById], references: [id], onDelete: Cascade)
+  listings     Listing[] @relation("ListingToVideo")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([provider, videoId])
+  @@index([createdById])
+}
+
+model ListingImage {
+  id        Int      @id @default(autoincrement())
+  listingId Int
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+model ListingVideo {
+  id        Int      @id @default(autoincrement())
+  listingId Int
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String   @db.Text
+  title     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+model Deal {
+  id    Int       @id @default(autoincrement())
+  stage DealStage @default(NEW)
+
+  listingId Int
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  agentId Int
+  agent   User @relation("AgentDeals", fields: [agentId], references: [id])
+
+  customerId Int?
+  customer   User? @relation("CustomerDeals", fields: [customerId], references: [id])
+
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  message      String? @db.Text
+
+  offerAmount Decimal? @db.Decimal(12, 2)
+  notes       String?  @db.Text
+
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  commissions Commission[]
+  booking     Booking?
+
+  @@index([listingId])
+  @@index([agentId])
+  @@index([customerId])
+  @@index([stage])
+}
+
+model Booking {
+  id            Int           @id @default(autoincrement())
+  status        BookingStatus @default(PENDING_CONFIRMATION)
+  bookingNumber String?
+  unitNumber    String?
+  saleAmount    Decimal       @db.Decimal(12, 2)
+  bookingDate   DateTime      @default(now())
+  confirmedAt   DateTime?
+  notes         String?       @db.Text
+
+  dealId Int  @unique
+  deal   Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+model Commission {
+  id     Int              @id @default(autoincrement())
+  source CommissionSource
+  status CommissionStatus @default(PENDING)
+  amount Decimal          @db.Decimal(12, 2)
+  notes  String?          @db.Text
+
+  dealId Int
+  deal   Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  agentId Int
+  agent   User @relation("AgentCommissions", fields: [agentId], references: [id])
+
+  invoicedAt DateTime?
+  receivedAt DateTime?
+
+  paidOutAt   DateTime?
+  paidOutById Int?
+  paidOutBy   User?     @relation("CommissionsPaidOut", fields: [paidOutById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([dealId, source])
+  @@index([dealId])
+  @@index([agentId])
+  @@index([status])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model DeveloperRequest {
+  id              Int                    @id @default(autoincrement())
+  status          DeveloperRequestStatus @default(PENDING)
+  companyName     String
+  contactName     String
+  contactEmail    String
+  contactPhone    String?
+  rejectionReason String?                @db.Text
+
+  listingId Int
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  requestedById Int
+  requestedBy   User @relation("DeveloperRequestsMade", fields: [requestedById], references: [id])
+
+  createdDeveloperId Int?
+  createdDeveloper   User? @relation("DeveloperRequestsResolved", fields: [createdDeveloperId], references: [id])
+
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([listingId])
+  @@index([requestedById])
+  @@index([status])
+}
+
+model Review {
+  id                   Int     @id @default(autoincrement())
+  name                 String
+  role                 String? @default("Verified Buyer")
+  rating               Int     @default(5)
+  comment              String  @db.Text
+  communicationRating  Float?
+  localKnowledgeRating Float?
+  negotiationRating    Float?
+  isVerified           Boolean @default(true)
+
+  agentId Int
+  agent   User @relation("AgentReviews", fields: [agentId], references: [id], onDelete: Cascade)
+
+  listingId Int?
+  listing   Listing? @relation("ListingReviews", fields: [listingId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([listingId])
+}

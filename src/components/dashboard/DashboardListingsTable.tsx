@@ -13,11 +13,14 @@ export interface DashboardListingItem {
   id: number;
   title: string;
   city: string;
-  price: number | string;
+  price: number | string | null;
   priceDisplay?: string | null;
+  priceOnRequest?: boolean | null;
   currency?: string;
   status: string;
   tags?: any;
+  tagId?: number | null;
+  tag?: any;
 }
 
 export interface DashboardListingsTableProps {
@@ -80,7 +83,7 @@ export function DashboardListingsTable({
                         {listing.title}
                       </div>
                       <div className="text-xs text-gray-500 truncate mt-0.5">
-                        {listing.city} · {formatListingPrice(listing.price, listing.currency, listing.priceDisplay)}
+                        {listing.city} · {formatListingPrice(listing.price, listing.currency, listing.priceDisplay, listing.priceOnRequest)}
                       </div>
                     </div>
                   </td>
@@ -94,8 +97,9 @@ export function DashboardListingsTable({
                   <td className="py-3 px-2 align-middle">
                     <ListingTagDropdown
                       listingId={listing.id}
-                      initialTag={getListingTag(listing.tags)}
-                      onTagChange={onTagChange ? (nextTag) => onTagChange(listing.id, nextTag) : undefined}
+                      initialTag={listing.tag || getListingTag(listing.tags)}
+                      initialTagId={listing.tagId}
+                      onTagChange={onTagChange ? (nextTag: any) => onTagChange(listing.id, nextTag?.name || nextTag) : undefined}
                       compact
                     />
                   </td>
@@ -135,7 +139,7 @@ export function DashboardListingsTable({
                 <td className="py-3 px-4 font-medium text-gray-900">{listing.title}</td>
                 <td className="py-3 px-4 text-gray-600">{listing.city}</td>
                 <td className="py-3 px-4 text-gray-600">
-                  {formatListingPrice(listing.price, listing.currency, listing.priceDisplay)}
+                  {formatListingPrice(listing.price, listing.currency, listing.priceDisplay, listing.priceOnRequest)}
                 </td>
                 <td className="py-3 px-4">
                   <StatusBadge status={listing.status} size="md" />
@@ -143,8 +147,9 @@ export function DashboardListingsTable({
                 <td className="py-3 px-4">
                   <ListingTagDropdown
                     listingId={listing.id}
-                    initialTag={getListingTag(listing.tags)}
-                    onTagChange={onTagChange ? (nextTag) => onTagChange(listing.id, nextTag) : undefined}
+                    initialTag={listing.tag || getListingTag(listing.tags)}
+                    initialTagId={listing.tagId}
+                    onTagChange={onTagChange ? (nextTag: any) => onTagChange(listing.id, nextTag?.name || nextTag) : undefined}
                   />
                 </td>
                 <td className="py-3 px-4 text-right">

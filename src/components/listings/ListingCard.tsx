@@ -15,17 +15,22 @@ export function ListingCard({
     ? listing.images[0].url
     : "/images/property-placeholder.jpg";
 
-  const formattedPrice = formatListingPrice(listing.price, listing.currency, listing.priceDisplay);
-  const tag = getListingTag((listing as Record<string, unknown>).tags);
+  const formattedPrice = formatListingPrice(
+    listing.price,
+    listing.currency,
+    listing.priceDisplay,
+    (listing as any).priceOnRequest
+  );
+  const tag = (listing as any).tag || getListingTag((listing as Record<string, unknown>).tags);
   const isFeatured = Boolean((listing as Record<string, unknown>).featured || (listing as Record<string, unknown>).isFeatured);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-neutral-200/90 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md">
+    <Link
+      href={`/listings/${listing.slug}`}
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-neutral-200/90 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md active:scale-[0.99] cursor-pointer"
+    >
       {/* Property Image Container */}
-      <Link
-        href={`/listings/${listing.slug}`}
-        className="relative block aspect-[4/3] w-full overflow-hidden bg-neutral-100"
-      >
+      <div className="relative block aspect-[4/3] w-full overflow-hidden bg-neutral-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={cover}
@@ -35,7 +40,7 @@ export function ListingCard({
         />
 
         {/* Badges Overlay */}
-        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+        <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-wrap items-center gap-1.5">
           {/* Sale / Rent status */}
           <span className="inline-flex items-center rounded bg-neutral-900/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-sm">
             {TRANSACTION_LABELS[listing.transactionType] || "For Sale"}
@@ -63,10 +68,10 @@ export function ListingCard({
             </span>
           ) : null}
         </div>
-      </Link>
+      </div>
 
       {/* Property Details */}
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
         {/* Location */}
         <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-500">
           <svg
@@ -96,14 +101,12 @@ export function ListingCard({
         </div>
 
         {/* Property Name */}
-        <h3 className="mt-2 text-base font-semibold text-neutral-900 transition-colors group-hover:text-neutral-700">
-          <Link href={`/listings/${listing.slug}`} className="line-clamp-1">
-            {listing.title}
-          </Link>
+        <h3 className="mt-1.5 sm:mt-2 text-[15px] sm:text-base font-semibold text-neutral-900 transition-colors group-hover:text-neutral-700 line-clamp-1">
+          {listing.title}
         </h3>
 
         {/* Price */}
-        <div className="mt-2.5">
+        <div className="mt-2 sm:mt-2.5">
           <span className="text-xl font-bold tracking-tight text-neutral-950">
             {formattedPrice}
           </span>
@@ -139,12 +142,9 @@ export function ListingCard({
           ) : null}
         </div>
 
-        {/* View Property Button */}
-        <div className="mt-5 pt-1">
-          <Link
-            href={`/listings/${listing.slug}`}
-            className="flex w-full items-center justify-center gap-2 rounded border border-neutral-200 bg-neutral-50 px-4 py-2 text-xs font-semibold text-neutral-800 transition-all group-hover:border-neutral-900 group-hover:bg-neutral-900 group-hover:text-white"
-          >
+        {/* View Property Button: Highlighted on mobile for easy tapping */}
+        <div className="mt-4 pt-1 sm:mt-5">
+          <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-all active:scale-[0.98] active:bg-neutral-800 sm:border sm:border-neutral-200 sm:bg-neutral-50 sm:text-neutral-800 sm:shadow-none sm:group-hover:border-neutral-900 sm:group-hover:bg-neutral-900 sm:group-hover:text-white">
             <span>View Property</span>
             <svg
               className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
@@ -154,9 +154,9 @@ export function ListingCard({
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </Link>
+          </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

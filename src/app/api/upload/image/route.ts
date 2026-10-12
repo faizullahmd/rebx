@@ -1,6 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
 import { auth } from "@/auth";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -48,44 +46,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const originalExt = path.extname(file.name) || ".jpg";
-    const cleanExt = originalExt.toLowerCase().replace(/[^a-z0-9.]/g, "");
-    const safeName = sanitizeFileName(file.name);
-    const fileName = `${Date.now()}-${randomUUID()}${cleanExt}`;
-
-    // If DigitalOcean Spaces is fully configured with a bucket, upload there
-    if (SPACES_BUCKET && SPACES_BUCKET.trim().length > 0 && process.env.SPACES_KEY) {
-      try {
-        const key = `listings/${session.user.id}/${randomUUID()}-${safeName}`;
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: key,
-            Body: buffer,
-            ContentType: file.type,
-            ACL: "public-read",
-          })
-        );
-        const publicUrl = buildPublicUrl(key);
-        return NextResponse.json({
-          url: publicUrl,
-          fileName: file.name,
-          size: file.size,
-        });
-      } catch (s3Error) {
-        console.warn("Spaces upload failed, falling back to local storage:", s3Error);
-      }
+    // Require DigitalOcean Spaces / S3 cloud storage
+    if (!SPACES_BUCKET || !SPACES_BUCKET.trim() || !process.env.SPACES_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            "Cloud storage (DigitalOcean Spaces) is not configured. Please configure SPACES_KEY, SPACES_SECRET, and SPACES_BUCKET in your environment.",
+        },
+        { status: 503 }
+      );
     }
 
-    // Default & fallback: Save locally in public/uploads/images
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "images");
-    await mkdir(uploadDir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const safeName = sanitizeFileName(file.name);
+    const key = `listings/${session.user.id}/${randomUUID()}-${safeName}`;
 
-    const filePath = path.join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+        ACL: "public-read",
+      })
+    );
 
-    const publicUrl = `/uploads/images/${fileName}`;
+    const publicUrl = buildPublicUrl(key);
 
     return NextResponse.json({
       url: publicUrl,

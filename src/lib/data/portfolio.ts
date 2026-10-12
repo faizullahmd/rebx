@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import type { ListingStatus, Prisma, PropertyType, TransactionType } from "@prisma/client";
+import type { ListingStatus, Prisma, PropertyType, TransactionType } from "@/generated/prisma-client";
 
 export type PortfolioSortOption = "newest" | "price-asc" | "price-desc";
 
@@ -114,6 +114,7 @@ export async function getAgentPortfolioListings(
         images: {
           orderBy: { sortOrder: "asc" },
         },
+        tag: true,
       },
       orderBy,
       skip: Math.max(0, (page - 1) * pageSize),

@@ -30,7 +30,11 @@ export default async function DeveloperEditListingPage({
       <h1 className="text-2xl font-semibold">Edit listing</h1>
       <ListingForm
         action={updateListing.bind(null, listingId)}
-        listing={{ ...listing, price: Number(listing.price) }}
+        listing={{
+          ...listing,
+          price: listing.price != null ? Number(listing.price) : null,
+          projectArea: (listing as any).projectArea != null ? Number((listing as any).projectArea) : null,
+        }}
         developers={developers}
         submitLabel="Save changes"
         canAddVideo={true}

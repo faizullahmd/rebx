@@ -22,7 +22,8 @@ export function FeaturedListingCard({
   const formattedPrice = formatListingPrice(
     listing.price,
     listing.currency || "INR",
-    (listing as any).priceDisplay
+    (listing as any).priceDisplay,
+    (listing as any).priceOnRequest
   );
   const hasSlug = Boolean(listing.slug);
 

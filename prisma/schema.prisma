@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma-client"
 }
 
 datasource db {
@@ -146,6 +147,8 @@ model User {
 
   reviewsReceived Review[] @relation("AgentReviews")
 
+  createdTags Tag[] @relation("CreatedTags")
+
   @@index([role])
 }
 
@@ -180,9 +183,10 @@ model Listing {
   slug        String        @unique
   title       String
   description String        @db.Text
-  price       Decimal       @db.Decimal(12, 2)
+  price       Decimal?      @db.Decimal(12, 2)
   priceDisplay String?
   currency    String        @default("INR")
+  priceOnRequest Boolean    @default(false)
 
   addressLine String
   city        String
@@ -195,6 +199,8 @@ model Listing {
   bedrooms    Int?
   bathrooms   Int?
   areaSqFt    Int?
+  projectUnits Int?
+  projectArea  Float?
 
   reraId           String?
   avgPricePerSqFt  String?
@@ -228,10 +234,14 @@ model Listing {
   developerRequests DeveloperRequest[]
   reviews     Review[]      @relation("ListingReviews")
 
+  tagId       Int?
+  tag         Tag?          @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   @@index([status])
+  @@index([tagId])
   @@index([agentId])
   @@index([developerId])
   @@index([videoId])
@@ -424,4 +434,20 @@ model Review {
 
   @@index([agentId])
   @@index([listingId])
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String
+  color     String
+  isDefault Boolean  @default(false)
+  createdBy Int?
+  creator   User?    @relation("CreatedTags", fields: [createdBy], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  listings  Listing[]
+
+  @@unique([createdBy, name])
+  @@index([createdBy])
+  @@index([isDefault])
 }

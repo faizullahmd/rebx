@@ -31,8 +31,11 @@ import { formatListingPrice, parsePriceInput } from "@/lib/price";
 
 type Developer = { id: number; name: string; developerProfile: { companyName: string } | null };
 type ListingWithImages = Omit<Listing, "price"> & {
-  price: number;
+  price: number | null;
   priceDisplay?: string | null;
+  priceOnRequest?: boolean | null;
+  projectUnits?: number | null;
+  projectArea?: any;
   images: ListingImage[];
   videos?: ListingVideo[];
   videoUrl?: string | null;
@@ -52,14 +55,20 @@ const FIELD_STEP: Record<string, number> = {
   country: 1,
   postalCode: 1,
   price: 2,
+  priceOnRequest: 2,
   currency: 2,
+  reraId: 2,
   bedrooms: 2,
   bathrooms: 2,
   areaSqFt: 2,
+  projectUnits: 2,
+  projectArea: 2,
+  avgPricePerSqFt: 2,
   furnishing: 2,
   parkingSpots: 2,
   facing: 2,
   propertyAgeYears: 2,
+  possessionStarts: 2,
   availability: 2,
   status: 2,
   developerId: 2,
@@ -78,7 +87,10 @@ function initialValues(listing?: ListingWithImages) {
   return {
     title: listing?.title ?? "",
     description: listing?.description ?? "",
-    price: (listing as any)?.priceDisplay || (listing ? String(listing.price) : ""),
+    price: (listing as any)?.priceOnRequest
+      ? ""
+      : ((listing as any)?.priceDisplay || (listing?.price != null ? String(listing.price) : "")),
+    priceOnRequest: Boolean((listing as any)?.priceOnRequest),
     currency: listing?.currency ?? "INR",
     videoUrl: listing?.videoUrl ?? "",
     videoId: listing?.videoId ? String(listing.videoId) : "",
@@ -93,6 +105,8 @@ function initialValues(listing?: ListingWithImages) {
     bedrooms: listing?.bedrooms?.toString() ?? "",
     bathrooms: listing?.bathrooms?.toString() ?? "",
     areaSqFt: listing?.areaSqFt?.toString() ?? "",
+    projectUnits: (listing as any)?.projectUnits != null ? String((listing as any).projectUnits) : "",
+    projectArea: (listing as any)?.projectArea != null ? String((listing as any).projectArea) : "",
     furnishing: listing?.furnishing ?? "",
     parkingSpots: listing?.parkingSpots?.toString() ?? "",
     facing: listing?.facing ?? "",
@@ -171,6 +185,16 @@ export function ListingForm({
   const availableTypes = typesFor(transactionType, propertyCategory);
   const visibility = propertyCategory ? FIELD_VISIBILITY[propertyCategory] : null;
 
+  const isResidentialApartmentOrVilla =
+    (!propertyCategory || propertyCategory === "RESIDENTIAL") &&
+    (propertyType === "APARTMENT" || propertyType === "VILLA");
+
+  useEffect(() => {
+    if (!isResidentialApartmentOrVilla && values.projectUnits) {
+      setValues((prev) => ({ ...prev, projectUnits: "" }));
+    }
+  }, [isResidentialApartmentOrVilla, values.projectUnits]);
+
   const [customAvgPrice, setCustomAvgPrice] = useState<string>((listing as any)?.avgPricePerSqFt ?? "");
   const [vimeoThumb, setVimeoThumb] = useState<string | null>(null);
 
@@ -205,6 +229,7 @@ export function ListingForm({
     : parsedVideo?.thumbnailUrl;
 
   const calculatedAvgPrice = useMemo(() => {
+    if (values.priceOnRequest) return "";
     const { numericPrice } = parsePriceInput(values.price);
     const numArea = Number(values.areaSqFt);
     const currency = values.currency?.trim() || "INR";
@@ -236,9 +261,9 @@ export function ListingForm({
     }
 
     return "";
-  }, [values.price, values.areaSqFt, values.currency]);
+  }, [values.priceOnRequest, values.price, values.areaSqFt, values.currency]);
 
-  const avgPriceValue = customAvgPrice !== "" ? customAvgPrice : calculatedAvgPrice;
+  const avgPriceValue = values.priceOnRequest ? "" : (customAvgPrice !== "" ? customAvgPrice : calculatedAvgPrice);
 
   useEffect(() => {
     if (!state?.errors) return;
@@ -452,15 +477,47 @@ export function ListingForm({
       {/* Step 3: Details & attributes */}
       <div className={stepClass(2)}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Field
-            label="Price"
-            name="price"
-            type="text"
-            value={values.price}
-            onChange={(v) => setField("price", v)}
-            errors={state?.errors?.price}
-            placeholder=""
-          />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <label htmlFor="price" className="text-sm font-medium text-gray-700">
+                Price
+              </label>
+              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs text-gray-600 select-none">
+                <input
+                  type="checkbox"
+                  name="priceOnRequest"
+                  value="true"
+                  checked={values.priceOnRequest}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setValues((prev) => ({
+                      ...prev,
+                      priceOnRequest: checked,
+                      price: checked ? "" : prev.price,
+                    }));
+                    if (checked) {
+                      setCustomAvgPrice("");
+                    }
+                  }}
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                />
+                Price on request
+              </label>
+            </div>
+            <input
+              id="price"
+              name="price"
+              type="text"
+              value={values.price}
+              disabled={values.priceOnRequest}
+              placeholder={values.priceOnRequest ? "Price on request" : ""}
+              onChange={(e) => setField("price", e.target.value)}
+              className={`rounded-md border border-gray-300 px-3 py-2 text-sm ${
+                values.priceOnRequest ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+              }`}
+            />
+            {state?.errors?.price && <FieldError messages={state.errors.price} />}
+          </div>
           <Field
             label="Currency"
             name="currency"
@@ -509,10 +566,39 @@ export function ListingForm({
             label="Avg Price/sq.ft"
             name="avgPricePerSqFt"
             type="text"
-            value={avgPriceValue}
+            value={values.priceOnRequest ? "" : avgPriceValue}
+            disabled={values.priceOnRequest}
             onChange={(v) => setCustomAvgPrice(v)}
-            placeholder=""
+            placeholder={values.priceOnRequest ? "N/A" : ""}
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            label="Project Area (Acres)"
+            name="projectArea"
+            type="number"
+            step="0.01"
+            min="0"
+            suffix="Acres"
+            value={values.projectArea}
+            onChange={(v) => setField("projectArea", v)}
+            errors={state?.errors?.projectArea}
+            placeholder="e.g. 17.52"
+          />
+          {isResidentialApartmentOrVilla && (
+            <Field
+              label="Project Units"
+              name="projectUnits"
+              type="number"
+              min="1"
+              step="1"
+              value={values.projectUnits}
+              onChange={(v) => setField("projectUnits", v)}
+              errors={state?.errors?.projectUnits}
+              placeholder="e.g. 1289"
+            />
+          )}
         </div>
 
         {visibility &&
@@ -746,7 +832,11 @@ export function ListingForm({
             propertyType ? PROPERTY_TYPE_LABELS[propertyType] : null,
             propertyCategory ? CATEGORY_LABELS[propertyCategory] : null,
             TRANSACTION_LABELS[transactionType],
-            values.price ? formatListingPrice(0, values.currency, values.price) : null,
+            values.priceOnRequest
+              ? "Price on request"
+              : values.price
+                ? formatListingPrice(0, values.currency, values.price)
+                : null,
           ]
             .filter(Boolean)
             .join(" · ")}
@@ -826,6 +916,10 @@ function Field({
   onChange,
   errors,
   placeholder = "",
+  disabled = false,
+  step,
+  min,
+  suffix,
 }: {
   label: string;
   name: string;
@@ -834,21 +928,37 @@ function Field({
   onChange: (value: string) => void;
   errors?: string[];
   placeholder?: string;
+  disabled?: boolean;
+  step?: string;
+  min?: string | number;
+  suffix?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={name} className="text-sm font-medium text-gray-700">
         {label}
       </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-      />
+      <div className="relative flex items-center">
+        <input
+          id={name}
+          name={name}
+          type={type}
+          value={value}
+          step={step}
+          min={min}
+          disabled={disabled}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${
+            disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+          } ${suffix ? "pr-14" : ""}`}
+        />
+        {suffix && (
+          <span className="pointer-events-none absolute right-3 text-xs font-medium text-gray-500">
+            {suffix}
+          </span>
+        )}
+      </div>
       {errors && <FieldError messages={errors} />}
     </div>
   );

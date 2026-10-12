@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export function getListingsForAgent(agentId: number) {
   return prisma.listing.findMany({
     where: { agentId },
-    include: { images: true },
+    include: { images: true, tag: true },
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
   });
 }
@@ -15,6 +15,7 @@ export function getListingsForDeveloper(developerId: number) {
     where: { developerId },
     include: {
       images: true,
+      tag: true,
       videos: { orderBy: { sortOrder: "asc" } },
       agent: { select: { name: true, email: true } },
     },
@@ -39,6 +40,7 @@ export function getListingById(id: number) {
     where: { id },
     include: {
       images: true,
+      tag: true,
       videos: { orderBy: { sortOrder: "asc" } },
       video: true,
     },
@@ -73,7 +75,7 @@ export function getPublicActiveListings(filters: PublicListingFilters = {}) {
           }
         : {}),
     },
-    include: { images: true, videos: { orderBy: { sortOrder: "asc" } }, video: true },
+    include: { images: true, tag: true, videos: { orderBy: { sortOrder: "asc" } }, video: true },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -81,7 +83,7 @@ export function getPublicActiveListings(filters: PublicListingFilters = {}) {
 export function getRecentActiveListings(limit = 6) {
   return prisma.listing.findMany({
     where: { status: { in: ["ACTIVE", "UNDER_OFFER"] } },
-    include: { images: true, videos: { orderBy: { sortOrder: "asc" } }, video: true },
+    include: { images: true, tag: true, videos: { orderBy: { sortOrder: "asc" } }, video: true },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
@@ -92,6 +94,7 @@ export function getListingBySlug(slug: string) {
     where: { slug },
     include: {
       images: true,
+      tag: true,
       videos: { orderBy: { sortOrder: "asc" } },
       video: true,
       agent: {

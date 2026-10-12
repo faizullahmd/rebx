@@ -5,6 +5,7 @@ import { ManualDealForm } from "@/components/deals/ManualDealForm";
 export default async function NewManualDealPage() {
   const user = await requireRole("AGENT");
   const listings = await getListingsForAgent(user.id);
+  const serializedListings = listings.map((l) => ({ id: l.id, title: l.title }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -12,7 +13,7 @@ export default async function NewManualDealPage() {
       <p className="text-sm text-gray-600">
         Log a lead you picked up outside the platform (a phone call or walk-in, for example).
       </p>
-      <ManualDealForm listings={listings} />
+      <ManualDealForm listings={serializedListings} />
     </div>
   );
 }
