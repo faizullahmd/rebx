@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { auth } from "@/auth";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3Client, SPACES_BUCKET, buildPublicUrl } from "@/lib/storage";
+import { s3Client, SPACES_BUCKET, buildPublicUrl, describeStorageError } from "@/lib/storage";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
 
@@ -79,26 +79,8 @@ export async function POST(req: NextRequest) {
       size: file.size,
     });
   } catch (error: unknown) {
-    const detail = describeUploadError(error);
+    const detail = describeStorageError(error);
     console.error("Image upload error:", detail, error);
     return NextResponse.json({ error: detail }, { status: 500 });
   }
-}
-
-// The SDK often reports "UnknownError" for non-XML responses, so include the HTTP status
-// and a safe summary of the Spaces config (never the key or secret values) to make the
-// real cause diagnosable from the UI.
-function describeUploadError(error: unknown) {
-  const e = error as { name?: string; message?: string; $metadata?: { httpStatusCode?: number }; code?: string };
-  const key = process.env.SPACES_KEY ?? "";
-  const secret = process.env.SPACES_SECRET ?? "";
-  const hasOdd = (v: string) => /^\s|\s$|["']/.test(v);
-  const config =
-    `region=${JSON.stringify(process.env.SPACES_REGION ?? "")} bucket=${JSON.stringify(SPACES_BUCKET)} ` +
-    `keyLen=${key.length}${hasOdd(key) ? "(whitespace/quote!)" : ""} ` +
-    `secretLen=${secret.length}${hasOdd(secret) ? "(whitespace/quote!)" : ""}`;
-  const status = e?.$metadata?.httpStatusCode;
-  return `${e?.name || "Error"}${status ? ` (HTTP ${status})` : ""}${e?.code ? ` [${e.code}]` : ""}: ${
-    e?.message && e.message !== e.name ? e.message : "no detail from storage"
-  } | ${config}`;
 }

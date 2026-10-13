@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
+import path from "path";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { auth } from "@/auth";
+import { s3Client, SPACES_BUCKET, buildPublicUrl, describeStorageError } from "@/lib/storage";
 
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
 
@@ -11,6 +12,14 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const role = (session.user as { role?: string }).role;
+    if (role !== "AGENT" && role !== "DEVELOPER" && role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only agents and developers can upload videos." },
+        { status: 403 }
+      );
     }
 
     const formData = await req.formData();
@@ -34,31 +43,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // The app's disk is ephemeral on DigitalOcean, so videos must live in Spaces.
+    if (!SPACES_BUCKET || !SPACES_BUCKET.trim() || !process.env.SPACES_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            "Cloud storage (DigitalOcean Spaces) is not configured. Please configure SPACES_KEY, SPACES_SECRET, and SPACES_BUCKET in your environment.",
+        },
+        { status: 503 }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Sanitize extension and filename
     const originalExt = path.extname(file.name) || ".mp4";
     const cleanExt = originalExt.toLowerCase().replace(/[^a-z0-9.]/g, "");
-    const fileName = `${Date.now()}-${randomUUID()}${cleanExt}`;
+    const key = `videos/${session.user.id}/${Date.now()}-${randomUUID()}${cleanExt}`;
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "videos");
-    await mkdir(uploadDir, { recursive: true });
-
-    const filePath = path.join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/videos/${fileName}`;
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+        ACL: "public-read",
+      })
+    );
 
     return NextResponse.json({
-      url: publicUrl,
+      url: buildPublicUrl(key),
       fileName: file.name,
       size: file.size,
     });
   } catch (error: unknown) {
-    console.error("Video upload error:", error);
-    return NextResponse.json(
-      { error: (error as Error)?.message || "Failed to upload video" },
-      { status: 500 }
-    );
+    const detail = describeStorageError(error);
+    console.error("Video upload error:", detail, error);
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 }
