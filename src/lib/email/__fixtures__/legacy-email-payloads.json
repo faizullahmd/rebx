@@ -1,0 +1,104 @@
+[
+  {
+    "label": "password_reset",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "user@example.com",
+      "subject": "Reset your REBX password",
+      "html": "\n      <p>Click the link below to reset your REBX password. This link expires in 1 hour.</p>\n      <p><a href=\"https://rebx.app/reset-password/abc123\">https://rebx.app/reset-password/abc123</a></p>\n      <p>If you didn't request this, you can safely ignore this email.</p>\n    "
+    }
+  },
+  {
+    "label": "developer_request_notification",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": [
+        "admin1@example.com",
+        "admin2@example.com"
+      ],
+      "subject": "New developer request: Acme <Builders> & Co",
+      "html": "\n      <p>Alex Agent requested a new developer account while listing\n      \"Lakeside Family Home\":</p>\n      <p>Company: Acme &lt;Builders&gt; &amp; Co<br/>Contact: Jo &quot;JJ&quot; O&#39;Neil</p>\n      <p><a href=\"https://rebx.app/admin/dashboard/developer-requests\">Review this request</a></p>\n    "
+    }
+  },
+  {
+    "label": "developer_welcome",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "dev@example.com",
+      "subject": "You've been added to REBX",
+      "html": "\n      <p>An account for Northgate Developments has been created on REBX. Click below to set\n      your password and log in. This link expires in 7 days.</p>\n      <p><a href=\"https://rebx.app/reset-password/tok456\">https://rebx.app/reset-password/tok456</a></p>\n    "
+    }
+  },
+  {
+    "label": "welcome",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "new@example.com",
+      "subject": "Welcome to REBX",
+      "html": "\n      <p>Hi Casey &lt;Customer&gt;,</p>\n      <p>Your REBX account is ready. Log in any time to get started.</p>\n    "
+    }
+  },
+  {
+    "label": "new_lead_full",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "agent@example.com",
+      "subject": "New inquiry: Downtown 2BR Condo",
+      "html": "\n      <p>You have a new inquiry on \"Downtown 2BR Condo\":</p>\n      <p>\n        Taylor Prospect<br/>\n        taylor@example.com<br/>555-0101\n      </p>\n      <p>Is this still available? &lt;b&gt;Please&lt;/b&gt; reply &amp; call.</p>\n      <p><a href=\"https://rebx.app/agent/dashboard/deals/7\">View this lead</a></p>\n    "
+    }
+  },
+  {
+    "label": "new_lead_no_phone_no_message",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "agent@example.com",
+      "subject": "New inquiry: Downtown 2BR Condo",
+      "html": "\n      <p>You have a new inquiry on \"Downtown 2BR Condo\":</p>\n      <p>\n        Taylor Prospect<br/>\n        taylor@example.com\n      </p>\n      \n      <p><a href=\"https://rebx.app/agent/dashboard/deals/7\">View this lead</a></p>\n    "
+    }
+  },
+  {
+    "label": "new_lead_phone_only",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "agent@example.com",
+      "subject": "New inquiry: Downtown 2BR Condo",
+      "html": "\n      <p>You have a new inquiry on \"Downtown 2BR Condo\":</p>\n      <p>\n        Taylor Prospect<br/>\n        taylor@example.com<br/>555-0101\n      </p>\n      \n      <p><a href=\"https://rebx.app/agent/dashboard/deals/7\">View this lead</a></p>\n    "
+    }
+  },
+  {
+    "label": "inquiry_confirmation",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "guest@example.com",
+      "subject": "We received your inquiry on Lakeside Family Home",
+      "html": "\n      <p>Thanks for your interest in \"Lakeside Family Home\". Alex Agent\n      has been notified and will be in touch soon.</p>\n    "
+    }
+  },
+  {
+    "label": "booking_confirmation_needed",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "dev@example.com",
+      "subject": "Booking awaiting your confirmation: Northgate Tower 12B",
+      "html": "\n      <p>Alex Agent closed a deal on \"Northgate Tower 12B\"\n      for 1,234,567.5 and recorded a booking. Please confirm it\n      so the agent can log their commission.</p>\n      <p><a href=\"https://rebx.app/developer/dashboard/bookings\">Review this booking</a></p>\n    "
+    }
+  },
+  {
+    "label": "booking_confirmed",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "agent@example.com",
+      "subject": "Booking confirmed: Northgate Tower 12B",
+      "html": "\n      <p>Northgate Developments confirmed the booking on\n      \"Northgate Tower 12B\". You can now log your commission for this deal.</p>\n      <p><a href=\"https://rebx.app/agent/dashboard/deals/9\">View this deal</a></p>\n    "
+    }
+  },
+  {
+    "label": "commission_paid_out",
+    "payload": {
+      "from": "REBX <onboarding@resend.dev>",
+      "to": "agent@example.com",
+      "subject": "Commission paid out: Northgate Tower 12B",
+      "html": "\n      <p>Your developer commission of\n      15,360 on \"Northgate Tower 12B\" has been\n      marked as paid out.</p>\n      <p><a href=\"https://rebx.app/agent/dashboard/deals/9\">View this deal</a></p>\n    "
+    }
+  }
+]
