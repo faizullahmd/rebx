@@ -19,8 +19,7 @@ export type IssueCode =
   | "unknown_variable"
   | "missing_required"
   | "invalid_url"
-  | "must_appear"
-  | "unused_required";
+  | "must_appear";
 
 export interface RenderIssue {
   severity: "error" | "warning";

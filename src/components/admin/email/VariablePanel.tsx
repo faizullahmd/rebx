@@ -84,7 +84,9 @@ export function VariablePanel({
                     {used.has(v.name) && <span className="rounded bg-emerald-50 px-1.5 text-[10px] font-medium text-emerald-700">used</span>}
                   </div>
                   <p className="mt-1 text-xs text-neutral-600">{v.description}</p>
-                  <p className="mt-0.5 text-[11px] text-neutral-400">Example: {v.sample}</p>
+                  <p className="mt-0.5 text-[11px] text-neutral-400">
+                    {v.type === "html" ? "Built automatically from live data. Previews and test emails show sample content." : `Example: ${v.sample}`}
+                  </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <button type="button" disabled={disabled} onClick={() => onInsert(token)} className={small}>Insert</button>
                     <button type="button" onClick={() => copy(token, v.name)} className={small}>{copied === v.name ? "Copied ✓" : "Copy"}</button>

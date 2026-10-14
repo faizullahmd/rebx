@@ -3,7 +3,7 @@ import { BUILT_IN_BY_KEY } from "@/lib/email/definitions";
 import { builtInTemplate, loadLiveTemplate, type LiveTemplate } from "@/lib/email/live";
 import { composeEmail, type LayoutSettings } from "@/lib/email/layout";
 import { loadLiveLayout } from "@/lib/email/layout-service";
-import { getLatestPropertiesHtml } from "@/lib/email/latest-properties";
+import { getLatestListingsBlockHtml, getLatestPropertiesHtml, siteBaseFrom } from "@/lib/email/latest-properties";
 import { renderParts } from "@/lib/email/pipeline";
 import { TemplateRenderError, type TemplateData } from "@/lib/email/render";
 import { buildFromHeader, parseEmailList } from "@/lib/email/sender";
@@ -38,6 +38,13 @@ function buildPayload(
   return payload;
 }
 
+async function withAutomaticBlocks(template: { subject: string; htmlBody: string; textBody?: string | null }, data: TemplateData): Promise<TemplateData> {
+  if (data.latestListings) return data;
+  const source = `${template.subject}\n${template.htmlBody}\n${template.textBody ?? ""}`;
+  if (!/\{\{\s*(#if\s+)?latestListings\s*\}\}/.test(source)) return data;
+  return { ...data, latestListings: await getLatestListingsBlockHtml(siteBaseFrom(data)) };
+}
+
 async function sendTemplatedEmail(key: string, to: string | string[], data: TemplateData) {
   if (!BUILT_IN_BY_KEY[key]) throw new Error(`Unknown email template "${key}".`);
 
@@ -47,6 +54,10 @@ async function sendTemplatedEmail(key: string, to: string | string[], data: Temp
     console.info(`Email template "${key}" is deactivated in the admin panel; not sending.`);
     return;
   }
+
+  // Automatic blocks (e.g. {{latestListings}}) work in every template, but their database
+  // lookup only runs when the template actually uses one.
+  data = await withAutomaticBlocks(live, data);
 
   const layout = await loadLiveLayout();
   let payload: OutgoingEmail;

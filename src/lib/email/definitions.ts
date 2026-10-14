@@ -1,7 +1,7 @@
 // Single source of truth for the built-in (system) email templates and the dynamic variables
 // they can use. Pure data, no server-only imports, so the admin editor can use it too.
 //
-import { SAMPLE_PROPERTY_CARDS, propertyCardsHtml } from "@/lib/email/blocks";
+import { SAMPLE_PROPERTY_CARDS, latestListingsBlockHtml, propertyCardsHtml } from "@/lib/email/blocks";
 
 // Variable names deliberately match the camelCase fields the existing email functions in
 // src/lib/email.ts already receive (listingTitle, dealUrl, ...). Nothing here invents a
@@ -74,6 +74,7 @@ export const VARIABLES: Record<string, VariableDefinition> = Object.fromEntries(
     v("contactName", "People", "text", "Contact name", "Name of the contact person (the inquirer on a lead, or the developer's contact on a developer request).", "Taylor Prospect"),
     v("listingTitle", "Property", "text", "Listing title", "Title of the property listing the email is about.", "Lakeside Family Home"),
     v("latestProperties", "Property", "html", "Latest properties", "Ready-made cards for the newest active listings (image, title, location, price, link). Empty when there are no active listings, so wrap it in a conditional block.", propertyCardsHtml(SAMPLE_PROPERTY_CARDS)),
+    v("latestListings", "Property", "html", "Latest listings block", "Heading, the newest active listings as cards, and a \"Browse all properties\" button linking to the listings page. Works in every template, anywhere in the body. Left out automatically when there are no active listings.", latestListingsBlockHtml(SAMPLE_PROPERTY_CARDS, "https://example.com/sample/listings")),
     v("contactEmail", "Lead", "email", "Contact email", "Email address the inquirer provided.", "taylor.prospect@example.com"),
     v("contactPhone", "Lead", "text", "Contact phone", "Phone number the inquirer provided. Often empty, so wrap it in a conditional block.", "+1 555 0101"),
     v("message", "Lead", "text", "Inquiry message", "Free-text message the inquirer wrote. Often empty, so wrap it in a conditional block.", "Is this still available? I'd love a weekend viewing."),
@@ -321,8 +322,13 @@ export const ALL_VARIABLE_REFS: TemplateVariableRef[] = Object.keys(VARIABLES).m
 
 /** Variables a template may use: its own for built-ins, the full catalogue for custom ones. */
 export function variablesForTemplate(key: string): TemplateVariableRef[] {
-  return BUILT_IN_BY_KEY[key]?.variables ?? ALL_VARIABLE_REFS;
+  const own = BUILT_IN_BY_KEY[key]?.variables;
+  if (!own) return ALL_VARIABLE_REFS;
+  return [...own, ...AUTOMATIC_VARIABLES.filter((n) => !own.some((r) => r.name === n)).map((name) => ({ name, required: false }))];
 }
+
+/** Supplied by the system to every email, so any template can use them. */
+export const AUTOMATIC_VARIABLES = ["latestListings"];
 
 export function sampleDataFor(refs: TemplateVariableRef[]): Record<string, string> {
   return Object.fromEntries(refs.map((r) => [r.name, VARIABLES[r.name]?.sample ?? ""]));
