@@ -646,6 +646,15 @@ export function sampleDataForKey(key: string): Record<string, string> {
   return sampleDataFor(variablesForTemplate(key));
 }
 
+/** "html" variables always use the built-in sample block; admin-typed HTML never reaches a preview or test email. */
+function lockHtmlSamples(key: string, data: TemplateData): TemplateData {
+  const out: TemplateData = { ...data };
+  for (const ref of variablesForTemplate(key)) {
+    if (VARIABLES[ref.name]?.type === "html") out[ref.name] = VARIABLES[ref.name].sample;
+  }
+  return out;
+}
+
 export async function previewTemplate(
   actor: Actor,
   id: number,
@@ -674,7 +683,7 @@ export async function previewTemplate(
   const rendered = renderParts(
     template.key,
     { subject: source.subject, htmlBody: sanitized.html, textBody: source.textBody },
-    data,
+    lockHtmlSamples(template.key, data),
     "preview"
   );
   const analysis = analyseContent({
@@ -776,7 +785,7 @@ export async function sendTestEmail(actor: Actor, id: number, input: TestEmailIn
     rendered = renderParts(
       template.key,
       { subject: prepared.fields.subject, htmlBody: prepared.fields.htmlBody, textBody: prepared.fields.textBody },
-      data,
+      lockHtmlSamples(template.key, data),
       "strict"
     );
   } catch (error) {

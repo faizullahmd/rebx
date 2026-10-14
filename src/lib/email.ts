@@ -1,6 +1,7 @@
 import "server-only";
 import { BUILT_IN_BY_KEY } from "@/lib/email/definitions";
 import { builtInTemplate, loadLiveTemplate, type LiveTemplate } from "@/lib/email/live";
+import { getLatestPropertiesHtml } from "@/lib/email/latest-properties";
 import { renderParts } from "@/lib/email/pipeline";
 import { TemplateRenderError, type TemplateData } from "@/lib/email/render";
 import { buildFromHeader, parseEmailList } from "@/lib/email/sender";
@@ -79,8 +80,14 @@ export async function sendDeveloperWelcomeEmail(
   await sendTemplatedEmail("developer_welcome", to, { companyName, setPasswordUrl });
 }
 
-export async function sendWelcomeEmail(to: string, name: string) {
-  await sendTemplatedEmail("welcome", to, { name });
+export async function sendWelcomeEmail(to: string, name: string, siteUrl: string) {
+  const base = siteUrl.replace(/\/+$/, "");
+  await sendTemplatedEmail("welcome", to, {
+    name,
+    listingsUrl: `${base}/listings`,
+    dashboardUrl: `${base}/dashboard`,
+    latestProperties: await getLatestPropertiesHtml(base),
+  });
 }
 
 export async function sendNewLeadNotification(

@@ -151,13 +151,13 @@ describe("draft and publish workflow", () => {
     const t = await builtIn("welcome");
     await svc.saveDraft(admin, t.id, baseFields({ subject: "DRAFT subject {{name}}", htmlBody: "<p>draft {{name}}</p>" }), await tokensFor(t.id));
 
-    await mail.sendWelcomeEmail("new@example.com", "Casey");
+    await mail.sendWelcomeEmail("new@example.com", "Casey", "https://rebx.app");
     expect(outbox[0].subject).toBe("Welcome to REBX"); // still the original
-    expect(outbox[0].html).toContain("Your REBX account is ready");
+    expect(outbox[0].html).toContain("Real Estate Brokerage Exchange");
 
     outbox.length = 0;
     await svc.publishTemplate(admin, t.id, baseFields({ subject: "PUBLISHED subject {{name}}", htmlBody: "<p>live {{name}}</p>" }), await tokensFor(t.id), "Reworded");
-    await mail.sendWelcomeEmail("new@example.com", "Casey");
+    await mail.sendWelcomeEmail("new@example.com", "Casey", "https://rebx.app");
     expect(outbox[0].subject).toBe("PUBLISHED subject Casey");
     expect(outbox[0].html).toBe("<p>live Casey</p>");
   });
@@ -203,7 +203,7 @@ describe("draft and publish workflow", () => {
     await svc.ensureBuiltInTemplates(admin);
     const w = await builtIn("welcome");
     await svc.publishTemplate(admin, w.id, baseFields({ cc: "a@x.com", bcc: "b@x.com, c@x.com", replyTo: "help@x.com", fromName: "REBX Team", textBody: "Hi {{name}} (text)" }), await tokensFor(w.id));
-    await mail.sendWelcomeEmail("new@example.com", "Casey");
+    await mail.sendWelcomeEmail("new@example.com", "Casey", "https://rebx.app");
     expect(outbox[0]).toMatchObject({
       from: "REBX Team <onboarding@resend.dev>", cc: ["a@x.com"], bcc: ["b@x.com", "c@x.com"], replyTo: "help@x.com", text: "Hi Casey (text)",
     });
@@ -246,13 +246,13 @@ describe("concurrency", () => {
   it("invalidates the production cache on publish, status change and restore", async () => {
     await svc.ensureBuiltInTemplates(admin);
     const t = await builtIn("welcome");
-    await mail.sendWelcomeEmail("a@example.com", "A"); // primes the cache with v1
+    await mail.sendWelcomeEmail("a@example.com", "A", "https://rebx.app"); // primes the cache with v1
     await svc.publishTemplate(admin, t.id, baseFields({ subject: "fresh {{name}}" }), await tokensFor(t.id));
-    await mail.sendWelcomeEmail("a@example.com", "A");
+    await mail.sendWelcomeEmail("a@example.com", "A", "https://rebx.app");
     expect(outbox[1].subject).toBe("fresh A");
     await svc.setTemplateStatus(admin, t.id, "INACTIVE");
     outbox.length = 0;
-    await mail.sendWelcomeEmail("a@example.com", "A");
+    await mail.sendWelcomeEmail("a@example.com", "A", "https://rebx.app");
     expect(outbox).toHaveLength(0); // deactivated: not sent
   });
 });
@@ -274,7 +274,7 @@ describe("version history and restore", () => {
     expect(v3).toMatchObject({ action: "RESTORE", restoredFromVersion: 1 });
 
     outbox.length = 0;
-    await mail.sendWelcomeEmail("a@example.com", "Casey");
+    await mail.sendWelcomeEmail("a@example.com", "Casey", "https://rebx.app");
     expect(outbox[0].subject).toBe("Welcome to REBX");
   });
 
@@ -491,8 +491,8 @@ describe("production sends", () => {
     // Simulate bad data that slipped past validation (e.g. a manual database edit).
     await prisma.emailTemplate.update({ where: { id: t.id }, data: { htmlBody: "<p>{{totallyUnknown}}</p>" } });
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    await mail.sendWelcomeEmail("a@example.com", "Casey");
-    expect(outbox[0].html).toContain("Your REBX account is ready");
+    await mail.sendWelcomeEmail("a@example.com", "Casey", "https://rebx.app");
+    expect(outbox[0].html).toContain("Real Estate Brokerage Exchange");
     expect(err).toHaveBeenCalled();
   });
 
@@ -507,12 +507,12 @@ describe("production sends", () => {
       const freshMail = await import("@/lib/email");
       const freshHelpers = await import("@/test/helpers");
       freshHelpers.outbox.length = 0;
-      await freshMail.sendWelcomeEmail("a@example.com", "Casey");
+      await freshMail.sendWelcomeEmail("a@example.com", "Casey", "https://rebx.app");
       // The mocked Resend may be shared with the original graph, so look in both outboxes.
       const sent = [...freshHelpers.outbox, ...outbox];
       expect(sent).toHaveLength(1);
       expect(sent[0].subject).toBe("Welcome to REBX");
-      expect(sent[0].html).toContain("Your REBX account is ready");
+      expect(sent[0].html).toContain("Real Estate Brokerage Exchange");
       expect(err).toHaveBeenCalledWith(expect.stringContaining("lookup failed"), expect.any(Error));
     } finally {
       vi.doUnmock("@/lib/prisma");

@@ -7,6 +7,8 @@
 // There are no loops, filters or expressions: nothing an editor types can execute code.
 
 import { VARIABLES } from "@/lib/email/definitions";
+import { escapeHtml } from "@/lib/email/escape";
+import { htmlToText } from "@/lib/email/text";
 
 export type RenderContext = "html" | "text" | "subject";
 export type RenderMode = "strict" | "preview";
@@ -34,14 +36,7 @@ export class TemplateRenderError extends Error {
   }
 }
 
-export function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+export { escapeHtml };
 
 type Node =
   | { type: "text"; value: string }
@@ -197,6 +192,10 @@ export function renderTemplate(
         } else if (!valid) {
           // Invalid URL: show it, but flagged by the issue list; never auto-link it.
           out += context === "html" ? escapeHtml(value) : value;
+        } else if (VARIABLES[node.name]?.type === "html") {
+          // Trusted, server-built (and already sanitized) markup: inserted as-is in the HTML
+          // body, flattened to text elsewhere. Never used for admin- or user-typed values.
+          out += context === "html" ? value : htmlToText(value);
         } else {
           out += context === "html" ? escapeHtml(value) : value;
         }

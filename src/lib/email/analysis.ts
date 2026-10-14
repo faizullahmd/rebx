@@ -57,6 +57,15 @@ export function analyseContent(input: {
     }
     for (const name of used) {
       usedAll.add(name);
+      if (label === "Subject" && VARIABLES[name]?.type === "html" && !seen.has(`html:${name}`)) {
+        seen.add(`html:${name}`);
+        issues.push({
+          severity: "error",
+          code: "unknown_variable",
+          variable: name,
+          message: `Subject: {{${name}}} is a block of HTML and can't be used in the subject line.`,
+        });
+      }
       if (!allowed.includes(name) && !seen.has(`${label}:${name}`)) {
         seen.add(`${label}:${name}`);
         const hint = suggestVariable(name, allowed);

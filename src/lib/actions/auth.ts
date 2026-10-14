@@ -88,7 +88,9 @@ export async function signup(
     throw error;
   }
 
-  await sendWelcomeEmail(email, name);
+  const host = (await headers()).get("host") ?? "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  await sendWelcomeEmail(email, name, `${protocol}://${host}`);
 
   await signIn("credentials", {
     email,
