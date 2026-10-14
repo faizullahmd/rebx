@@ -154,6 +154,7 @@ model User {
   emailTemplateVersions EmailTemplateVersion[] @relation("EmailTemplateVersionAuthor")
   emailTestLogs         EmailTestLog[]         @relation("EmailTestSender")
   auditLogs             AdminAuditLog[]        @relation("AuditActor")
+  emailLayoutsUpdated   EmailLayout[]          @relation("EmailLayoutEditor")
 
   @@index([role])
 }
@@ -609,4 +610,18 @@ model AdminAuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@index([actorId])
+}
+
+// The one shared wrapper (logo header, footer, container) applied to every email. Settings are
+// structured (not raw HTML) so the layout can't be broken by an edit; `version` is the
+// optimistic-locking token. A single row with key "default"; absent = built-in defaults.
+model EmailLayout {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  settings    Json
+  version     Int      @default(1)
+  updatedById Int?
+  updatedBy   User?    @relation("EmailLayoutEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

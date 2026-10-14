@@ -6,6 +6,8 @@ import type { PreviewResult } from "@/lib/email/template-service";
 export type Device = "desktop" | "mobile";
 
 function frameDoc(html: string) {
+  // The server returns a complete document (body already inside the shared layout).
+  if (/^\s*<!doctype html/i.test(html)) return html;
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>html,body{margin:0;padding:0}body{padding:16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#18181b;background:#ffffff;word-wrap:break-word}img{max-width:100%;height:auto}table{max-width:100%}</style></head><body>${html}</body></html>`;
 }
 

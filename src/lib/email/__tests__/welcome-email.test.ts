@@ -9,6 +9,7 @@ import { sanitizeEmailHtml } from "@/lib/email/sanitize";
 import { renderParts } from "@/lib/email/pipeline";
 import { analyseContent } from "@/lib/email/analysis";
 import { propertyCardHtml } from "@/lib/email/blocks";
+import { composeEmail, DEFAULT_LAYOUT } from "@/lib/email/layout";
 import { getLatestPropertiesHtml } from "@/lib/email/latest-properties";
 import type { Actor } from "@/lib/permissions";
 
@@ -215,13 +216,15 @@ describe("the built-in Welcome definition", () => {
 
   it("survives the sanitizer, so publishing it from the admin keeps the design intact", () => {
     const { html } = sanitizeEmailHtml(def.html);
-    for (const keep of ['src="https://rebx.app/logo.png"', 'href="{{dashboardUrl}}"', 'href="{{listingsUrl}}"', "{{#if latestProperties}}", "{{latestProperties}}", "background-color:#111827", "border-radius:8px", "max-width:600px"]) {
+    // The logo and container now live in the shared layout; the body keeps its own content.
+    for (const keep of ['href="{{dashboardUrl}}"', 'href="{{listingsUrl}}"', "{{#if latestProperties}}", "{{latestProperties}}", "background-color:#111827", "border-radius:8px"]) {
       expect(html).toContain(keep);
     }
   });
 
   it("is mobile-friendly: fluid 600px container and compact property cards that fit a phone", () => {
-    expect(def.html).toContain("width:100%;max-width:600px");
+    expect(def.html).not.toContain("<img"); // logo/container are the shared layout's job
+    expect(composeEmail(def.html, DEFAULT_LAYOUT)).toContain("max-width:600px");
     expect(propertyCardHtml({ title: "t", location: "l", price: "p", url: "https://x.test", imageUrl: "https://x.test/i.jpg" })).toContain("width:130px;height:auto");
   });
 

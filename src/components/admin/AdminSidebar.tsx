@@ -25,6 +25,7 @@ const groups: { title: string; items: { href: string; label: string }[] }[] = [
       { href: "/admin/dashboard/videos", label: "Videos" },
       { href: "/admin/dashboard/tags", label: "Tags" },
       { href: "/admin/dashboard/email-templates", label: "Email templates" },
+      { href: "/admin/dashboard/email-layout", label: "Email layout" },
     ],
   },
 ];

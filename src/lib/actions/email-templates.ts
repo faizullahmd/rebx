@@ -13,6 +13,7 @@ import {
   ValidationFailure,
 } from "@/lib/email/errors";
 import * as service from "@/lib/email/template-service";
+import * as layoutService from "@/lib/email/layout-service";
 import type { PreviewResult, ConcurrencyTokens } from "@/lib/email/template-service";
 import type { RenderIssue, TemplateData } from "@/lib/email/render";
 
@@ -228,5 +229,32 @@ export async function restoreVersionAction(
     revalidatePath(LIST_PATH);
     revalidatePath(`${LIST_PATH}/${id}/history`);
     return { ok: true as const, message: `Restored version ${version} as version ${row.version}.`, newVersion: row.version };
+  });
+}
+
+// ------------------------------------------------------------------ shared layout
+
+export async function previewLayoutAction(
+  raw: Record<string, unknown>
+): Promise<ActionResult<{ html: string; fieldErrors: Record<string, string[]> }>> {
+  return run(async (a) => {
+    const res = layoutService.previewLayout(a, raw);
+    return { ok: true as const, html: res.html, fieldErrors: res.fieldErrors };
+  });
+}
+
+export async function saveLayoutAction(
+  raw: Record<string, unknown>,
+  expectedVersion: number
+): Promise<ActionResult<{ version: number; settings: Record<string, unknown> }>> {
+  return run(async (a) => {
+    const res = await layoutService.saveLayout(a, raw, expectedVersion);
+    revalidatePath("/admin/dashboard/email-layout");
+    return {
+      ok: true as const,
+      message: "Layout saved. Every email now uses it.",
+      version: res.version,
+      settings: res.settings as unknown as Record<string, unknown>,
+    };
   });
 }
