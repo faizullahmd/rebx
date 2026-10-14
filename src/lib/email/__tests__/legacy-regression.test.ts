@@ -1,5 +1,7 @@
 // Regression: after making emails editable, the payloads handed to Resend must be IDENTICAL
-// to what the original hardcoded src/lib/email.ts sent. The fixtures were captured from the
+// to what the original hardcoded src/lib/email.ts sent, except that every email now sits inside
+// the shared layout. So the golden BODY must appear unchanged inside composeEmail(); subject, text,
+// recipients and every other field must still match exactly. The fixtures were captured from the
 // original implementation before it was refactored.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "fs";
@@ -7,6 +9,7 @@ import path from "path";
 import { outbox } from "@/test/helpers";
 import { prisma } from "@/lib/prisma";
 import { invalidateTemplateCache } from "@/lib/email/cache";
+import { composeEmail, DEFAULT_LAYOUT } from "@/lib/email/layout";
 
 vi.mock("resend", async () => (await import("@/test/helpers")).resendFactory());
 
@@ -79,7 +82,12 @@ describe("legacy email output is unchanged", () => {
       const calls = await runAll();
       await calls[label]();
       expect(outbox).toHaveLength(1);
-      expect(outbox[0]).toEqual(payload);
+      expect(outbox[0]).toEqual({
+        ...payload,
+        html: composeEmail(String(payload.html), DEFAULT_LAYOUT, { subject: String(payload.subject) }),
+      });
+      // The original body is embedded verbatim, not re-rendered or altered.
+      expect(String(outbox[0].html)).toContain(String(payload.html));
     });
   }
 });

@@ -1,4 +1,5 @@
-// Reusable email components an admin can drop into any template. They are plain, inline-styled,
+// Reusable email components an admin can drop into any template. (The logo header and footer are
+// NOT here: the shared layout adds them to every email.) They are plain, inline-styled,
 // table-based HTML (the most compatible email markup) and deliberately contain no variables
 // and no invented contact details, so they work in every template. Edit the text after inserting.
 
@@ -13,28 +14,10 @@ const FONT = "font-family:Arial,Helvetica,sans-serif;";
 
 export const SNIPPETS: Snippet[] = [
   {
-    id: "header",
-    label: "Header",
-    description: "Brand name bar for the top of an email.",
-    html: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#111827;"><tbody><tr><td style="padding:20px 24px;${FONT}font-size:22px;font-weight:bold;color:#ffffff;">REBX</td></tr></tbody></table>`,
-  },
-  {
-    id: "logo",
-    label: "Logo",
-    description: "REBX logo image (hosted on the public site).",
-    html: `<p style="margin:0 0 16px 0;"><img src="https://rebx.app/logo.png" alt="REBX" width="120" style="width:120px;height:auto;"></p>`,
-  },
-  {
     id: "contact",
     label: "Contact details",
     description: "A short 'questions?' block. Edit the wording to match your support process.",
     html: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;"><tbody><tr><td style="padding:16px;background-color:#f4f4f5;border-radius:6px;${FONT}font-size:14px;line-height:20px;color:#3f3f46;"><strong>Questions?</strong><br>Just reply to this email and our team will get back to you.</td></tr></tbody></table>`,
-  },
-  {
-    id: "footer",
-    label: "Footer",
-    description: "Company line and a note on why the recipient got this email.",
-    html: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tbody><tr><td align="center" style="padding:16px;border-top:1px solid #e4e4e7;${FONT}font-size:12px;line-height:18px;color:#71717a;">REBX · Real Estate Broker Exchange<br>You are receiving this email because of activity on your REBX account.</td></tr></tbody></table>`,
   },
   {
     id: "disclaimer",

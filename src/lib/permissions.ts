@@ -10,7 +10,8 @@ export type Permission =
   | "email.publish"
   | "email.restore"
   | "email.test"
-  | "email.source"; // edit raw HTML source
+  | "email.source" // edit raw HTML source
+  | "email.layout"; // edit the shared layout used by every email
 
 const ADMIN_PERMISSIONS: Permission[] = [
   "email.view",
@@ -20,6 +21,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   "email.restore",
   "email.test",
   "email.source",
+  "email.layout",
 ];
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

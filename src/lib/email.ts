@@ -1,6 +1,8 @@
 import "server-only";
 import { BUILT_IN_BY_KEY } from "@/lib/email/definitions";
 import { builtInTemplate, loadLiveTemplate, type LiveTemplate } from "@/lib/email/live";
+import { composeEmail, type LayoutSettings } from "@/lib/email/layout";
+import { loadLiveLayout } from "@/lib/email/layout-service";
 import { getLatestPropertiesHtml } from "@/lib/email/latest-properties";
 import { renderParts } from "@/lib/email/pipeline";
 import { TemplateRenderError, type TemplateData } from "@/lib/email/render";
@@ -9,20 +11,23 @@ import { deliver, type OutgoingEmail } from "@/lib/email/transport";
 
 // Every transactional email goes through sendTemplatedEmail: it loads the PUBLISHED template
 // (editable in Admin > Email templates), renders it with the shared engine, and sends via
-// Resend. The exported send* functions keep their original signatures, so callers don't change.
+// Resend. The body is placed inside the shared layout (Admin > Email layout). The exported
+// send* functions keep their original signatures, so callers don't change.
 
 function buildPayload(
   template: LiveTemplate,
   key: string,
   to: string | string[],
-  data: TemplateData
+  data: TemplateData,
+  layout: LayoutSettings
 ): OutgoingEmail {
   const rendered = renderParts(key, template, data, "strict");
   const payload: OutgoingEmail = {
     from: buildFromHeader(template),
     to,
     subject: rendered.subject,
-    html: rendered.html,
+    // Every email, including ones from templates created later, goes through the shared layout.
+    html: composeEmail(rendered.html, layout, { subject: rendered.subject }),
   };
   if (rendered.text) payload.text = rendered.text;
   if (template.replyTo) payload.replyTo = template.replyTo;
@@ -43,15 +48,16 @@ async function sendTemplatedEmail(key: string, to: string | string[], data: Temp
     return;
   }
 
+  const layout = await loadLiveLayout();
   let payload: OutgoingEmail;
   try {
-    payload = buildPayload(live, key, to, data);
+    payload = buildPayload(live, key, to, data, layout);
   } catch (error) {
     // A published template that no longer renders (bad variable, missing value) must not
     // silently produce a broken email or stop it: log loudly and use the known-good default.
     if (live.source === "database" && error instanceof TemplateRenderError) {
       console.error(`Published email template "${key}" failed to render, using built-in default:`, error.message);
-      payload = buildPayload(builtInTemplate(key)!, key, to, data);
+      payload = buildPayload(builtInTemplate(key)!, key, to, data, layout);
     } else {
       throw error;
     }

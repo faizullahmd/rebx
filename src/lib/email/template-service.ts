@@ -20,6 +20,8 @@ import {
   RuleError,
   ValidationFailure,
 } from "@/lib/email/errors";
+import { composeEmail } from "@/lib/email/layout";
+import { loadLiveLayout } from "@/lib/email/layout-service";
 import { renderParts } from "@/lib/email/pipeline";
 import { TemplateRenderError, escapeHtml, type RenderIssue, type TemplateData } from "@/lib/email/render";
 import { sanitizeEmailHtml } from "@/lib/email/sanitize";
@@ -632,6 +634,7 @@ export interface PreviewResult {
   subject: string;
   html: string;
   text: string | null;
+  /** The complete email document: the rendered body inside the shared layout. */
   /** True when no plain-text part is set; `text` is then generated from the HTML for reference only. */
   textIsGenerated: boolean;
   from: string;
@@ -703,9 +706,10 @@ export async function previewTemplate(
     }
   }
 
+  const layout = await loadLiveLayout();
   return {
     subject: rendered.subject,
-    html: rendered.html,
+    html: composeEmail(rendered.html, layout, { subject: rendered.subject }),
     text: rendered.text ?? htmlToText(rendered.html),
     textIsGenerated: rendered.text === null,
     from: buildFromHeader(source),
@@ -799,7 +803,7 @@ export async function sendTestEmail(actor: Actor, id: number, input: TestEmailIn
   }
 
   const banner =
-    '<div style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:10px 14px;margin:0 0 16px 0;font-family:Arial,sans-serif;font-size:13px;">' +
+    '<div style="max-width:600px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:10px 14px;margin:0 0 16px 0;font-family:Arial,sans-serif;font-size:13px;text-align:left;">' +
     "<strong>TEST EMAIL</strong> — sent from the REBX admin panel with sample data. No real action was taken.</div>";
   const subject = `[TEST] ${rendered.subject}`;
 
@@ -812,7 +816,7 @@ export async function sendTestEmail(actor: Actor, id: number, input: TestEmailIn
       from: buildFromHeader(prepared.fields),
       to: recipient,
       subject,
-      html: banner + rendered.html,
+      html: composeEmail(rendered.html, await loadLiveLayout(), { subject, banner }),
       ...(rendered.text ? { text: `[TEST EMAIL - sample data, no real action taken]\n\n${rendered.text}` } : {}),
       ...(prepared.fields.replyTo ? { replyTo: prepared.fields.replyTo } : {}),
     });

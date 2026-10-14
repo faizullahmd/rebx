@@ -87,7 +87,8 @@ describe("create, uniqueness, duplicate, delete", () => {
   it("creates a custom template with a starter body and a CREATE version", async () => {
     const t = await svc.createTemplate(admin, input);
     expect(t).toMatchObject({ key: "promo_2026", isSystem: false, version: 1, status: "ACTIVE" });
-    expect(t.htmlBody).toContain("<table");
+    expect(t.htmlBody).toContain("<h1");
+    expect(t.htmlBody).not.toContain("<table"); // header/footer come from the shared layout, not the body
     const versions = await prisma.emailTemplateVersion.findMany({ where: { templateId: t.id } });
     expect(versions.map((v) => v.action)).toEqual(["CREATE"]);
   });
@@ -153,13 +154,15 @@ describe("draft and publish workflow", () => {
 
     await mail.sendWelcomeEmail("new@example.com", "Casey", "https://rebx.app");
     expect(outbox[0].subject).toBe("Welcome to REBX"); // still the original
-    expect(outbox[0].html).toContain("Real Estate Brokerage Exchange");
+    expect(String(outbox[0].html)).toContain("Welcome to REBX"); // original published body
+    expect(String(outbox[0].html)).not.toContain("draft Casey");
 
     outbox.length = 0;
     await svc.publishTemplate(admin, t.id, baseFields({ subject: "PUBLISHED subject {{name}}", htmlBody: "<p>live {{name}}</p>" }), await tokensFor(t.id), "Reworded");
     await mail.sendWelcomeEmail("new@example.com", "Casey", "https://rebx.app");
     expect(outbox[0].subject).toBe("PUBLISHED subject Casey");
-    expect(outbox[0].html).toBe("<p>live Casey</p>");
+    expect(String(outbox[0].html)).toContain("<p>live Casey</p>");
+    expect(String(outbox[0].html)).toContain("<!DOCTYPE html"); // wrapped in the shared layout
   });
 
   it("publishing bumps the version, records history and clears the draft", async () => {
@@ -293,7 +296,8 @@ describe("preview", () => {
     const t = await builtIn("new_lead");
     const ok = await svc.previewTemplate(admin, t.id, baseFields({ subject: "New inquiry: {{listingTitle}}", htmlBody: "<p>{{contactName}} {{#if message}}says {{message}}{{/if}}</p>" }), { contactName: "Taylor", listingTitle: "Condo", contactEmail: "t@x.com", dealUrl: "https://example.com/d", message: "hello <b>x</b>" });
     expect(ok.subject).toBe("New inquiry: Condo");
-    expect(ok.html).toBe("<p>Taylor says hello &lt;b&gt;x&lt;/b&gt;</p>");
+    expect(ok.html).toContain("<p>Taylor says hello &lt;b&gt;x&lt;/b&gt;</p>");
+    expect(ok.html).toContain("<!DOCTYPE html"); // preview shows the shared layout around the body
 
     const broken = await svc.previewTemplate(admin, t.id, baseFields({ htmlBody: "<p>{{contactName}} {{nope}}</p>" }), {});
     expect(broken.html).toContain("missing: contactName");
@@ -305,7 +309,9 @@ describe("preview", () => {
     await svc.ensureBuiltInTemplates(admin);
     const t = await builtIn("welcome");
     const p = await svc.previewTemplate(admin, t.id, baseFields({ htmlBody: '<p>x</p><script>alert(1)</script><img src="javascript:alert(1)">' }), { name: "A" });
-    expect(p.html).toBe("<p>x</p>");
+    expect(p.html).toContain("<p>x</p>");
+    expect(p.html).not.toContain("<script");
+    expect(p.html).not.toContain("javascript:");
     expect(p.warnings.length).toBeGreaterThan(0);
   });
 
@@ -535,6 +541,8 @@ describe("production sends", () => {
     expect((await loadLiveTemplate("new_lead"))?.source).toBe("database");
     await mail.sendNewLeadNotification("agent@example.com", { listingTitle: "Downtown 2BR Condo", contactName: "Taylor Prospect", contactEmail: "taylor@example.com", contactPhone: "555-0101", message: "Is this still available? <b>Please</b> reply & call.", dealUrl: "https://rebx.app/agent/dashboard/deals/7" });
     const golden = (await import("../__fixtures__/legacy-email-payloads.json")).default as { label: string; payload: unknown }[];
-    expect(outbox[0]).toEqual(golden.find((g) => g.label === "new_lead_full")!.payload);
+    const expected = golden.find((g) => g.label === "new_lead_full")!.payload as Record<string, unknown>;
+    const { composeEmail, DEFAULT_LAYOUT } = await import("@/lib/email/layout");
+    expect(outbox[0]).toEqual({ ...expected, html: composeEmail(String(expected.html), DEFAULT_LAYOUT, { subject: String(expected.subject) }) });
   });
 });

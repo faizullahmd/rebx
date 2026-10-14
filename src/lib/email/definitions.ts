@@ -92,15 +92,11 @@ export const VARIABLES: Record<string, VariableDefinition> = Object.fromEntries(
   ].map((d) => [d.name, d])
 );
 
-// Redesigned Welcome email: logo header, welcome copy, a "get started" button, the newest
-// properties and a "browse" button. Table-based layout with inline styles for broad email-client
-// support; it stacks cleanly on mobile.
+// Welcome email BODY. The logo header, card and footer come from the shared layout
+// (Admin > Email layout), so this is only the message: greeting, copy, a "get started" button,
+// the newest properties and a "browse" button. Inline styles + tables for email-client support.
 const F = "font-family:Arial,Helvetica,sans-serif;";
-const WELCOME_HTML = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:24px 12px;"><tbody><tr><td align="center">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border-radius:12px;border-collapse:separate;"><tbody>
-<tr><td align="center" style="padding:28px 24px 22px 24px;border-bottom:1px solid #e4e4e7;"><img src="https://rebx.app/logo.png" alt="REBX" width="150" style="width:150px;height:auto;"></td></tr>
-<tr><td style="padding:32px 32px 8px 32px;${F}font-size:16px;line-height:26px;color:#3f3f46;">
-<h1 style="margin:0 0 6px 0;font-size:26px;line-height:34px;color:#18181b;">Welcome to Rebx, {{name}}!</h1>
+const WELCOME_HTML = `<h1 style="margin:0 0 6px 0;font-size:26px;line-height:34px;color:#18181b;">Welcome to Rebx, {{name}}!</h1>
 <p style="margin:0 0 20px 0;font-size:15px;line-height:22px;color:#71717a;">Real Estate Brokerage Exchange</p>
 <p style="margin:0 0 16px 0;">We're excited to have you join our growing real estate network.</p>
 <p style="margin:0 0 24px 0;">Rebx brings real estate professionals together on one platform to discover opportunities, connect with the right people, manage property leads, and grow their business.</p>
@@ -115,20 +111,13 @@ const WELCOME_HTML = `<table role="presentation" width="100%" cellpadding="0" ce
 <p style="margin:0 0 8px 0;font-size:18px;font-weight:bold;color:#18181b;">Ready to get started?</p>
 <p style="margin:0 0 20px 0;">Complete your profile and start exploring opportunities on Rebx today.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px 0;"><tbody><tr><td style="background-color:#111827;border-radius:8px;"><a href="{{dashboardUrl}}" style="display:inline-block;padding:14px 28px;${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">Get started on Rebx</a></td></tr></tbody></table>
-</td></tr>
-<tr><td style="padding:0 32px;${F}">{{#if latestProperties}}<hr style="border:none;border-top:1px solid #e4e4e7;margin:0 0 24px 0;"><h2 style="margin:0 0 4px 0;font-size:20px;line-height:28px;color:#18181b;">Latest properties</h2><p style="margin:0 0 18px 0;font-size:14px;line-height:20px;color:#71717a;">Fresh listings from the Rebx network.</p>{{latestProperties}}{{/if}}</td></tr>
-<tr><td align="center" style="padding:8px 32px 32px 32px;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tbody><tr><td style="background-color:#16a34a;border-radius:8px;"><a href="{{listingsUrl}}" style="display:inline-block;padding:14px 32px;${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">Browse properties</a></td></tr></tbody></table>
-</td></tr>
-<tr><td style="padding:24px 32px;background-color:#fafafa;border-top:1px solid #e4e4e7;border-radius:0 0 12px 12px;${F}font-size:14px;line-height:22px;color:#52525b;">
-<p style="margin:0 0 12px 0;">We're glad you're here. Whether you're an independent agent, a real estate broker, or part of a growing agency, Rebx is built to help you make meaningful connections and unlock new opportunities.</p>
-<p style="margin:0 0 12px 0;">If you need any assistance, our support team is happy to help. Just reply to this email.</p>
-<p style="margin:0 0 16px 0;">Here's to building better connections and closing more deals together!</p>
-<p style="margin:0;">Best regards,<br><strong style="color:#18181b;">The Rebx Team</strong></p>
-</td></tr>
-</tbody></table>
-<p style="margin:16px 0 0 0;${F}font-size:12px;line-height:18px;color:#a1a1aa;text-align:center;">You're receiving this email because you created an account on REBX.</p>
-</td></tr></tbody></table>`;
+{{#if latestProperties}}<hr style="border:none;border-top:1px solid #e4e4e7;margin:0 0 24px 0;"><h2 style="margin:0 0 4px 0;font-size:20px;line-height:28px;color:#18181b;">Latest properties</h2><p style="margin:0 0 18px 0;font-size:14px;line-height:20px;color:#71717a;">Fresh listings from the Rebx network.</p>{{latestProperties}}{{/if}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px 0;"><tbody><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0"><tbody><tr><td style="background-color:#16a34a;border-radius:8px;"><a href="{{listingsUrl}}" style="display:inline-block;padding:14px 32px;${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">Browse properties</a></td></tr></tbody></table></td></tr></tbody></table>
+<hr style="border:none;border-top:1px solid #e4e4e7;margin:0 0 20px 0;">
+<p style="margin:0 0 12px 0;font-size:14px;line-height:22px;color:#52525b;">We're glad you're here. Whether you're an independent agent, a real estate broker, or part of a growing agency, Rebx is built to help you make meaningful connections and unlock new opportunities.</p>
+<p style="margin:0 0 12px 0;font-size:14px;line-height:22px;color:#52525b;">If you need any assistance, our support team is happy to help. Just reply to this email.</p>
+<p style="margin:0 0 16px 0;font-size:14px;line-height:22px;color:#52525b;">Here's to building better connections and closing more deals together!</p>
+<p style="margin:0;font-size:14px;line-height:22px;color:#52525b;">Best regards,<br><strong style="color:#18181b;">The Rebx Team</strong></p>`;
 
 // The whitespace inside these strings is intentional: it reproduces the exact HTML the
 // hardcoded emails sent before templates became editable (verified by the golden-fixture
@@ -344,22 +333,7 @@ export function mustAppearVariables(key: string): string[] {
   return (BUILT_IN_BY_KEY[key]?.variables ?? []).filter((r) => r.mustAppear).map((r) => r.name);
 }
 
-export const STARTER_HTML = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:24px 0;">
-  <tbody>
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;padding:32px;">
-          <tbody>
-            <tr>
-              <td style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#18181b;">
-                <h1 style="font-size:22px;margin:0 0 16px 0;">Your heading</h1>
-                <p style="margin:0 0 16px 0;">Hi {{name}},</p>
-                <p style="margin:0 0 16px 0;">Write your message here.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </td>
-    </tr>
-  </tbody>
-</table>`;
+// Starter BODY for new templates. The shared layout adds the logo, card and footer around it.
+export const STARTER_HTML = `<h1 style="margin:0 0 16px 0;font-size:24px;line-height:32px;color:#18181b;">Your heading</h1>
+<p style="margin:0 0 16px 0;">Hi {{name}},</p>
+<p style="margin:0 0 16px 0;">Write your message here.</p>`;
