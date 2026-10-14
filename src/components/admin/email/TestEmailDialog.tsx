@@ -26,7 +26,7 @@ export function TestEmailDialog({
   const [recipient, setRecipient] = useState("");
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; message: string; details?: string[] } | null>(null);
   const [pending, start] = useTransition();
 
   const open = () => {
@@ -46,7 +46,11 @@ export function TestEmailDialog({
         confirmAccountRecipient: confirmed,
       });
       if (!res.ok && /belongs to a/.test(res.message)) setNeedsConfirm(true);
-      setResult({ ok: res.ok, message: res.ok ? (res.message ?? "Sent.") : res.message });
+      setResult({
+        ok: res.ok,
+        message: res.ok ? (res.message ?? "Sent.") : res.message,
+        details: res.ok ? undefined : describeFieldErrors(res.fieldErrors),
+      });
     });
   };
 
@@ -100,6 +104,13 @@ export function TestEmailDialog({
           {result && (
             <p role="status" className={`rounded-md px-3 py-2 text-sm ${result.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>
               {result.message}
+              {result.details?.length ? (
+                <span className="mt-1 block">
+                  {result.details.map((d) => (
+                    <span key={d} className="block">• {d}</span>
+                  ))}
+                </span>
+              ) : null}
             </p>
           )}
           <div className="flex justify-end gap-2">
@@ -117,5 +128,29 @@ export function TestEmailDialog({
         </form>
       </dialog>
     </>
+  );
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  recipient: "Recipient",
+  data: "Sample data",
+  content: "Template",
+  name: "Template name",
+  description: "Description",
+  category: "Category",
+  subject: "Subject",
+  htmlBody: "Email content",
+  textBody: "Plain text",
+  fromName: "Sender name",
+  fromEmail: "Sender email",
+  replyTo: "Reply-to",
+  cc: "CC",
+  bcc: "BCC",
+};
+
+/** Turns the server's per-field errors into readable lines, so a failed test says what to fix. */
+function describeFieldErrors(fieldErrors?: Record<string, string[]>): string[] {
+  return Object.entries(fieldErrors ?? {}).flatMap(([field, messages]) =>
+    messages.map((m) => `${FIELD_LABELS[field] ?? field}: ${m}`)
   );
 }
