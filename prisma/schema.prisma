@@ -148,6 +148,13 @@ model User {
 
   createdTags Tag[] @relation("CreatedTags")
 
+  emailTemplatesCreated EmailTemplate[]        @relation("EmailTemplatesCreated")
+  emailTemplatesUpdated EmailTemplate[]        @relation("EmailTemplatesUpdated")
+  emailTemplateDrafts   EmailTemplateDraft[]   @relation("EmailTemplateDraftEditor")
+  emailTemplateVersions EmailTemplateVersion[] @relation("EmailTemplateVersionAuthor")
+  emailTestLogs         EmailTestLog[]         @relation("EmailTestSender")
+  auditLogs             AdminAuditLog[]        @relation("AuditActor")
+
   @@index([role])
 }
 
@@ -449,4 +456,157 @@ model Tag {
   @@unique([createdBy, name])
   @@index([createdBy])
   @@index([isDefault])
+}
+
+// ---------------------------------------------------------------------------
+// Email templates (admin-managed). EmailTemplate holds the PUBLISHED content that
+// production sends use; edits are staged in EmailTemplateDraft until published.
+// ---------------------------------------------------------------------------
+
+enum EmailTemplateStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EmailVersionAction {
+  SEED
+  CREATE
+  PUBLISH
+  RESTORE
+}
+
+enum EmailTestStatus {
+  SENT
+  FAILED
+}
+
+model EmailTemplate {
+  id          Int                 @id @default(autoincrement())
+  key         String              @unique
+  name        String
+  description String?             @db.Text
+  category    String
+  event       String
+  isSystem    Boolean             @default(false)
+  status      EmailTemplateStatus @default(ACTIVE)
+
+  subject   String
+  htmlBody  String  @db.LongText
+  textBody  String? @db.LongText
+  fromName  String?
+  fromEmail String?
+  replyTo   String?
+  cc        String? @db.Text
+  bcc       String? @db.Text
+
+  // Current published version number. Also the optimistic-locking token.
+  version Int @default(1)
+
+  createdById Int?
+  createdBy   User? @relation("EmailTemplatesCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById Int?
+  updatedBy   User? @relation("EmailTemplatesUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  draft    EmailTemplateDraft?
+  versions EmailTemplateVersion[]
+  testLogs EmailTestLog[]
+
+  @@index([category])
+  @@index([status])
+  @@index([event])
+  @@index([updatedAt])
+}
+
+model EmailTemplateDraft {
+  id          Int           @id @default(autoincrement())
+  templateId  Int           @unique
+  template    EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  baseVersion Int
+
+  name        String
+  description String? @db.Text
+  category    String
+  subject     String
+  htmlBody    String  @db.LongText
+  textBody    String? @db.LongText
+  fromName    String?
+  fromEmail   String?
+  replyTo     String?
+  cc          String? @db.Text
+  bcc         String? @db.Text
+
+  updatedById Int?
+  updatedBy   User?    @relation("EmailTemplateDraftEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailTemplateVersion {
+  id         Int                @id @default(autoincrement())
+  templateId Int
+  template   EmailTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version    Int
+  action     EmailVersionAction
+
+  name        String
+  description String? @db.Text
+  category    String
+  subject     String
+  htmlBody    String  @db.LongText
+  textBody    String? @db.LongText
+  fromName    String?
+  fromEmail   String?
+  replyTo     String?
+  cc          String? @db.Text
+  bcc         String? @db.Text
+
+  changeSummary       String? @db.Text
+  restoredFromVersion Int?
+
+  createdById Int?
+  createdBy   User?    @relation("EmailTemplateVersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@unique([templateId, version])
+  @@index([templateId, createdAt])
+}
+
+model EmailTestLog {
+  id              Int             @id @default(autoincrement())
+  templateId      Int?
+  template        EmailTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateKey     String
+  templateVersion Int
+  usedDraft       Boolean         @default(false)
+  recipient       String
+  subject         String
+  status          EmailTestStatus
+  error           String?         @db.Text
+
+  sentById  Int?
+  sentBy    User?    @relation("EmailTestSender", fields: [sentById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([templateId, createdAt])
+  @@index([sentById, createdAt])
+}
+
+model AdminAuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    Int?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String
+  summary    String   @db.Text
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([actorId])
 }
