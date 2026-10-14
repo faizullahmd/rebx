@@ -1,10 +1,12 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
 import { nextUserId } from "@/lib/user-id";
+import { clearFailures, isBlocked, recordFailure } from "@/lib/rate-limit";
 import { sendWelcomeEmail } from "@/lib/email";
 import {
   LoginFormSchema,
@@ -123,4 +125,55 @@ export async function login(
 
 export async function logout() {
   await signOut({ redirectTo: "/" });
+}
+
+export async function adminLogin(
+  _prevState: LoginFormState,
+  formData: FormData
+): Promise<LoginFormState> {
+  const validatedFields = LoginFormSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!validatedFields.success) {
+    return { message: "Please enter a valid email and password." };
+  }
+
+  // Only accounts with the ADMIN role may use this form. Check before signing in so a
+  // non-admin never receives a session from it; the message stays generic on purpose.
+  const { email, password } = validatedFields.data;
+
+  // Throttle repeated failures per client IP and per target email (8 per 15 minutes).
+  const forwarded = (await headers()).get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim() || "unknown";
+  const keys = [`admin-login:ip:${ip}`, `admin-login:email:${email.toLowerCase()}`];
+  const MAX_FAILURES = 8;
+  const WINDOW_MS = 15 * 60 * 1000;
+  if (keys.some((key) => isBlocked(key, MAX_FAILURES))) {
+    return { message: "Too many failed attempts. Please try again in 15 minutes." };
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  const passwordOk = user ? await bcrypt.compare(password, user.passwordHash) : false;
+  if (!user || !passwordOk || user.role !== "ADMIN") {
+    keys.forEach((key) => recordFailure(key, WINDOW_MS));
+    return { message: "Invalid admin credentials." };
+  }
+  keys.forEach(clearFailures);
+
+  // Only same-site /admin paths are allowed as a post-login destination.
+  const requested = formData.get("callbackUrl");
+  const redirectTo =
+    typeof requested === "string" && /^\/admin(\/|$)/.test(requested) && !requested.startsWith("//")
+      ? requested
+      : "/admin/dashboard";
+
+  try {
+    await signIn("credentials", { email, password, redirectTo });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { message: "Invalid admin credentials." };
+    }
+    throw error;
+  }
 }

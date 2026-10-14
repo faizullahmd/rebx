@@ -7,7 +7,6 @@ const roleForPrefix: Record<string, Role> = {
   "/agent": "AGENT",
   "/developer": "DEVELOPER",
   "/customer": "CUSTOMER",
-  "/admin": "ADMIN",
 };
 
 export default async function proxy(req: NextRequest) {
@@ -22,6 +21,26 @@ export default async function proxy(req: NextRequest) {
     }
     if (session.user.role === "AGENT" || session.user.role === "ADMIN") {
       return NextResponse.redirect(new URL("/agent/dashboard/listings/new", req.nextUrl));
+    }
+    return NextResponse.next();
+  }
+
+  // The admin panel has its own login page, so unauthenticated admin requests go there
+  // (not the public /login), and /admin/login itself must stay reachable when logged out.
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    const session = await auth();
+    const isLoginPage = pathname === "/admin/login";
+    if (!session?.user) {
+      if (isLoginPage) return NextResponse.next();
+      const loginUrl = new URL("/admin/login", req.nextUrl);
+      if (pathname !== "/admin") loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/unauthorized", req.nextUrl));
+    }
+    if (isLoginPage || pathname === "/admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl));
     }
     return NextResponse.next();
   }
