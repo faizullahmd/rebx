@@ -27,6 +27,16 @@ export function SampleDataEditor({
       {refs.length === 0 && <p className="text-sm text-neutral-500">This template doesn&apos;t use any variables yet.</p>}
       {refs.map((r) => {
         const def = VARIABLES[r.name];
+        if (def?.type === "html") {
+          return (
+            <div key={r.name} className="flex flex-col gap-1 text-xs font-medium text-neutral-700">
+              <code className="w-fit rounded bg-neutral-100 px-1 py-0.5">{`{{${r.name}}}`}</code>
+              <p className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-2.5 py-2 text-xs font-normal text-neutral-500">
+                Built automatically in real emails (the newest active listings). Previews and tests show 3 sample cards.
+              </p>
+            </div>
+          );
+        }
         return (
           <label key={r.name} className="flex flex-col gap-1 text-xs font-medium text-neutral-700">
             <span className="flex items-center gap-1.5">

@@ -24,7 +24,7 @@ async function runAll() {
         requestedByName: "Alex Agent", reviewUrl: "https://rebx.app/admin/dashboard/developer-requests",
       }),
     developer_welcome: () => m.sendDeveloperWelcomeEmail("dev@example.com", "Northgate Developments", "https://rebx.app/reset-password/tok456"),
-    welcome: () => m.sendWelcomeEmail("new@example.com", "Casey <Customer>"),
+    welcome: () => m.sendWelcomeEmail("new@example.com", "Casey <Customer>", "https://rebx.app"),
     new_lead_full: () =>
       m.sendNewLeadNotification("agent@example.com", {
         listingTitle: "Downtown 2BR Condo", contactName: "Taylor Prospect", contactEmail: "taylor@example.com",
@@ -65,7 +65,16 @@ describe("legacy email output is unchanged", () => {
     expect(Object.keys(calls).sort()).toEqual(golden.map((g) => g.label).sort());
   });
 
-  for (const { label, payload } of golden) {
+  // The Welcome email was redesigned on request (logo, layout, latest properties), so its legacy
+  // payload is intentionally superseded; see welcome-email.test.ts. Every other email must still
+  // match the original byte for byte.
+  const REDESIGNED = new Set(["welcome"]);
+
+  it("only the Welcome email is exempt from the golden comparison", () => {
+    expect([...REDESIGNED]).toEqual(["welcome"]);
+  });
+
+  for (const { label, payload } of golden.filter((g) => !REDESIGNED.has(g.label))) {
     it(`built-in fallback (no database rows) sends the same payload: ${label}`, async () => {
       const calls = await runAll();
       await calls[label]();

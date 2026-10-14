@@ -1,4 +1,6 @@
-import { variablesForTemplate } from "@/lib/email/definitions";
+import "server-only";
+import { VARIABLES, variablesForTemplate } from "@/lib/email/definitions";
+import { sanitizeEmailHtml } from "@/lib/email/sanitize";
 import {
   renderTemplate,
   type RenderIssue,
@@ -32,6 +34,16 @@ export function renderParts(
 ): RenderedParts {
   const refs = variablesForTemplate(key);
   const allowed = new Set(refs.map((r) => r.name));
+
+  // "html" variables are inserted unescaped, so they're sanitized here even though they are
+  // built by server code. Nothing unsafe can reach a recipient through them.
+  const safeData: TemplateData = { ...data };
+  for (const ref of refs) {
+    if (VARIABLES[ref.name]?.type === "html" && safeData[ref.name]) {
+      safeData[ref.name] = sanitizeEmailHtml(String(safeData[ref.name])).html;
+    }
+  }
+  data = safeData;
   const required = new Set(refs.filter((r) => r.required).map((r) => r.name));
   const base = { mode, allowed, required };
 
