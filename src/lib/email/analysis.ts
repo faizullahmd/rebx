@@ -1,7 +1,6 @@
 // Pure placeholder analysis (no zod, no environment access), so the editor can run it live in
 // the browser and the server can run the very same checks on save.
 import {
-  BUILT_IN_BY_KEY,
   VARIABLES,
   mustAppearVariables,
   variablesForTemplate,
@@ -97,16 +96,5 @@ export function analyseContent(input: {
       });
     }
   }
-  for (const ref of BUILT_IN_BY_KEY[input.key]?.variables ?? []) {
-    if (ref.required && !mustAppearVariables(input.key).includes(ref.name) && !usedAll.has(ref.name)) {
-      issues.push({
-        severity: "warning",
-        code: "unused_required",
-        variable: ref.name,
-        message: `{{${ref.name}}} is always available for this email but isn't used. That's fine if intentional.`,
-      });
-    }
-  }
-
   return { issues, used: [...usedAll], hasErrors: issues.some((i) => i.severity === "error") };
 }
