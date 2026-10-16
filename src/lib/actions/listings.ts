@@ -13,6 +13,7 @@ import {
 import { sendDeveloperRequestNotification } from "@/lib/email";
 import { canAddVideo, canAttachVideo } from "@/lib/video";
 import { parsePriceInput } from "@/lib/price";
+import { syncListingVideosToGallery } from "@/lib/video-sync";
 
 function parseImageUrls(raw: string | undefined) {
   if (!raw) return [];
@@ -230,6 +231,10 @@ export async function createListing(
     },
   });
 
+  if (videos.length > 0) {
+    await syncListingVideosToGallery(listing.id, videos, user.id);
+  }
+
   if (requestingNewDeveloper && !isDeveloperUser) {
     // A brand-new listing can't already have a pending request, so the "already
     // pending" branch of createDeveloperRequest never applies here.
@@ -405,6 +410,10 @@ export async function updateListing(
       : []),
   ]);
 
+  if (videos.length > 0) {
+    await syncListingVideosToGallery(listingId, videos, user.id);
+  }
+
   let requestMessage: string | null = null;
   if (requestingNewDeveloper) {
     requestMessage = await createDeveloperRequest(
@@ -465,9 +474,15 @@ export async function saveListingVideos(
       : []),
   ]);
 
+  await syncListingVideosToGallery(listingId, validVideos, user.id);
+
   revalidatePath("/developer/dashboard");
+  revalidatePath("/developer/dashboard/videos");
+  revalidatePath("/agent/dashboard/videos");
   revalidatePath(`/developer/dashboard/listings/${listingId}/videos`);
   revalidatePath(`/developer/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/listings");
+  revalidatePath("/videos");
   revalidatePath(`/listings/${existing.slug}`);
 
   return { success: true };
