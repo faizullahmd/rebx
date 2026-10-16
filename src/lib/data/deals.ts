@@ -4,7 +4,10 @@ import { prisma } from "@/lib/prisma";
 export function getDealsForAgent(agentId: number) {
   return prisma.deal.findMany({
     where: { agentId },
-    include: { listing: { select: { id: true, title: true, slug: true } } },
+    include: {
+      listing: { select: { id: true, title: true, slug: true } },
+      booking: { select: { status: true } },
+    },
     orderBy: { updatedAt: "desc" },
   });
 }
