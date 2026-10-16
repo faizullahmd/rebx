@@ -41,7 +41,7 @@ export function ManualDealForm({ listings }: { listings: { id: number; title: st
         type="email"
         errors={state?.errors?.contactEmail}
       />
-      <Field label="Contact phone (optional)" name="contactPhone" />
+      <Field label="Contact phone (optional)" name="contactPhone" type="tel" errors={state?.errors?.contactPhone} />
 
       <div className="flex flex-col gap-1">
         <label htmlFor="message" className="text-sm font-medium text-gray-700">
