@@ -13,6 +13,17 @@ export const DEAL_STAGES = [
   "CLOSED_LOST",
 ] as const;
 
+export const DEAL_STAGE_LABELS: Record<(typeof DEAL_STAGES)[number], string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  VIEWING_SCHEDULED: "Viewing scheduled",
+  OFFER_MADE: "Offer made",
+  NEGOTIATION: "Negotiation",
+  UNDER_CONTRACT: "Under contract",
+  CLOSED_WON: "Closed won",
+  CLOSED_LOST: "Closed lost",
+};
+
 export const InquiryFormSchema = z.object({
   contactName: z.string().trim().min(2, "Name must be at least 2 characters."),
   contactEmail: emailAddress,
