@@ -162,8 +162,19 @@ export async function deleteGalleryVideo(videoId: number): Promise<{ success: bo
 }
 
 export async function getUserGalleryVideos(userId: number) {
-  return prisma.video.findMany({
-    where: { createdById: userId },
+  const videos = await prisma.video.findMany({
+    where: {
+      OR: [
+        { createdById: userId },
+        {
+          listings: {
+            some: {
+              OR: [{ developerId: userId }, { agentId: userId }],
+            },
+          },
+        },
+      ],
+    },
     include: {
       listings: {
         select: {
@@ -174,5 +185,54 @@ export async function getUserGalleryVideos(userId: number) {
       },
     },
     orderBy: { createdAt: "desc" },
+  });
+
+  const userListings = await prisma.listing.findMany({
+    where: {
+      OR: [{ developerId: userId }, { agentId: userId }],
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      videoUrl: true,
+      videoId: true,
+      videos: {
+        select: {
+          url: true,
+          title: true,
+        },
+      },
+    },
+  });
+
+  return videos.map((v) => {
+    const existingListingIds = new Set(v.listings.map((l) => l.id));
+    const attachedListings = [...v.listings];
+
+    for (const l of userListings) {
+      if (existingListingIds.has(l.id)) continue;
+
+      const matchesDirect =
+        l.videoId === v.id ||
+        (l.videoUrl && (l.videoUrl === v.url || l.videoUrl.includes(v.videoId)));
+      const matchesListingVideos = l.videos.some(
+        (lv) => lv.url === v.url || (v.videoId && lv.url.includes(v.videoId))
+      );
+
+      if (matchesDirect || matchesListingVideos) {
+        existingListingIds.add(l.id);
+        attachedListings.push({
+          id: l.id,
+          title: l.title,
+          slug: l.slug,
+        });
+      }
+    }
+
+    return {
+      ...v,
+      listings: attachedListings,
+    };
   });
 }

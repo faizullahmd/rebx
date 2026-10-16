@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { TransactionType, PropertyCategory, PropertyType } from "@prisma/client";
 import {
@@ -23,17 +23,44 @@ export function ListingFilters({
     transactionType?: string;
     propertyCategory?: string;
     propertyType?: string;
+    q?: string;
+    tag?: string;
   };
 }) {
+  const inferredCategory: PropertyCategory | "" =
+    (defaultValues.propertyCategory as PropertyCategory) ||
+    (defaultValues.propertyType === "APARTMENT" || defaultValues.propertyType === "VILLA"
+      ? "RESIDENTIAL"
+      : "");
+  const inferredTransaction: TransactionType | "" =
+    (defaultValues.transactionType as TransactionType) ||
+    (defaultValues.propertyType ? "FOR_SALE" : "");
+
   const [transactionType, setTransactionType] = useState<TransactionType | "">(
-    (defaultValues.transactionType as TransactionType) ?? ""
+    inferredTransaction
   );
   const [propertyCategory, setPropertyCategory] = useState<PropertyCategory | "">(
-    (defaultValues.propertyCategory as PropertyCategory) ?? ""
+    inferredCategory
   );
   const [propertyType, setPropertyType] = useState<PropertyType | "">(
     (defaultValues.propertyType as PropertyType) ?? ""
   );
+
+  useEffect(() => {
+    const nextTransaction =
+      (defaultValues.transactionType as TransactionType) ||
+      (defaultValues.propertyType ? "FOR_SALE" : "");
+    const nextCategory =
+      (defaultValues.propertyCategory as PropertyCategory) ||
+      (defaultValues.propertyType === "APARTMENT" || defaultValues.propertyType === "VILLA"
+        ? "RESIDENTIAL"
+        : "");
+    const nextType = (defaultValues.propertyType as PropertyType) ?? "";
+
+    setTransactionType(nextTransaction);
+    setPropertyCategory(nextCategory);
+    setPropertyType(nextType);
+  }, [defaultValues.transactionType, defaultValues.propertyCategory, defaultValues.propertyType]);
 
   const availableCategories = transactionType ? categoriesFor(transactionType) : [];
   const availableTypes = transactionType ? typesFor(transactionType, propertyCategory) : [];
@@ -58,6 +85,8 @@ export function ListingFilters({
 
   return (
     <form className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 p-4" action="/listings">
+      {defaultValues.q && <input type="hidden" name="q" value={defaultValues.q} />}
+      {defaultValues.tag && <input type="hidden" name="tag" value={defaultValues.tag} />}
       <div className="flex flex-col gap-1">
         <label htmlFor="transactionType" className="text-xs text-gray-500">
           Transaction
@@ -86,7 +115,7 @@ export function ListingFilters({
           name="propertyCategory"
           value={propertyCategory}
           onChange={(e) => handleCategoryChange(e.target.value as PropertyCategory | "")}
-          disabled={!transactionType}
+          disabled={!transactionType && !propertyCategory}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:bg-gray-100"
         >
           <option value="">Any</option>
@@ -106,7 +135,7 @@ export function ListingFilters({
           name="propertyType"
           value={propertyType}
           onChange={(e) => setPropertyType(e.target.value as PropertyType | "")}
-          disabled={!propertyCategory}
+          disabled={!propertyCategory && !propertyType}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:bg-gray-100"
         >
           <option value="">Any</option>
@@ -115,6 +144,11 @@ export function ListingFilters({
               {PROPERTY_TYPE_LABELS[value]}
             </option>
           ))}
+          {propertyType && !availableTypes.includes(propertyType as PropertyType) && (
+            <option value={propertyType}>
+              {PROPERTY_TYPE_LABELS[propertyType as PropertyType] || propertyType}
+            </option>
+          )}
         </select>
       </div>
       <div className="flex flex-col gap-1">

@@ -156,12 +156,16 @@ export default async function ListingDetailPage({
 
           <p className="whitespace-pre-wrap text-gray-700">{listing.description}</p>
 
-          {(listing.video?.url || listing.videoUrl) && (
-            <PropertyVideoPlayer
-              videoUrl={listing.video?.url || listing.videoUrl!}
-              title={listing.video?.title || listing.title}
-            />
-          )}
+          {(listing.video?.url || listing.videoUrl) &&
+            (!listing.videos?.length ||
+              !listing.videos.some(
+                (v) => v.url === (listing.video?.url || listing.videoUrl)
+              )) && (
+              <PropertyVideoPlayer
+                videoUrl={listing.video?.url || listing.videoUrl!}
+                title={listing.video?.title || listing.title}
+              />
+            )}
 
           {listing.videos && listing.videos.length > 0 && (
             <ListingVideosSection videos={listing.videos} />
