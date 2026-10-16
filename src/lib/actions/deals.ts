@@ -30,6 +30,10 @@ function revalidateDealPaths(listingSlug?: string) {
   if (listingSlug) revalidatePath(`/listings/${listingSlug}`);
 }
 
+function formValues(formData: FormData): Record<string, string> {
+  return Object.fromEntries([...formData].filter(([, v]) => typeof v === "string")) as Record<string, string>;
+}
+
 export async function createInquiry(
   listingId: number,
   _prevState: InquiryFormState,
@@ -55,7 +59,7 @@ export async function createInquiry(
   if (isCustomer) {
     const validatedFields = CustomerInquirySchema.safeParse(Object.fromEntries(formData));
     if (!validatedFields.success) {
-      return { errors: validatedFields.error.flatten().fieldErrors };
+      return { errors: validatedFields.error.flatten().fieldErrors, values: formValues(formData) };
     }
 
     contactName = session!.user.name;
@@ -78,7 +82,7 @@ export async function createInquiry(
   } else {
     const validatedFields = InquiryFormSchema.safeParse(Object.fromEntries(formData));
     if (!validatedFields.success) {
-      return { errors: validatedFields.error.flatten().fieldErrors };
+      return { errors: validatedFields.error.flatten().fieldErrors, values: formValues(formData) };
     }
 
     contactName = validatedFields.data.contactName;

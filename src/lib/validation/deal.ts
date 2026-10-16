@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalNumber } from "@/lib/validation/listing";
+import { emailAddress, optionalPhone } from "@/lib/validation/contact";
 
 export const DEAL_STAGES = [
   "NEW",
@@ -14,13 +15,13 @@ export const DEAL_STAGES = [
 
 export const InquiryFormSchema = z.object({
   contactName: z.string().trim().min(2, "Name must be at least 2 characters."),
-  contactEmail: z.string().trim().email("Please enter a valid email."),
-  contactPhone: z.string().trim().optional().or(z.literal("")),
+  contactEmail: emailAddress,
+  contactPhone: optionalPhone,
   message: z.string().trim().optional().or(z.literal("")),
 });
 
 export const CustomerInquirySchema = z.object({
-  contactPhone: z.string().trim().optional().or(z.literal("")),
+  contactPhone: optionalPhone,
   message: z.string().trim().optional().or(z.literal("")),
 });
 
@@ -28,6 +29,8 @@ export type InquiryFormState =
   | {
       errors?: Partial<Record<string, string[]>>;
       message?: string;
+      /** What the visitor typed, so a validation error doesn't wipe the form. */
+      values?: Record<string, string>;
     }
   | undefined;
 

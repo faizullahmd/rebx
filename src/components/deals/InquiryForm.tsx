@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createInquiry } from "@/lib/actions/deals";
 import type { InquiryFormState } from "@/lib/validation/deal";
+import { PHONE_MESSAGE, EMAIL_MESSAGE, isValidPhone } from "@/lib/validation/contact";
 
 export function InquiryForm({
   listingId,
@@ -30,17 +31,40 @@ export function InquiryForm({
 
         {!isLoggedInCustomer && (
           <>
-            <Field label="Name" name="contactName" errors={state?.errors?.contactName} />
+            <Field label="Name" name="contactName" errors={state?.errors?.contactName} defaultValue={state?.values?.contactName} required minLength={2} autoComplete="name" />
             <Field
               label="Email"
               name="contactEmail"
               type="email"
               errors={state?.errors?.contactEmail}
+              defaultValue={state?.values?.contactEmail}
+              required
+              maxLength={254}
+              autoComplete="email"
+              inputMode="email"
+              pattern="[^\s@]+@[^\s@]+\.[A-Za-z]{2,}"
+              title={EMAIL_MESSAGE}
             />
           </>
         )}
 
-        <Field label="Phone (optional)" name="contactPhone" />
+        <Field
+          label="Phone (optional)"
+          name="contactPhone"
+          type="tel"
+          errors={state?.errors?.contactPhone}
+          defaultValue={state?.values?.contactPhone}
+          maxLength={30}
+          autoComplete="tel"
+          inputMode="tel"
+          onInput={(e) => {
+            // Same rule as the server (a `pattern` can't count digits). Empty is allowed.
+            const v = e.currentTarget.value.trim();
+            e.currentTarget.setCustomValidity(v === "" || isValidPhone(v) ? "" : PHONE_MESSAGE);
+          }}
+          title={PHONE_MESSAGE}
+          placeholder="+91 98765 43210"
+        />
         <div className="flex flex-col gap-1">
           <label htmlFor="message" className="text-xs font-medium text-gray-600">
             Message (optional)
@@ -49,6 +73,7 @@ export function InquiryForm({
             id="message"
             name="message"
             rows={2}
+            defaultValue={state?.values?.message}
             placeholder="I'd like to schedule a viewing…"
             className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm shadow-xs focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
           />
@@ -81,21 +106,24 @@ function Field({
   name,
   type = "text",
   errors,
+  ...inputProps
 }: {
   label: string;
   name: string;
   type?: string;
   errors?: string[];
-}) {
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "name" | "type" | "id" | "className">) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={name} className="text-xs font-medium text-gray-600">
         {label}
       </label>
       <input
+        {...inputProps}
         id={name}
         name={name}
         type={type}
+        aria-invalid={errors?.length ? true : undefined}
         className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm shadow-xs focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
       />
       {errors && (
