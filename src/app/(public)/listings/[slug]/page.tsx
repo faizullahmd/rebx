@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
+import { readInquirySession } from "@/lib/inquiry-session";
 import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
 import { BrokerCard } from "@/components/listings/BrokerCard";
@@ -56,7 +57,7 @@ export default async function ListingDetailPage({
   console.log("Listing in detail page:", listing.title, "videoUrl:", listing.videoUrl);
 
   const session = await auth();
-
+  const inquirer = await readInquirySession();
   if (listing.status !== "ACTIVE" && listing.status !== "UNDER_OFFER") {
     const isOwnerOrAdmin =
       session?.user &&
@@ -187,6 +188,12 @@ export default async function ListingDetailPage({
             <InquiryForm
               listingId={listing.id}
               isLoggedInCustomer={session?.user?.role === "CUSTOMER"}
+              returningName={
+                session?.user?.role === "CUSTOMER"
+                  ? inquirer.listings.length > 0 ? session.user.name : null
+                  : inquirer.name && inquirer.email ? inquirer.name : null
+              }
+              alreadyInterested={inquirer.listings.includes(listing.id)}
             />
           )}
         </div>

@@ -1,11 +1,101 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createInquiry } from "@/lib/actions/deals";
+import { createInquiry, expressInterest, forgetSavedDetails } from "@/lib/actions/deals";
 import type { InquiryFormState } from "@/lib/validation/deal";
 import { PHONE_MESSAGE, EMAIL_MESSAGE, isValidPhone } from "@/lib/validation/contact";
 
 export function InquiryForm({
+  listingId,
+  isLoggedInCustomer,
+  returningName,
+  alreadyInterested,
+}: {
+  listingId: number;
+  isLoggedInCustomer: boolean;
+  /** Set when this browser session has already sent an inquiry: offers the one-click button. */
+  returningName?: string | null;
+  /** This visitor has already contacted the agent about this property in this session. */
+  alreadyInterested?: boolean;
+}) {
+  const [showFullForm, setShowFullForm] = useState(false);
+
+  if (alreadyInterested) {
+    return (
+      <div className="rounded-xl border border-green-200 bg-green-50 p-4 shadow-xs" role="status">
+        <h2 className="text-sm font-semibold text-green-900">Interest sent ✓</h2>
+        <p className="mt-1 text-xs text-green-800">
+          The listing agent has your details and will be in touch soon.
+        </p>
+      </div>
+    );
+  }
+
+  if (returningName && !showFullForm) {
+    return (
+      <InterestedButton
+        listingId={listingId}
+        name={returningName}
+        isLoggedInCustomer={isLoggedInCustomer}
+        onUseForm={() => setShowFullForm(true)}
+      />
+    );
+  }
+
+  return <FullInquiryForm listingId={listingId} isLoggedInCustomer={isLoggedInCustomer} />;
+}
+
+function InterestedButton({
+  listingId,
+  name,
+  isLoggedInCustomer,
+  onUseForm,
+}: {
+  listingId: number;
+  name: string;
+  isLoggedInCustomer: boolean;
+  onUseForm: () => void;
+}) {
+  const action = expressInterest.bind(null, listingId);
+  const [state, formAction, pending] = useActionState<InquiryFormState, FormData>(action, undefined);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
+      <h2 className="text-sm font-semibold text-gray-900">Interested in this property?</h2>
+      <p className="mt-1 text-xs text-gray-600">
+        Hi {name.split(" ")[0]}, we&apos;ll share the contact details you gave earlier with the listing agent.
+      </p>
+      {state?.message && (
+        <p role="status" className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-700">
+          {state.message}
+        </p>
+      )}
+      <form action={formAction} className="mt-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-gray-800 disabled:opacity-50 transition cursor-pointer"
+        >
+          {pending ? "Sending…" : "I'm Interested"}
+        </button>
+      </form>
+      <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-gray-500">
+        <button type="button" onClick={onUseForm} className="underline hover:text-gray-800 cursor-pointer">
+          Add a message instead
+        </button>
+        {!isLoggedInCustomer && (
+          <form action={forgetSavedDetails}>
+            <button type="submit" className="underline hover:text-gray-800 cursor-pointer">
+              Not you? Use different details
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FullInquiryForm({
   listingId,
   isLoggedInCustomer,
 }: {
