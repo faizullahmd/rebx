@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireUser } from "@/lib/session";
+import { forgetInquirer, readInquirySession, rememberInquiry } from "@/lib/inquiry-session";
 import {
   sendNewLeadNotification,
   sendInquiryConfirmation,
@@ -34,95 +35,138 @@ function formValues(formData: FormData): Record<string, string> {
   return Object.fromEntries([...formData].filter(([, v]) => typeof v === "string")) as Record<string, string>;
 }
 
+type ListingForInquiry = NonNullable<Awaited<ReturnType<typeof findInquirableListing>>>;
+
+async function findInquirableListing(listingId: number) {
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    include: { agent: { select: { name: true, email: true } } },
+  });
+  return listing && listing.status === "ACTIVE" ? listing : null;
+}
+
+/** Creates the lead and sends both emails. Shared by the full form and the one-click button. */
+async function recordInquiry(
+  listing: ListingForInquiry,
+  contact: { name: string; email: string; phone: string | null; message: string | null; customerId?: number }
+) {
+  const deal = await prisma.deal.create({
+    data: {
+      listingId: listing.id,
+      agentId: listing.agentId,
+      ...(contact.customerId ? { customerId: contact.customerId } : {}),
+      contactName: contact.name,
+      contactEmail: contact.email,
+      contactPhone: contact.phone,
+      message: contact.message,
+    },
+  });
+
+  const host = (await headers()).get("host") ?? "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const dealUrl = `${protocol}://${host}/agent/dashboard/deals/${deal.id}`;
+
+  await sendNewLeadNotification(listing.agent.email, {
+    listingTitle: listing.title,
+    contactName: contact.name,
+    contactEmail: contact.email,
+    contactPhone: contact.phone,
+    message: contact.message,
+    dealUrl,
+  });
+
+  await sendInquiryConfirmation(contact.email, {
+    listingTitle: listing.title,
+    agentName: listing.agent.name,
+  });
+
+  revalidateDealPaths(listing.slug);
+}
+
 export async function createInquiry(
   listingId: number,
   _prevState: InquiryFormState,
   formData: FormData
 ): Promise<InquiryFormState> {
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    include: { agent: { select: { name: true, email: true } } },
-  });
-  if (!listing || listing.status !== "ACTIVE") {
+  const listing = await findInquirableListing(listingId);
+  if (!listing) {
     return { message: "This listing is no longer accepting inquiries." };
   }
 
   const session = await auth();
   const isCustomer = session?.user?.role === "CUSTOMER";
 
-  let contactName: string;
-  let contactEmail: string;
-  let contactPhone: string | null;
-  let message: string | null;
-  let dealId: number;
+  let contact: { name: string; email: string; phone: string | null; message: string | null; customerId?: number };
 
   if (isCustomer) {
     const validatedFields = CustomerInquirySchema.safeParse(Object.fromEntries(formData));
     if (!validatedFields.success) {
       return { errors: validatedFields.error.flatten().fieldErrors, values: formValues(formData) };
     }
-
-    contactName = session!.user.name;
-    contactEmail = session!.user.email;
-    contactPhone = validatedFields.data.contactPhone || null;
-    message = validatedFields.data.message || null;
-
-    const deal = await prisma.deal.create({
-      data: {
-        listingId,
-        agentId: listing.agentId,
-        customerId: Number(session!.user.id),
-        contactName,
-        contactEmail,
-        contactPhone,
-        message,
-      },
-    });
-    dealId = deal.id;
+    contact = {
+      name: session!.user.name,
+      email: session!.user.email,
+      phone: validatedFields.data.contactPhone || null,
+      message: validatedFields.data.message || null,
+      customerId: Number(session!.user.id),
+    };
   } else {
     const validatedFields = InquiryFormSchema.safeParse(Object.fromEntries(formData));
     if (!validatedFields.success) {
       return { errors: validatedFields.error.flatten().fieldErrors, values: formValues(formData) };
     }
-
-    contactName = validatedFields.data.contactName;
-    contactEmail = validatedFields.data.contactEmail;
-    contactPhone = validatedFields.data.contactPhone || null;
-    message = validatedFields.data.message || null;
-
-    const deal = await prisma.deal.create({
-      data: {
-        listingId,
-        agentId: listing.agentId,
-        contactName,
-        contactEmail,
-        contactPhone,
-        message,
-      },
-    });
-    dealId = deal.id;
+    contact = {
+      name: validatedFields.data.contactName,
+      email: validatedFields.data.contactEmail,
+      phone: validatedFields.data.contactPhone || null,
+      message: validatedFields.data.message || null,
+    };
   }
 
-  const host = (await headers()).get("host") ?? "";
-  const protocol = host.startsWith("localhost") ? "http" : "https";
-  const dealUrl = `${protocol}://${host}/agent/dashboard/deals/${dealId}`;
-
-  await sendNewLeadNotification(listing.agent.email, {
-    listingTitle: listing.title,
-    contactName,
-    contactEmail,
-    contactPhone,
-    message,
-    dealUrl,
-  });
-
-  await sendInquiryConfirmation(contactEmail, {
-    listingTitle: listing.title,
-    agentName: listing.agent.name,
-  });
-
-  revalidateDealPaths(listing.slug);
+  await recordInquiry(listing, contact);
+  // Remember the visitor for this browser session so other properties offer a one-click button.
+  await rememberInquiry(
+    isCustomer ? { phone: contact.phone } : { name: contact.name, email: contact.email, phone: contact.phone },
+    listingId
+  );
   return { message: "Thanks! The listing agent will be in touch soon." };
+}
+
+/** One-click "I'm Interested": reuses the details the visitor already gave in this session. */
+export async function expressInterest(
+  listingId: number,
+  _prevState: InquiryFormState
+): Promise<InquiryFormState> {
+  const listing = await findInquirableListing(listingId);
+  if (!listing) return { message: "This listing is no longer accepting inquiries." };
+
+  const remembered = await readInquirySession();
+  if (remembered.listings.includes(listingId)) {
+    return { message: "You've already shown interest in this property." };
+  }
+
+  const session = await auth();
+  const isCustomer = session?.user?.role === "CUSTOMER";
+  const name = isCustomer ? session!.user.name : remembered.name;
+  const email = isCustomer ? session!.user.email : remembered.email;
+  if (!name || !email) {
+    return { message: "Please fill in the form so the agent knows how to reach you." };
+  }
+
+  await recordInquiry(listing, {
+    name,
+    email,
+    phone: remembered.phone ?? null,
+    message: null,
+    ...(isCustomer ? { customerId: Number(session!.user.id) } : {}),
+  });
+  await rememberInquiry({}, listingId);
+  return { message: "Thanks! The listing agent will be in touch soon." };
+}
+
+/** "Not you?": drops the saved contact details so the full form is shown again. */
+export async function forgetSavedDetails(): Promise<void> {
+  await forgetInquirer();
 }
 
 export async function createManualDeal(
