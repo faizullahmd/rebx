@@ -134,7 +134,19 @@ export default async function AgentDealsPage({
                   return (
                     <li key={deal.id} className="grid gap-3 px-4 py-4 text-sm lg:grid-cols-12 lg:gap-4">
                       <div className="min-w-0 lg:col-span-3">
-                        <p className="font-medium text-gray-900">{deal.contactName}</p>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/agent/dashboard/deals/${deal.id}`}
+                            className="font-semibold text-gray-900 hover:text-blue-600 hover:underline"
+                          >
+                            {deal.contactName}
+                          </Link>
+                          {deal.unreadCount > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                              {deal.unreadCount} new
+                            </span>
+                          )}
+                        </div>
                         <a href={`mailto:${deal.contactEmail}`} className="block truncate text-xs text-gray-600 hover:underline">
                           {deal.contactEmail}
                         </a>
@@ -150,11 +162,22 @@ export default async function AgentDealsPage({
                       </div>
 
                       <div className="min-w-0 lg:col-span-3">
-                        <Link href={`/listings/${deal.listing.slug}`} target="_blank" className="font-medium text-gray-900 hover:underline">
+                        <Link href={`/listings/${deal.listing.slug}`} target="_blank" className="font-medium text-gray-900 hover:underline truncate block">
                           {deal.listing.title}
                         </Link>
-                        {deal.message ? (
-                          <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs text-gray-600" title={deal.message}>
+                        {deal.lastMessage ? (
+                          <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
+                            <span className="shrink-0 text-gray-400 font-medium">
+                              {deal.lastMessage.senderRole === "AGENT" ? "You:" : "Client:"}
+                            </span>
+                            <span className="truncate italic">
+                              {deal.lastMessage.type === "OFFER"
+                                ? `Offer ${deal.lastMessage.amount ? `₹ ${Number(deal.lastMessage.amount).toLocaleString("en-IN")}` : ""}`
+                                : deal.lastMessage.text}
+                            </span>
+                          </div>
+                        ) : deal.message ? (
+                          <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-gray-600" title={deal.message}>
                             “{deal.message}”
                           </p>
                         ) : (
@@ -184,9 +207,12 @@ export default async function AgentDealsPage({
                         />
                       </div>
 
-                      <div className="lg:col-span-1 lg:text-right">
-                        <Link href={`/agent/dashboard/deals/${deal.id}`} className="text-xs font-medium text-gray-900 underline hover:text-gray-600">
-                          Open
+                      <div className="lg:col-span-1 lg:text-right flex items-center lg:justify-end">
+                        <Link
+                          href={`/agent/dashboard/deals/${deal.id}`}
+                          className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
+                        >
+                          Chat →
                         </Link>
                       </div>
                     </li>

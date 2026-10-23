@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
-import { getDealById } from "@/lib/data/deals";
-import { updateDeal, deleteDeal } from "@/lib/actions/deals";
-import { DealEditForm } from "@/components/deals/DealEditForm";
-import { CommissionPanel } from "@/components/commissions/CommissionPanel";
-import { BookingPanel } from "@/components/bookings/BookingPanel";
+import { getDealForConversation, getDealMessages } from "@/lib/data/deals";
+import { DealHeaderCard } from "@/components/deals/conversation/DealHeaderCard";
+import { DealConversationView } from "@/components/deals/conversation/DealConversationView";
+import { DealTabs } from "@/components/deals/conversation/DealTabs";
+import { DealMoreMenu } from "@/components/deals/conversation/DealMoreMenu";
+
+export const dynamic = "force-dynamic";
 
 export default async function AgentDealDetailPage({
   params,
@@ -19,75 +21,98 @@ export default async function AgentDealDetailPage({
   }
 
   const user = await requireRole("AGENT");
-  const deal = await getDealById(dealId);
+  const deal = await getDealForConversation(dealId, "AGENT", user.id);
 
-  if (!deal || deal.agentId !== user.id) {
+  if (!deal) {
     notFound();
   }
 
-  const { commissions, booking, ...dealWithoutCommissions } = deal;
+  const messages = await getDealMessages(dealId, "AGENT", user.id);
+  const privateNotes = messages
+    .filter((m) => m.type === "NOTE")
+    .map((m) => ({ id: m.id, text: m.text, createdAt: m.createdAt }));
+
+  const firstOffer = messages.find(
+    (m) => m.type === "OFFER" && m.amount != null && Number(m.amount) > 0
+  );
+  const initialOfferAmount = firstOffer
+    ? Number(firstOffer.amount)
+    : deal.offerAmount
+      ? Number(deal.offerAmount)
+      : null;
+
+  const offerAmountNumber = deal.offerAmount ? Number(deal.offerAmount) : null;
+  const listingPriceNumber = deal.listing.price ? Number(deal.listing.price) : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <Link href="/agent/dashboard/deals" className="text-sm text-gray-500 hover:text-gray-900">
-          ← Back to deals
+    <div className="flex flex-col gap-5 max-w-5xl mx-auto pb-12">
+      {/* Top Bar: Back Link + More Actions Dropdown */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/agent/dashboard/deals"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          <span>← Back to deals</span>
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{deal.contactName}</h1>
-        <p className="text-gray-600">
-          Interested in{" "}
-          <Link href={`/listings/${deal.listing.slug}`} className="underline" target="_blank">
-            {deal.listing.title}
-          </Link>
-        </p>
+        <DealMoreMenu dealId={deal.id} currentStage={deal.stage} />
       </div>
 
-      <div className="rounded-lg border border-gray-200 p-4 text-sm">
-        <p>
-          <span className="text-gray-500">Email:</span> {deal.contactEmail}
-        </p>
-        {deal.contactPhone && (
-          <p>
-            <span className="text-gray-500">Phone:</span> {deal.contactPhone}
-          </p>
-        )}
-        {deal.message && (
-          <p className="mt-2 whitespace-pre-wrap text-gray-700">
-            <span className="text-gray-500">Message:</span> {deal.message}
-          </p>
-        )}
-      </div>
-
-      <DealEditForm
+      {/* 1. Header Summary Card */}
+      <DealHeaderCard
         deal={{
-          ...dealWithoutCommissions,
-          offerAmount: deal.offerAmount ? Number(deal.offerAmount) : null,
+          id: deal.id,
+          stage: deal.stage,
+          createdAt: deal.createdAt,
+          offerAmount: offerAmountNumber,
+          initialOfferAmount,
+          contactName: deal.contactName,
+          contactEmail: deal.contactEmail,
+          contactPhone: deal.contactPhone,
+          listing: {
+            title: deal.listing.title,
+            slug: deal.listing.slug,
+            price: listingPriceNumber,
+            priceDisplay: deal.listing.priceDisplay,
+            currency: deal.listing.currency,
+            city: deal.listing.city,
+            state: deal.listing.state,
+            propertyType: deal.listing.propertyType,
+            images: deal.listing.images,
+          },
+          agent: deal.agent,
         }}
-        action={updateDeal.bind(null, deal.id)}
+        viewerRole="AGENT"
       />
 
-      {deal.stage === "CLOSED_WON" && booking && (
-        <BookingPanel booking={{ ...booking, saleAmount: Number(booking.saleAmount) }} />
-      )}
+      {/* 2. Conversation Card with Message Bubbles, Offer Cards, & Sticky Composer */}
+      <DealConversationView
+        dealId={deal.id}
+        messages={messages}
+        viewerRole="AGENT"
+        dealAgentName={deal.agent.name}
+        dealCustomerName={deal.contactName}
+        currencySymbol={deal.listing.currency === "INR" || !deal.listing.currency ? "₹" : deal.listing.currency}
+      />
 
-      {deal.stage === "CLOSED_WON" &&
-        (booking?.status === "CONFIRMED" ? (
-          <CommissionPanel
-            dealId={deal.id}
-            hasDeveloper={deal.listing.developerId !== null}
-            commissions={commissions.map((c) => ({ ...c, amount: Number(c.amount) }))}
-          />
-        ) : (
-          <p className="max-w-2xl rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500">
-            Commission can be logged once the developer confirms the booking above.
-          </p>
-        ))}
-
-      <form action={deleteDeal.bind(null, deal.id)}>
-        <button type="submit" className="text-sm text-red-600 hover:text-red-800">
-          Delete deal
-        </button>
-      </form>
+      {/* 4. Tabs below the thread: Booking | Commission | Private Notes */}
+      <DealTabs
+        dealId={deal.id}
+        dealStage={deal.stage}
+        hasDeveloper={deal.listing.developerId !== null}
+        booking={
+          deal.booking
+            ? {
+                ...deal.booking,
+                saleAmount: Number(deal.booking.saleAmount),
+              }
+            : null
+        }
+        commissions={deal.commissions.map((c) => ({
+          ...c,
+          amount: Number(c.amount),
+        }))}
+        privateNotes={privateNotes}
+      />
     </div>
   );
 }

@@ -95,7 +95,12 @@ export function DashboardSidebar({
           <div className="border-b border-gray-200 bg-white px-4 pt-2 pb-5 shadow-lg animate-in slide-in-from-top-2 duration-150">
           <nav className="flex flex-col gap-1 text-sm">
             {items.map((item) => {
-              const isActive = pathname === item.href;
+              const isDashboardRoot = item.href.endsWith("/dashboard");
+              const isActive =
+                pathname === item.href ||
+                (isDashboardRoot
+                  ? pathname.startsWith(item.href + "/chat")
+                  : pathname.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.href}
@@ -138,7 +143,12 @@ export function DashboardSidebar({
           <p className="mt-1 text-xs uppercase tracking-wide text-gray-400">{roleLabel}</p>
           <nav className="mt-6 flex flex-col gap-1 text-sm">
             {items.map((item) => {
-              const isActive = pathname === item.href;
+              const isDashboardRoot = item.href.endsWith("/dashboard");
+              const isActive =
+                pathname === item.href ||
+                (isDashboardRoot
+                  ? pathname.startsWith(item.href + "/chat")
+                  : pathname.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.href}

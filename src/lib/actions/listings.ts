@@ -10,7 +10,13 @@ import {
   DeveloperRequestFieldsSchema,
   REQUEST_NEW_DEVELOPER_VALUE,
 } from "@/lib/validation/developer-request";
-import { sendDeveloperRequestNotification } from "@/lib/email";
+import {
+  sendDeveloperRequestNotification,
+  sendListingSubmittedEmail,
+  sendListingLiveEmail,
+  sendListingExpiresSoonEmail,
+  sendListingExpiredEmail,
+} from "@/lib/email";
 import { canAddVideo, canAttachVideo } from "@/lib/video";
 import { parsePriceInput } from "@/lib/price";
 import { syncListingVideosToGallery } from "@/lib/video-sync";
@@ -239,6 +245,18 @@ export async function createListing(
     // A brand-new listing can't already have a pending request, so the "already
     // pending" branch of createDeveloperRequest never applies here.
     await createDeveloperRequest(listing.id, listing.title, user.id, user.name, formData);
+  }
+
+  const host = (await headers()).get("host") ?? "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const listingUrl = `${protocol}://${host}/${isDeveloperUser ? "developer" : "agent"}/dashboard/listings/${listing.id}/edit`;
+
+  if (user.email) {
+    await sendListingSubmittedEmail(user.email, {
+      agentName: user.name,
+      listingTitle: listing.title,
+      listingUrl,
+    });
   }
 
   revalidatePath("/agent/dashboard/listings");
@@ -590,5 +608,82 @@ export async function updateListingTagAction(
       error: err?.message || "An unexpected error occurred while updating the tag.",
     };
   }
+}
+
+export async function notifyListingExpiringSoon(
+  listingId: number,
+  daysRemaining: number = 7
+) {
+  // Exported from a "use server" file, so it must not be callable by just anyone.
+  await requireRole("ADMIN");
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      agent: { select: { name: true, email: true } },
+    },
+  });
+
+  if (!listing || !listing.agent?.email) return;
+
+  const host = (await headers()).get("host") ?? "localhost:3000";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const listingUrl = `${protocol}://${host}/listings/${listing.slug}`;
+  const renewUrl = `${protocol}://${host}/agent/dashboard/listings/${listing.id}/edit`;
+  const expirationDate = new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  await sendListingExpiresSoonEmail(listing.agent.email, {
+    agentName: listing.agent.name,
+    listingTitle: listing.title,
+    expiresAt: expirationDate,
+    daysRemaining: `${daysRemaining} days`,
+    listingUrl,
+    renewUrl,
+  });
+}
+
+export async function expireListing(listingId: number) {
+  // Unpublishes a listing, so it is admin-only (see notifyListingExpiringSoon).
+  await requireRole("ADMIN");
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      agent: { select: { name: true, email: true } },
+    },
+  });
+
+  if (!listing) return;
+
+  await prisma.listing.update({
+    where: { id: listingId },
+    data: { status: "DRAFT" },
+  });
+
+  if (listing.agent?.email) {
+    const host = (await headers()).get("host") ?? "localhost:3000";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const listingUrl = `${protocol}://${host}/agent/dashboard/listings/${listing.id}/edit`;
+    const renewUrl = `${protocol}://${host}/agent/dashboard/listings/${listing.id}/edit`;
+
+    await sendListingExpiredEmail(listing.agent.email, {
+      agentName: listing.agent.name,
+      listingTitle: listing.title,
+      listingUrl,
+      renewUrl,
+    });
+  }
+
+  revalidatePath("/agent/dashboard/listings");
+  revalidatePath("/listings");
+  revalidatePath(`/listings/${listing.slug}`);
 }
 

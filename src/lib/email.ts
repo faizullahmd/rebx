@@ -165,3 +165,409 @@ export async function sendCommissionPaidOutEmail(
     dealUrl: details.dealUrl,
   });
 }
+
+export async function sendLeadOptedOutEmail(
+  to: string,
+  details: {
+    agentName: string;
+    contactName: string;
+    contactEmail: string;
+    listingTitle: string;
+    dealUrl: string;
+    reason?: string | null;
+  }
+) {
+  await sendTemplatedEmail("lead_opted_out", to, {
+    agentName: details.agentName,
+    contactName: details.contactName,
+    contactEmail: details.contactEmail,
+    listingTitle: details.listingTitle,
+    dealUrl: details.dealUrl,
+    reason: details.reason ?? "",
+  });
+}
+
+export async function sendListingSubmittedEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    listingUrl: string;
+  }
+) {
+  await sendTemplatedEmail("listing_submitted", to, details);
+}
+
+export async function sendListingReviewDecisionEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    status: string;
+    listingUrl: string;
+    reviewNotes?: string | null;
+  }
+) {
+  await sendTemplatedEmail("listing_review_decision", to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    status: details.status,
+    listingUrl: details.listingUrl,
+    reviewNotes: details.reviewNotes ?? "",
+  });
+}
+
+export async function sendListingLiveEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    listingUrl: string;
+  }
+) {
+  await sendTemplatedEmail("listing_live", to, details);
+}
+
+export async function sendListingExpiresSoonEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    expiresAt: string;
+    daysRemaining?: string | null;
+    listingUrl: string;
+    renewUrl?: string | null;
+  }
+) {
+  await sendTemplatedEmail("listing_expires_soon", to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    expiresAt: details.expiresAt,
+    daysRemaining: details.daysRemaining ?? "",
+    listingUrl: details.listingUrl,
+    renewUrl: details.renewUrl ?? "",
+  });
+}
+
+export async function sendListingExpiredEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    listingUrl: string;
+    renewUrl?: string | null;
+  }
+) {
+  await sendTemplatedEmail("listing_expired", to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    listingUrl: details.listingUrl,
+    renewUrl: details.renewUrl ?? "",
+  });
+}
+
+export async function sendSiteVisitRequestEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    contactEmail: string;
+    contactPhone?: string | null;
+    visitDate?: string | null;
+    visitTime?: string | null;
+    message?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendTemplatedEmail("site_visit_request", to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    contactName: details.contactName,
+    contactEmail: details.contactEmail,
+    contactPhone: details.contactPhone ?? "",
+    visitDate: details.visitDate ?? "",
+    visitTime: details.visitTime ?? "",
+    message: details.message ?? "",
+    dealUrl: details.dealUrl,
+    listingUrl: details.listingUrl ?? "",
+  });
+}
+
+export async function sendShowingStatusEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    showingStatus: "Confirmed" | "Rescheduled" | "Cancelled" | string;
+    updatedBy?: "the client" | "the seller" | string | null;
+    visitDate?: string | null;
+    visitTime?: string | null;
+    reason?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendTemplatedEmail("showing_status_update", to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    contactName: details.contactName,
+    showingStatus: details.showingStatus,
+    updatedBy: details.updatedBy ?? "",
+    visitDate: details.visitDate ?? "",
+    visitTime: details.visitTime ?? "",
+    showingReason: details.showingStatus === "Confirmed" ? "" : (details.reason ?? ""),
+    dealUrl: details.dealUrl,
+    listingUrl: details.listingUrl ?? "",
+  });
+}
+
+export async function sendShowingConfirmedEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    updatedBy?: string | null;
+    visitDate?: string | null;
+    visitTime?: string | null;
+    notes?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendShowingStatusEmail(to, {
+    ...details,
+    showingStatus: "Confirmed",
+    reason: details.notes,
+  });
+}
+
+export async function sendShowingRescheduledEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    updatedBy?: string | null;
+    newDate?: string | null;
+    newTime?: string | null;
+    reason?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendShowingStatusEmail(to, {
+    ...details,
+    showingStatus: "Rescheduled",
+    visitDate: details.newDate,
+    visitTime: details.newTime,
+  });
+}
+
+export async function sendShowingCancelledEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    updatedBy?: string | null;
+    reason?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendShowingStatusEmail(to, {
+    ...details,
+    showingStatus: "Cancelled",
+  });
+}
+
+export async function sendDealNewMessageEmail(
+  to: string,
+  details: {
+    recipient_name: string;
+    sender_name: string;
+    listing_title: string;
+    message_preview: string;
+    deal_link: string;
+  }
+) {
+  try {
+    await sendTemplatedEmail("deal_new_message", to, {
+      recipient_name: details.recipient_name,
+      sender_name: details.sender_name,
+      listing_title: details.listing_title,
+      message_preview: details.message_preview,
+      deal_link: details.deal_link,
+    });
+  } catch (err) {
+    console.error("Failed to send deal new message email:", err);
+  }
+}
+
+export async function sendDealNewOfferEmail(
+  to: string,
+  details: {
+    recipient_name: string;
+    sender_name: string;
+    listing_title: string;
+    amount: string;
+    message_preview?: string | null;
+    deal_link: string;
+    expires_at?: string | null;
+  }
+) {
+  try {
+    await sendTemplatedEmail("deal_new_offer", to, {
+      recipient_name: details.recipient_name,
+      recipientName: details.recipient_name,
+      sender_name: details.sender_name,
+      senderName: details.sender_name,
+      listing_title: details.listing_title,
+      listingTitle: details.listing_title,
+      amount: details.amount,
+      offerAmount: details.amount,
+      offer_amount: details.amount,
+      message_preview: details.message_preview || "",
+      message: details.message_preview || "",
+      deal_link: details.deal_link,
+      dealUrl: details.deal_link,
+      expires_at: details.expires_at || "",
+      expiresAt: details.expires_at || "",
+      offer_expiry: details.expires_at || "",
+    });
+  } catch (err) {
+    console.error("Failed to send deal new offer email:", err);
+  }
+}
+
+export async function sendDealCounterOfferEmail(
+  to: string,
+  details: {
+    recipient_name: string;
+    sender_name: string;
+    listing_title: string;
+    amount: string;
+    message_preview?: string | null;
+    deal_link: string;
+    expires_at?: string | null;
+  }
+) {
+  try {
+    await sendTemplatedEmail("deal_counter_offer", to, {
+      recipient_name: details.recipient_name,
+      recipientName: details.recipient_name,
+      sender_name: details.sender_name,
+      senderName: details.sender_name,
+      listing_title: details.listing_title,
+      listingTitle: details.listing_title,
+      amount: details.amount,
+      offerAmount: details.amount,
+      offer_amount: details.amount,
+      message_preview: details.message_preview || "",
+      message: details.message_preview || "",
+      deal_link: details.deal_link,
+      dealUrl: details.deal_link,
+      expires_at: details.expires_at || "",
+      expiresAt: details.expires_at || "",
+      offer_expiry: details.expires_at || "",
+    });
+  } catch (err) {
+    console.error("Failed to send deal counter-offer email:", err);
+  }
+}
+
+export async function sendDealOfferAcceptedEmail(
+  to: string,
+  details: {
+    recipient_name: string;
+    sender_name: string;
+    listing_title: string;
+    amount: string;
+    deal_link: string;
+  }
+) {
+  try {
+    await sendTemplatedEmail("deal_offer_accepted", to, {
+      recipient_name: details.recipient_name,
+      recipientName: details.recipient_name,
+      sender_name: details.sender_name,
+      senderName: details.sender_name,
+      listing_title: details.listing_title,
+      listingTitle: details.listing_title,
+      amount: details.amount,
+      offerAmount: details.amount,
+      offer_amount: details.amount,
+      deal_link: details.deal_link,
+      dealUrl: details.deal_link,
+    });
+  } catch (err) {
+    console.error("Failed to send deal offer accepted email:", err);
+  }
+}
+
+export async function sendDealOfferRejectedEmail(
+  to: string,
+  details: {
+    recipient_name: string;
+    sender_name: string;
+    listing_title: string;
+    amount: string;
+    message_preview?: string | null;
+    deal_link: string;
+  }
+) {
+  try {
+    await sendTemplatedEmail("deal_offer_rejected", to, {
+      recipient_name: details.recipient_name,
+      recipientName: details.recipient_name,
+      sender_name: details.sender_name,
+      senderName: details.sender_name,
+      listing_title: details.listing_title,
+      listingTitle: details.listing_title,
+      amount: details.amount,
+      offerAmount: details.amount,
+      offer_amount: details.amount,
+      message_preview: details.message_preview || "",
+      message: details.message_preview || "",
+      deal_link: details.deal_link,
+      dealUrl: details.deal_link,
+    });
+  } catch (err) {
+    console.error("Failed to send deal offer rejected email:", err);
+  }
+}
+
+export async function sendDealOfferExpiredEmail(
+  to: string,
+  details: {
+    recipient_name: string;
+    sender_name: string;
+    listing_title: string;
+    amount: string;
+    deal_link: string;
+  }
+) {
+  try {
+    await sendTemplatedEmail("deal_offer_expired", to, {
+      recipient_name: details.recipient_name,
+      recipientName: details.recipient_name,
+      sender_name: details.sender_name,
+      senderName: details.sender_name,
+      listing_title: details.listing_title,
+      listingTitle: details.listing_title,
+      amount: details.amount,
+      offerAmount: details.amount,
+      offer_amount: details.amount,
+      deal_link: details.deal_link,
+      dealUrl: details.deal_link,
+    });
+  } catch (err) {
+    console.error("Failed to send deal offer expired email:", err);
+  }
+}
+
+

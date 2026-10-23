@@ -1,8 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { readInquirySession } from "@/lib/inquiry-session";
 import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
+import { MakeDealCard } from "@/components/deals/MakeDealCard";
+import { getOrCreateCustomerDeal } from "@/lib/actions/deals";
 import { BrokerCard } from "@/components/listings/BrokerCard";
 import { ListingImageCarousel } from "@/components/listings/ListingImageCarousel";
 import { ListingVideosSection } from "@/components/listings/ListingVideosSection";
@@ -44,10 +47,13 @@ function formatListingAddress(listing: {
 
 export default async function ListingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ startDeal?: string }>;
 }) {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
   const listing = await getListingBySlug(slug);
 
   if (!listing) {
@@ -57,7 +63,38 @@ export default async function ListingDetailPage({
   console.log("Listing in detail page:", listing.title, "videoUrl:", listing.videoUrl);
 
   const session = await auth();
+  const isCustomer = session?.user?.role === "CUSTOMER";
+  // Guests are remembered for the browser session (cookie); customers are matched by their deals.
   const inquirer = await readInquirySession();
+  let alreadyInterested = !isCustomer && inquirer.listings.includes(listing.id);
+  let customerDeal: { id: number } | null = null;
+
+  if (isCustomer && session?.user?.id) {
+    customerDeal = await prisma.deal.findFirst({
+      where: {
+        listingId: listing.id,
+        OR: [
+          { customerId: Number(session.user.id) },
+          ...(session.user.email ? [{ contactEmail: session.user.email }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+    alreadyInterested = Boolean(customerDeal);
+
+    if (sp.startDeal === "true") {
+      const res = await getOrCreateCustomerDeal(listing.id);
+      if (res.success && res.dealUrl) {
+        redirect(res.dealUrl);
+      }
+    }
+  } else if (session?.user && sp.startDeal === "true") {
+    const res = await getOrCreateCustomerDeal(listing.id);
+    if (res.success && res.dealUrl) {
+      redirect(res.dealUrl);
+    }
+  }
+
   if (listing.status !== "ACTIVE" && listing.status !== "UNDER_OFFER") {
     const isOwnerOrAdmin =
       session?.user &&
@@ -187,13 +224,22 @@ export default async function ListingDetailPage({
           {listing.status === "ACTIVE" && (
             <InquiryForm
               listingId={listing.id}
-              isLoggedInCustomer={session?.user?.role === "CUSTOMER"}
+              isLoggedInCustomer={isCustomer}
               returningName={
-                session?.user?.role === "CUSTOMER"
-                  ? inquirer.listings.length > 0 ? session.user.name : null
-                  : inquirer.name && inquirer.email ? inquirer.name : null
+                isCustomer ? session?.user?.name || null : inquirer.name && inquirer.email ? inquirer.name : null
               }
-              alreadyInterested={inquirer.listings.includes(listing.id)}
+              alreadyInterested={alreadyInterested}
+            />
+          )}
+
+          {/* Make a Deal Card */}
+          {listing.status === "ACTIVE" && (
+            <MakeDealCard
+              listingId={listing.id}
+              listingSlug={listing.slug}
+              isLoggedIn={Boolean(session?.user)}
+              isCustomer={isCustomer}
+              existingDealId={customerDeal?.id || null}
             />
           )}
         </div>
