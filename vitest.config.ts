@@ -21,6 +21,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // Seeding the built-in email templates (26 of them) takes a few seconds on a cold database.
+    testTimeout: 20_000,
     env: {
       DATABASE_URL: TEST_DATABASE_URL,
       AUTH_SECRET: "test-secret",

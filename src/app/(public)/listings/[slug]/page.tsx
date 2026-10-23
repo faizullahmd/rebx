@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { readInquirySession } from "@/lib/inquiry-session";
 import { getListingBySlug } from "@/lib/data/listings";
 import { InquiryForm } from "@/components/deals/InquiryForm";
 import { MakeDealCard } from "@/components/deals/MakeDealCard";
@@ -63,7 +64,9 @@ export default async function ListingDetailPage({
 
   const session = await auth();
   const isCustomer = session?.user?.role === "CUSTOMER";
-  let alreadyInterested = false;
+  // Guests are remembered for the browser session (cookie); customers are matched by their deals.
+  const inquirer = await readInquirySession();
+  let alreadyInterested = !isCustomer && inquirer.listings.includes(listing.id);
   let customerDeal: { id: number } | null = null;
 
   if (isCustomer && session?.user?.id) {
@@ -222,7 +225,9 @@ export default async function ListingDetailPage({
             <InquiryForm
               listingId={listing.id}
               isLoggedInCustomer={isCustomer}
-              returningName={isCustomer ? session?.user?.name || null : null}
+              returningName={
+                isCustomer ? session?.user?.name || null : inquirer.name && inquirer.email ? inquirer.name : null
+              }
               alreadyInterested={alreadyInterested}
             />
           )}

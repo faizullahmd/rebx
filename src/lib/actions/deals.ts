@@ -525,6 +525,16 @@ export async function requestSiteVisit(
     throw new Error("This listing is no longer accepting inquiries.");
   }
 
+  // Public entry point: apply the same contact rules as the inquiry form.
+  const contact = InquiryFormSchema.pick({ contactName: true, contactEmail: true, contactPhone: true }).safeParse({
+    contactName: data.name,
+    contactEmail: data.email,
+    contactPhone: data.phone ?? "",
+  });
+  if (!contact.success) {
+    throw new Error(Object.values(contact.error.flatten().fieldErrors).flat()[0] ?? "Please check your contact details.");
+  }
+
   const visitNote = [
     data.visitDate ? `Date: ${data.visitDate}` : null,
     data.visitTime ? `Time: ${data.visitTime}` : null,

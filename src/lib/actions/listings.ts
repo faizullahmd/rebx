@@ -614,6 +614,8 @@ export async function notifyListingExpiringSoon(
   listingId: number,
   daysRemaining: number = 7
 ) {
+  // Exported from a "use server" file, so it must not be callable by just anyone.
+  await requireRole("ADMIN");
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },
     select: {
@@ -647,6 +649,8 @@ export async function notifyListingExpiringSoon(
 }
 
 export async function expireListing(listingId: number) {
+  // Unpublishes a listing, so it is admin-only (see notifyListingExpiringSoon).
+  await requireRole("ADMIN");
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },
     select: {

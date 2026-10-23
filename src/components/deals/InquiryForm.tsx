@@ -20,7 +20,7 @@ export function InquiryForm({
 }) {
   const [showFullForm, setShowFullForm] = useState(false);
 
-  if (isLoggedInCustomer && alreadyInterested) {
+  if (alreadyInterested) {
     return (
       <div className="rounded-xl border border-green-200 bg-green-50 p-4 shadow-xs" role="status">
         <h2 className="text-sm font-semibold text-green-900">Interest sent ✓</h2>
@@ -31,7 +31,7 @@ export function InquiryForm({
     );
   }
 
-  if (isLoggedInCustomer && returningName && !showFullForm) {
+  if (returningName && !showFullForm) {
     return (
       <InterestedButton
         listingId={listingId}

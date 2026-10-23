@@ -476,7 +476,8 @@ describe("listing", () => {
 
     const p1 = await svc.listTemplates(admin, { pageSize: 4, page: 1 });
     const p3 = await svc.listTemplates(admin, { pageSize: 4, page: 3 });
-    expect([p1.total, p1.pageCount, p1.items.length, p3.items.length]).toEqual([10, 3, 4, 2]);
+    const total = BUILT_IN_TEMPLATES.length + 1; // every built-in plus the one custom template
+    expect([p1.total, p1.pageCount, p1.items.length, p3.items.length]).toEqual([total, Math.ceil(total / 4), 4, Math.min(4, total - 8)]);
   });
 
   it("surfaces who last updated a template and whether it has a draft", async () => {
