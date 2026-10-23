@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
+    "seed:deals": "tsx prisma/seed-deals.ts",
     "seed:videos": "tsx prisma/seed-videos.ts",
     "seed:videos:clear": "tsx prisma/seed-videos.ts --clear",
     "test": "vitest run",

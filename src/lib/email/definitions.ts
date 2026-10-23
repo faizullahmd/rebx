@@ -48,6 +48,7 @@ export interface TemplateDefinition {
 
 export const EMAIL_CATEGORIES = [
   "Account",
+  "Listings",
   "Leads & inquiries",
   "Deals & bookings",
   "Commissions",
@@ -78,6 +79,12 @@ export const VARIABLES: Record<string, VariableDefinition> = Object.fromEntries(
     v("contactEmail", "Lead", "email", "Contact email", "Email address the inquirer provided.", "taylor.prospect@example.com"),
     v("contactPhone", "Lead", "text", "Contact phone", "Phone number the inquirer provided. Often empty, so wrap it in a conditional block.", "+1 555 0101"),
     v("message", "Lead", "text", "Inquiry message", "Free-text message the inquirer wrote. Often empty, so wrap it in a conditional block.", "Is this still available? I'd love a weekend viewing."),
+    v("visitDate", "Lead", "text", "Site visit date", "Preferred date for the requested in-person site visit.", "October 25, 2026"),
+    v("visitTime", "Lead", "text", "Site visit time", "Preferred time slot for the requested in-person site visit.", "10:30 AM"),
+    v("showingStatus", "Lead", "text", "Showing status", "Current status of the showing (Confirmed, Rescheduled, or Cancelled).", "Rescheduled"),
+    v("updatedBy", "People", "text", "Updated by", "The party who requested or made the change (the client or seller).", "the client"),
+    v("showingReason", "Lead", "text", "Showing reason / notes", "Reason or details for rescheduling or cancelling the showing.", "Client requested a later time slot due to a scheduling conflict."),
+    v("reason", "Lead", "text", "Opt-out reason", "Reason the lead unsubscribed or opted out.", "Customer requested to stop receiving communications."),
     v("saleAmount", "Money", "text", "Sale amount", "Recorded sale amount, already formatted with thousands separators.", "512,000"),
     v("amount", "Money", "text", "Commission amount", "Commission amount, already formatted with thousands separators.", "15,360"),
     v("source", "Money", "text", "Commission source", "Where the commission comes from, in lower case (developer or customer).", "developer"),
@@ -88,8 +95,23 @@ export const VARIABLES: Record<string, VariableDefinition> = Object.fromEntries(
     v("reviewUrl", "Links", "url", "Review link", "Admin page where a developer request is reviewed.", "https://example.com/sample/admin/developer-requests"),
     v("dealUrl", "Links", "url", "Deal link", "Link to the deal or lead in the agent dashboard.", "https://example.com/sample/deals/42"),
     v("bookingUrl", "Links", "url", "Booking link", "Link to the booking to review or view.", "https://example.com/sample/bookings/42"),
-    v("listingsUrl", "Links", "url", "Browse listings link", "Link to the public property listings page.", "https://example.com/sample/listings"),
+    v("status", "Property", "text", "Review status", "Review outcome for the listing: Approved or Rejected.", "Approved"),
+    v("reviewNotes", "Property", "text", "Review notes", "Feedback or notes provided by the admin reviewer. Often empty, so wrap it in a conditional block.", "All property details and images have been verified."),
+    v("daysRemaining", "Property", "text", "Days remaining", "Number of days before the listing expires.", "7 days"),
+    v("expiresAt", "Property", "text", "Expiration date", "Formatted date when the listing expires.", "November 15, 2026"),
+    v("listingUrl", "Links", "url", "Listing link", "Direct link to view or manage the listing.", "https://example.com/listings/sample-listing"),
+    v("renewUrl", "Links", "url", "Renew listing link", "Link for the agent to extend or renew the listing.", "https://example.com/agent/dashboard/listings/42/renew"),
+    v("listingsUrl", "Links", "url", "Browse listings link", "Link to the public property listings page.", "https://example.com/listings"),
     v("dashboardUrl", "Links", "url", "Dashboard link", "Link to the recipient's dashboard (sends them to the right one for their role).", "https://example.com/sample/dashboard"),
+    v("recipient_name", "People", "text", "Recipient name", "Name of the person receiving the notification.", "Alex Agent"),
+    v("sender_name", "People", "text", "Sender name", "Name of the person who sent the message or offer.", "Taylor Prospect"),
+    v("listing_title", "Property", "text", "Listing title", "Title of the property listing.", "Lakeside Family Home"),
+    v("message_preview", "Lead", "text", "Message preview", "Snippet or preview of the message sent.", "I have submitted a revised offer of 52 Lakh."),
+    v("deal_link", "Links", "url", "Deal conversation link", "Direct link to the negotiation thread.", "https://example.com/sample/deals/42"),
+    v("offerAmount", "Money", "text", "Offer amount", "Formatted offer or counter-offer amount.", "₹ 52,00,000"),
+    v("offer_amount", "Money", "text", "Offer amount", "Formatted offer or counter-offer amount.", "₹ 52,00,000"),
+    v("expires_at", "Property", "text", "Offer expiration", "Formatted expiration date and time for the offer.", "October 24, 2026, 6:00 PM"),
+    v("offer_expiry", "Property", "text", "Offer expiration", "Formatted expiration date and time for the offer.", "October 24, 2026, 6:00 PM"),
   ].map((d) => [d.name, d])
 );
 
@@ -306,6 +328,540 @@ export const BUILT_IN_TEMPLATES: TemplateDefinition[] = [
       {{amount}} on "{{listingTitle}}" has been
       marked as paid out.</p>
       <p><a href="{{dealUrl}}">View this deal</a></p>
+    `,
+  },
+  {
+    key: "lead_opted_out",
+    name: "Lead unsubscribed / opted out (agent)",
+    description: "Sent to the listing agent when a lead unsubscribes or opts out of communications.",
+    category: "Leads & inquiries",
+    event: "lead.opted_out",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "contactName", required: true },
+      { name: "contactEmail", required: true },
+      { name: "dealUrl", required: true },
+      { name: "reason", required: false },
+    ],
+    subject: "Lead opted out: {{contactName}} - {{listingTitle}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>A lead has unsubscribed or opted out of communications regarding "{{listingTitle}}":</p>
+      <p>
+        <strong>Lead:</strong> {{contactName}}<br/>
+        <strong>Email:</strong> {{contactEmail}}
+        {{#if reason}}<br/><strong>Reason:</strong> {{reason}}{{/if}}
+      </p>
+      <p><a href="{{dealUrl}}">View this lead in dashboard</a></p>
+    `,
+  },
+  {
+    key: "listing_submitted",
+    name: "Listing submitted for approval (agent)",
+    description: "Sent to the listing agent when their property listing is submitted for admin review and approval.",
+    category: "Listings",
+    event: "listing.submitted",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "listingUrl", required: true },
+    ],
+    subject: "Listing submitted for review: {{listingTitle}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>Your property listing <strong>"{{listingTitle}}"</strong> has been successfully submitted for review.</p>
+      <p>Our moderation team is reviewing the listing details and media. We will notify you once your listing has been approved and published to the live marketplace.</p>
+      <p><a href="{{listingUrl}}">View listing in dashboard</a></p>
+    `,
+  },
+  {
+    key: "listing_review_decision",
+    name: "Listing approved or rejected (agent)",
+    description: "Sent to the listing agent when an admin approves or rejects their property listing.",
+    category: "Listings",
+    event: "listing.review_decision",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "status", required: true },
+      { name: "listingUrl", required: true },
+      { name: "reviewNotes", required: false },
+    ],
+    subject: "Listing {{status}}: {{listingTitle}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>Your property listing <strong>"{{listingTitle}}"</strong> has been reviewed by our administration team.</p>
+      <p><strong>Status:</strong> {{status}}</p>
+      {{#if reviewNotes}}<p><strong>Reviewer feedback:</strong> {{reviewNotes}}</p>{{/if}}
+      <p><a href="{{listingUrl}}">View your listing</a></p>
+    `,
+  },
+  {
+    key: "listing_live",
+    name: "Listing goes live (agent)",
+    description: "Sent to the listing agent when their property listing is approved and goes live on the marketplace.",
+    category: "Listings",
+    event: "listing.live",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "listingUrl", required: true },
+    ],
+    subject: "Your listing is now live: {{listingTitle}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>Great news! Your property listing <strong>"{{listingTitle}}"</strong> is now live on REBX.</p>
+      <p>Buyers, renters, and collaborating brokers can now discover your property, view details, and send inquiries directly to you.</p>
+      <p><a href="{{listingUrl}}">View your live listing</a></p>
+    `,
+  },
+  {
+    key: "listing_expires_soon",
+    name: "Listing expires soon (agent)",
+    description: "Sent to the listing agent when their active listing is approaching its expiration date.",
+    category: "Listings",
+    event: "listing.expires_soon",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "expiresAt", required: true },
+      { name: "daysRemaining", required: false },
+      { name: "listingUrl", required: true },
+      { name: "renewUrl", required: false },
+    ],
+    subject: "Listing expiring soon: {{listingTitle}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>This is a reminder that your listing <strong>"{{listingTitle}}"</strong> is scheduled to expire on <strong>{{expiresAt}}</strong>{{#if daysRemaining}} (in {{daysRemaining}}){{/if}}.</p>
+      <p>Once expired, the property will no longer appear in public search results.</p>
+      <p>{{#if renewUrl}}<a href="{{renewUrl}}">Renew listing</a> &nbsp;|&nbsp; {{/if}}<a href="{{listingUrl}}">View listing</a></p>
+    `,
+  },
+  {
+    key: "listing_expired",
+    name: "Listing has expired (agent)",
+    description: "Sent to the listing agent when their property listing has expired and is removed from public search.",
+    category: "Listings",
+    event: "listing.expired",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "listingUrl", required: true },
+      { name: "renewUrl", required: false },
+    ],
+    subject: "Listing expired: {{listingTitle}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>Your property listing <strong>"{{listingTitle}}"</strong> has expired and is no longer visible to public searchers on REBX.</p>
+      <p>If the property is still on the market, you can renew or update it from your agent dashboard to republish it.</p>
+      <p>{{#if renewUrl}}<a href="{{renewUrl}}">Renew and republish listing</a> &nbsp;|&nbsp; {{/if}}<a href="{{listingUrl}}">Manage listing in dashboard</a></p>
+    `,
+  },
+  {
+    key: "site_visit_request",
+    name: "Site visit request (agent)",
+    description: "Sent to the listing agent when a prospective buyer or tenant requests an in-person site visit.",
+    category: "Leads & inquiries",
+    event: "lead.site_visit_requested",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "contactName", required: true },
+      { name: "contactEmail", required: true },
+      { name: "contactPhone", required: false },
+      { name: "visitDate", required: false },
+      { name: "visitTime", required: false },
+      { name: "message", required: false },
+      { name: "dealUrl", required: true },
+      { name: "listingUrl", required: false },
+    ],
+    subject: "New site visit request: {{listingTitle}} - {{contactName}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>A prospective client has requested an in-person site visit for your property <strong>"{{listingTitle}}"</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Client Name:</strong> {{contactName}}</p>
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Email:</strong> {{contactEmail}}</p>
+              {{#if contactPhone}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Phone:</strong> {{contactPhone}}</p>{{/if}}
+              {{#if visitDate}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Preferred Date:</strong> {{visitDate}}</p>{{/if}}
+              {{#if visitTime}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Preferred Time:</strong> {{visitTime}}</p>{{/if}}
+              {{#if message}}<p style="margin:0;"><strong style="color:#18181b;">Notes:</strong> {{message}}</p>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p><a href="{{dealUrl}}">View request in agent dashboard</a></p>
+    `,
+  },
+  {
+    key: "showing_status_update",
+    name: "Showing confirmed, rescheduled or cancelled (agent)",
+    description: "Sent to the listing agent when a property showing or site visit is confirmed, rescheduled, or cancelled by the client or seller.",
+    category: "Leads & inquiries",
+    event: "showing.status_updated",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "contactName", required: true },
+      { name: "showingStatus", required: true },
+      { name: "updatedBy", required: false },
+      { name: "visitDate", required: false },
+      { name: "visitTime", required: false },
+      { name: "showingReason", required: false },
+      { name: "dealUrl", required: true },
+      { name: "listingUrl", required: false },
+    ],
+    subject: "Showing {{showingStatus}}: {{listingTitle}} - {{contactName}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>The scheduled showing for <strong>"{{listingTitle}}"</strong> has been <strong>{{showingStatus}}</strong>{{#if updatedBy}} by {{updatedBy}}{{/if}}.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Status:</strong> {{showingStatus}}</p>
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Client:</strong> {{contactName}}</p>
+              {{#if updatedBy}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Action By:</strong> {{updatedBy}}</p>{{/if}}
+              {{#if visitDate}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Date:</strong> {{visitDate}}</p>{{/if}}
+              {{#if visitTime}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Time:</strong> {{visitTime}}</p>{{/if}}
+              {{#if showingReason}}<p style="margin:0;"><strong style="color:#18181b;">Reason:</strong> {{showingReason}}</p>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p><a href="{{dealUrl}}">View showing in agent dashboard</a></p>
+    `,
+  },
+  {
+    key: "deal_new_message",
+    name: "New negotiation message",
+    description: "Sent to the other party when a new message is posted in a deal conversation.",
+    category: "Deals & bookings",
+    event: "deal.new_message",
+    recipient: "The deal participant (agent or customer)",
+    critical: false,
+    variables: [
+      { name: "recipient_name", required: true },
+      { name: "sender_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "message_preview", required: true },
+      { name: "deal_link", required: true },
+    ],
+    subject: "New message regarding {{listing_title}} from {{sender_name}}",
+    html: `
+      <p>Hello {{recipient_name}},</p>
+      <p><strong>{{sender_name}}</strong> has sent you a new message regarding <strong>"{{listing_title}}"</strong>:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0;font-style:italic;">“{{message_preview}}”</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p><a href="{{deal_link}}">Open conversation to reply</a></p>
+    `,
+  },
+  {
+    key: "deal_new_offer",
+    name: "New offer received on a listing",
+    description: "Sent to the recipient (agent or customer) when a new offer is submitted on a property listing.",
+    category: "Deals & bookings",
+    event: "deal.new_offer",
+    recipient: "The deal participant (agent or customer)",
+    critical: false,
+    variables: [
+      { name: "recipient_name", required: true },
+      { name: "sender_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "message_preview", required: false },
+      { name: "deal_link", required: true },
+      { name: "expires_at", required: false },
+    ],
+    subject: "New offer received for {{listing_title}}: {{amount}}",
+    html: `
+      <p>Hello {{recipient_name}},</p>
+      <p><strong>{{sender_name}}</strong> has submitted a new offer of <strong style="color:#0f766e;font-size:16px;">{{amount}}</strong> for <strong>"{{listing_title}}"</strong>.</p>
+      {{#if message_preview}}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0;font-style:italic;">“{{message_preview}}”</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      {{/if}}
+      {{#if expires_at}}
+      <p style="margin:12px 0;font-size:14px;color:#6b7280;">⏳ <strong>Offer valid until:</strong> {{expires_at}}</p>
+      {{/if}}
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{deal_link}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Review &amp; Respond to Offer</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "deal_counter_offer",
+    name: "Counter-offer received",
+    description: "Sent to the other party (agent or customer) when a counter-offer is proposed in a deal negotiation.",
+    category: "Deals & bookings",
+    event: "deal.counter_offer",
+    recipient: "The deal participant (agent or customer)",
+    critical: false,
+    variables: [
+      { name: "recipient_name", required: true },
+      { name: "sender_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "message_preview", required: false },
+      { name: "deal_link", required: true },
+      { name: "expires_at", required: false },
+    ],
+    subject: "Counter-offer received for {{listing_title}}: {{amount}}",
+    html: `
+      <p>Hello {{recipient_name}},</p>
+      <p><strong>{{sender_name}}</strong> has proposed a counter-offer of <strong style="color:#0f766e;font-size:16px;">{{amount}}</strong> for <strong>"{{listing_title}}"</strong>.</p>
+      {{#if message_preview}}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0;font-style:italic;">“{{message_preview}}”</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      {{/if}}
+      {{#if expires_at}}
+      <p style="margin:12px 0;font-size:14px;color:#6b7280;">⏳ <strong>Counter-offer valid until:</strong> {{expires_at}}</p>
+      {{/if}}
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{deal_link}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Review Counter-Offer</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "offer_received",
+    name: "New offer received (agent)",
+    description: "Sent to the listing agent when a buyer or customer submits a new offer on their listing.",
+    category: "Deals & bookings",
+    event: "deal.offer_received",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "offerAmount", required: true },
+      { name: "contactName", required: true },
+      { name: "contactEmail", required: false },
+      { name: "contactPhone", required: false },
+      { name: "message", required: false },
+      { name: "dealUrl", required: true },
+    ],
+    subject: "New offer received: {{listingTitle}} - {{offerAmount}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>A new offer has been submitted for your property listing <strong>"{{listingTitle}}"</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Offer Amount:</strong> {{offerAmount}}</p>
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Client Name:</strong> {{contactName}}</p>
+              {{#if contactEmail}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Email:</strong> {{contactEmail}}</p>{{/if}}
+              {{#if contactPhone}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Phone:</strong> {{contactPhone}}</p>{{/if}}
+              {{#if message}}<p style="margin:0;"><strong style="color:#18181b;">Offer Terms / Notes:</strong> {{message}}</p>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p><a href="{{dealUrl}}">View and manage this offer in agent dashboard</a></p>
+    `,
+  },
+  {
+    key: "offer_received_customer",
+    name: "Offer submitted confirmation (customer)",
+    description: "Sent to the client or buyer confirming that their offer on a listing has been submitted and received.",
+    category: "Deals & bookings",
+    event: "deal.offer_submitted",
+    recipient: "The client or customer who submitted the offer",
+    critical: false,
+    variables: [
+      { name: "contactName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "offerAmount", required: true },
+      { name: "agentName", required: true },
+      { name: "message", required: false },
+      { name: "listingUrl", required: false },
+    ],
+    subject: "Offer confirmation: {{listingTitle}}",
+    html: `
+      <p>Hello {{contactName}},</p>
+      <p>Thank you for submitting your offer for <strong>"{{listingTitle}}"</strong>. We have received your submission and forwarded it to the listing agent.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Offer Amount:</strong> {{offerAmount}}</p>
+              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Listing Agent:</strong> {{agentName}}</p>
+              {{#if message}}<p style="margin:0;"><strong style="color:#18181b;">Your Terms / Notes:</strong> {{message}}</p>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>The listing agent <strong>{{agentName}}</strong> will review the details and follow up with you directly.</p>
+      {{#if listingUrl}}<p><a href="{{listingUrl}}">View listing on REBX</a></p>{{/if}}
+    `,
+  },
+  {
+    key: "deal_offer_accepted",
+    name: "Offer accepted",
+    description: "Sent to the other party when an offer or counter-offer is accepted in a deal.",
+    category: "Deals & bookings",
+    event: "deal.offer_accepted",
+    recipient: "The deal participant (agent or customer)",
+    critical: false,
+    variables: [
+      { name: "recipient_name", required: true },
+      { name: "sender_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "deal_link", required: true },
+    ],
+    subject: "Offer accepted for {{listing_title}}: {{amount}}",
+    html: `
+      <p>Hello {{recipient_name}},</p>
+      <p>Great news! <strong>{{sender_name}}</strong> has accepted the offer of <strong style="color:#0f766e;font-size:16px;">{{amount}}</strong> for <strong>"{{listing_title}}"</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#166534;">
+              <p style="margin:0 0 6px 0;">🎉 <strong style="color:#14532d;">Deal Status:</strong> Under contract</p>
+              <p style="margin:0;"><strong style="color:#14532d;">Agreed Price:</strong> {{amount}}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>You can view the full deal details and continue coordinating next steps in your dashboard:</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{deal_link}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">View Deal in Dashboard</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "deal_offer_rejected",
+    name: "Offer rejected",
+    description: "Sent to the other party when an offer or counter-offer is declined in a deal.",
+    category: "Deals & bookings",
+    event: "deal.offer_rejected",
+    recipient: "The deal participant (agent or customer)",
+    critical: false,
+    variables: [
+      { name: "recipient_name", required: true },
+      { name: "sender_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "message_preview", required: false },
+      { name: "deal_link", required: true },
+    ],
+    subject: "Offer declined for {{listing_title}}: {{amount}}",
+    html: `
+      <p>Hello {{recipient_name}},</p>
+      <p><strong>{{sender_name}}</strong> has declined the offer of <strong style="font-size:16px;color:#18181b;">{{amount}}</strong> for <strong>"{{listing_title}}"</strong>.</p>
+      {{#if message_preview}}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 4px 0;"><strong style="color:#18181b;">Feedback / Reason:</strong></p>
+              <p style="margin:0;font-style:italic;">“{{message_preview}}”</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      {{/if}}
+      <p>You can propose a revised counter-offer or continue the conversation in your dashboard:</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{deal_link}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Open Conversation</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "deal_offer_expired",
+    name: "Offer expired",
+    description: "Sent when an offer's validity period has ended without being accepted.",
+    category: "Deals & bookings",
+    event: "deal.offer_expired",
+    recipient: "The deal participant (agent or customer)",
+    critical: false,
+    variables: [
+      { name: "recipient_name", required: true },
+      { name: "sender_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "deal_link", required: true },
+    ],
+    subject: "Offer expired for {{listing_title}}: {{amount}}",
+    html: `
+      <p>Hello {{recipient_name}},</p>
+      <p>The offer of <strong style="font-size:16px;color:#18181b;">{{amount}}</strong> for <strong>"{{listing_title}}"</strong> submitted by <strong>{{sender_name}}</strong> has expired because the response deadline has passed.</p>
+      <p>You can submit a new offer or continue the conversation in your dashboard:</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{deal_link}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">View Deal in Dashboard</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     `,
   },
 ];

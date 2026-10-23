@@ -6,6 +6,7 @@ import { invalidateTemplateCache } from "@/lib/email/cache";
 import {
   ConflictError, ForbiddenError, NotFoundError, RuleError, ValidationFailure,
 } from "@/lib/email/errors";
+import { BUILT_IN_TEMPLATES } from "@/lib/email/definitions";
 import * as svc from "@/lib/email/template-service";
 import * as mail from "@/lib/email";
 
@@ -60,7 +61,7 @@ describe("built-in seeding", () => {
   it("creates every built-in as a system template with a v1 SEED snapshot", async () => {
     await svc.ensureBuiltInTemplates(admin);
     const rows = await prisma.emailTemplate.findMany({ include: { versions: true } });
-    expect(rows).toHaveLength(9);
+    expect(rows).toHaveLength(BUILT_IN_TEMPLATES.length);
     expect(rows.every((r) => r.isSystem && r.status === "ACTIVE" && r.version === 1)).toBe(true);
     expect(rows.every((r) => r.versions.length === 1 && r.versions[0].action === "SEED")).toBe(true);
   });
@@ -71,13 +72,13 @@ describe("built-in seeding", () => {
     await svc.publishTemplate(admin, t.id, baseFields({ subject: "Edited {{name}}" }), await tokensFor(t.id));
     await svc.ensureBuiltInTemplates(admin);
     await svc.ensureBuiltInTemplates(admin);
-    expect(await prisma.emailTemplate.count()).toBe(9);
+    expect(await prisma.emailTemplate.count()).toBe(BUILT_IN_TEMPLATES.length);
     expect((await builtIn("welcome")).subject).toBe("Edited {{name}}");
   });
 
   it("survives two concurrent seed calls", async () => {
     await Promise.all([svc.ensureBuiltInTemplates(admin), svc.ensureBuiltInTemplates(admin)]);
-    expect(await prisma.emailTemplate.count()).toBe(9);
+    expect(await prisma.emailTemplate.count()).toBe(BUILT_IN_TEMPLATES.length);
   });
 });
 

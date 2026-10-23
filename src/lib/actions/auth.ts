@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
@@ -112,10 +112,15 @@ export async function login(
     return { message: "Please enter a valid email and password." };
   }
 
+  let callbackUrl = (formData.get("callbackUrl") as string) || "/dashboard";
+  if (!callbackUrl.startsWith("/")) {
+    callbackUrl = "/dashboard";
+  }
+
   try {
     await signIn("credentials", {
       ...validatedFields.data,
-      redirectTo: "/dashboard",
+      redirectTo: callbackUrl,
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -126,6 +131,10 @@ export async function login(
 }
 
 export async function logout() {
+  try {
+    const store = await cookies();
+    store.delete("rebx_inquiry");
+  } catch {}
   await signOut({ redirectTo: "/" });
 }
 
