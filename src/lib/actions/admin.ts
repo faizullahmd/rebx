@@ -2,10 +2,15 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { updateDeal } from "@/lib/actions/deals";
+import {
+  sendListingReviewDecisionEmail,
+  sendListingLiveEmail,
+} from "@/lib/email";
 import { nextUserId } from "@/lib/user-id";
 import { PasswordSchema } from "@/lib/validation/auth";
 import { normalizeUsername, validateUsernameFormat } from "@/lib/validation/username";
@@ -218,11 +223,42 @@ export async function updateListingStatus(
 
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },
-    select: { slug: true },
+    select: {
+      slug: true,
+      title: true,
+      status: true,
+      agent: { select: { name: true, email: true } },
+    },
   });
   if (!listing) return fail("Listing not found.");
 
-  await prisma.listing.update({ where: { id: listingId }, data: { status: status as ListingStatus } });
+  const nextStatus = status as ListingStatus;
+  await prisma.listing.update({ where: { id: listingId }, data: { status: nextStatus } });
+
+  // If status changed and agent has an email, send review decision email
+  if (listing.status !== nextStatus && listing.agent?.email) {
+    const host = (await headers()).get("host") ?? "";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const listingUrl = `${protocol}://${host}/listings/${listing.slug}`;
+    const outcome = nextStatus === "ACTIVE" ? "Approved" : nextStatus === "DRAFT" ? "Rejected" : nextStatus;
+    const reviewNotes = typeof formData.get("notes") === "string" ? String(formData.get("notes")) : null;
+
+    await sendListingReviewDecisionEmail(listing.agent.email, {
+      agentName: listing.agent.name,
+      listingTitle: listing.title,
+      status: outcome,
+      listingUrl,
+      reviewNotes,
+    });
+
+    if (nextStatus === "ACTIVE") {
+      await sendListingLiveEmail(listing.agent.email, {
+        agentName: listing.agent.name,
+        listingTitle: listing.title,
+        listingUrl,
+      });
+    }
+  }
 
   refresh("/admin/dashboard/listings", "/listings", `/listings/${listing.slug}`, "/");
   return ok("Status updated.");

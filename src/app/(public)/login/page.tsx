@@ -1,16 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { login } from "@/lib/actions/auth";
 
-export default function LoginPage() {
+function LoginForm() {
   const [state, formAction, pending] = useActionState(login, undefined);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "";
 
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-6 py-12">
       <h1 className="text-2xl font-semibold">Log in</h1>
       <form action={formAction} className="flex flex-col gap-4">
+        {callbackUrl ? <input type="hidden" name="callbackUrl" value={callbackUrl} /> : null}
         {state?.message && (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
         )}
@@ -46,7 +50,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={pending}
-          className="mt-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+          className="mt-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 transition cursor-pointer"
         >
           {pending ? "Logging in…" : "Log in"}
         </button>
@@ -60,3 +64,12 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-sm py-12 text-sm text-gray-500">Loading…</div>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+

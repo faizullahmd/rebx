@@ -3,6 +3,7 @@ import { DashboardSidebar } from "@/components/nav/DashboardSidebar";
 
 const items = [
   { href: "/customer/dashboard", label: "Overview" },
+  { href: "/customer/dashboard/deals", label: "Deals" },
   { href: "/account", label: "Account settings" },
 ];
 

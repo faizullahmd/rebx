@@ -32,6 +32,27 @@ enum DealStage {
   CLOSED_LOST
 }
 
+enum DealMessageSenderRole {
+  AGENT
+  CUSTOMER
+  SYSTEM
+}
+
+enum DealMessageType {
+  MESSAGE
+  OFFER
+  NOTE
+  EVENT
+}
+
+enum DealOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  EXPIRED
+}
+
 enum CommissionSource {
   DEVELOPER
   CUSTOMER
@@ -155,6 +176,7 @@ model User {
   emailTestLogs         EmailTestLog[]         @relation("EmailTestSender")
   auditLogs             AdminAuditLog[]        @relation("AuditActor")
   emailLayoutsUpdated   EmailLayout[]          @relation("EmailLayoutEditor")
+  dealMessages          DealMessage[]          @relation("UserDealMessages")
 
   @@index([role])
 }
@@ -325,11 +347,35 @@ model Deal {
 
   commissions Commission[]
   booking     Booking?
+  messages    DealMessage[]
 
   @@index([listingId])
   @@index([agentId])
   @@index([customerId])
   @@index([stage])
+}
+
+model DealMessage {
+  id             Int                   @id @default(autoincrement())
+  dealId         Int
+  deal           Deal                  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  senderRole     DealMessageSenderRole
+  senderId       Int?
+  sender         User?                 @relation("UserDealMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  type           DealMessageType       @default(MESSAGE)
+  text           String                @db.Text
+  amount         Decimal?              @db.Decimal(12, 2)
+  currency       String                @default("INR")
+  offerStatus    DealOfferStatus?
+  expiresAt      DateTime?
+  createdAt      DateTime              @default(now())
+  agentReadAt    DateTime?
+  customerReadAt DateTime?
+
+  @@index([dealId])
+  @@index([senderId])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model Booking {
