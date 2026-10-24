@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PasswordSchema } from "@/lib/validation/auth";
 import { validateUsernameFormat } from "@/lib/validation/username";
+import { PHONE_MESSAGE, isValidPhone } from "@/lib/validation/contact";
 
 export const ProfileFormSchema = z
   .object({
@@ -13,8 +14,16 @@ export const ProfileFormSchema = z
     website: z.string().trim().optional().or(z.literal("")),
     phone: z.string().trim().optional().or(z.literal("")),
     bio: z.string().trim().optional().or(z.literal("")),
+    whatsappOptIn: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.whatsappOptIn === "on" && (!data.phone || !isValidPhone(data.phone))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["phone"],
+        message: data.phone ? PHONE_MESSAGE : "Add your phone number to receive WhatsApp alerts.",
+      });
+    }
     if (data.username) {
       const check = validateUsernameFormat(data.username);
       if (!check.valid && check.error) {
