@@ -189,6 +189,9 @@ model AgentProfile {
   licenseNo  String?
   phone      String?
   bio        String? @db.Text
+
+  // Consent to receive new-lead alerts on WhatsApp (sent to `phone`). Off until the agent opts in.
+  whatsappOptIn Boolean @default(false)
 }
 
 model DeveloperProfile {

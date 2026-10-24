@@ -28,6 +28,13 @@ export function ProfileForm({
   );
 
   const [username, setUsername] = useState(initialUsername ?? "");
+  // Controlled so a rejected save (which resets the form) doesn't silently untick it.
+  const [whatsappOptIn, setWhatsappOptIn] = useState(agentProfile?.whatsappOptIn ?? false);
+  // React resets the form's DOM after every save attempt; remounting the checkbox re-applies its state.
+  const [checkboxEpoch, setCheckboxEpoch] = useState(0);
+  useEffect(() => {
+    if (state) setCheckboxEpoch((n) => n + 1);
+  }, [state]);
   const [availability, setAvailability] = useState<{
     status: "idle" | "checking" | "available" | "current" | "taken" | "invalid";
     message?: string;
@@ -182,6 +189,29 @@ export function ProfileForm({
             defaultValue={agentProfile?.licenseNo ?? ""}
           />
           <Field label="Phone" name="phone" defaultValue={agentProfile?.phone ?? ""} />
+          {state?.errors?.phone && (
+            <ul className="-mt-2 text-xs text-red-600">
+              {state.errors.phone.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+            <input
+              key={checkboxEpoch}
+              type="checkbox"
+              name="whatsappOptIn"
+              checked={whatsappOptIn}
+              onChange={(e) => setWhatsappOptIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300"
+            />
+            <span>
+              Send me WhatsApp alerts when I get a new lead.
+              <span className="block text-xs text-gray-500">
+                Sent to the phone number above. Include your country code (e.g. +91). You can turn this off at any time.
+              </span>
+            </span>
+          </label>
           <div className="flex flex-col gap-1">
             <label htmlFor="bio" className="text-sm font-medium text-gray-700">
               Bio

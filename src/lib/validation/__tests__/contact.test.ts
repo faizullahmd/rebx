@@ -50,3 +50,18 @@ describe("inquiry form validation", () => {
     expect(ManualDealSchema.safeParse({ ...base, listingId: "3" }).success).toBe(true);
   });
 });
+
+import { ProfileFormSchema } from "@/lib/validation/account";
+
+describe("profile WhatsApp opt-in", () => {
+  const base = { name: "Alex Agent", email: "alex@example.com", username: "alex-agent" };
+  it("needs a valid phone number when WhatsApp alerts are switched on", () => {
+    expect(ProfileFormSchema.safeParse({ ...base, whatsappOptIn: "on", phone: "" }).success).toBe(false);
+    expect(ProfileFormSchema.safeParse({ ...base, whatsappOptIn: "on", phone: "12345" }).success).toBe(false);
+    expect(ProfileFormSchema.safeParse({ ...base, whatsappOptIn: "on", phone: "+91 98765 43210" }).success).toBe(true);
+  });
+  it("leaves phone optional and unvalidated when alerts are off, as before", () => {
+    expect(ProfileFormSchema.safeParse({ ...base, phone: "" }).success).toBe(true);
+    expect(ProfileFormSchema.safeParse({ ...base, phone: "anything goes" }).success).toBe(true);
+  });
+});

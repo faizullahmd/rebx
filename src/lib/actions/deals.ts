@@ -43,6 +43,7 @@ import {
   type InquiryFormState,
   type UpdateDealState,
 } from "@/lib/validation/deal";
+import { notifyAgentNewLead } from "@/lib/whatsapp";
 import type { DealStage } from "@prisma/client";
 
 function revalidateDealPaths(listingSlug?: string, dealId?: number) {
@@ -70,7 +71,11 @@ type ListingForInquiry = NonNullable<Awaited<ReturnType<typeof findInquirableLis
 async function findInquirableListing(listingId: number) {
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },
-    include: { agent: { select: { name: true, email: true } } },
+    include: {
+      agent: {
+        select: { name: true, email: true, agentProfile: { select: { phone: true, whatsappOptIn: true } } },
+      },
+    },
   });
   return listing && listing.status === "ACTIVE" ? listing : null;
 }
@@ -136,6 +141,13 @@ async function recordInquiry(
   await sendInquiryConfirmation(contact.email, {
     listingTitle: listing.title,
     agentName: listing.agent.name,
+  });
+
+  // Optional WhatsApp alert (only if the agent opted in); never throws.
+  await notifyAgentNewLead(listing.agent.agentProfile, {
+    listingTitle: listing.title,
+    contactName: contact.name,
+    dealUrl,
   });
 
   // If the inquiry specifically requests a visit or viewing, also send the site visit alert
@@ -1378,7 +1390,7 @@ export async function getOrCreateCustomerDeal(listingId: number) {
           slug: true,
           agentId: true,
           title: true,
-          agent: { select: { email: true, name: true } },
+          agent: { select: { email: true, name: true, agentProfile: { select: { phone: true, whatsappOptIn: true } } } },
         },
       });
 
@@ -1422,6 +1434,11 @@ export async function getOrCreateCustomerDeal(listingId: number) {
           contactEmail: session.user.email || "",
           contactPhone: null,
           message: "Customer initiated Make a Deal.",
+          dealUrl,
+        });
+        await notifyAgentNewLead(listing.agent.agentProfile, {
+          listingTitle: listing.title,
+          contactName: session.user.name || "Customer",
           dealUrl,
         });
       } catch (err) {

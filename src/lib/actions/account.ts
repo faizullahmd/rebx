@@ -34,8 +34,9 @@ export async function updateProfile(
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { name, email, username, agencyName, licenseNo, companyName, website, phone, bio } =
+  const { name, email, username, agencyName, licenseNo, companyName, website, phone, bio, whatsappOptIn } =
     validatedFields.data;
+  const optedInToWhatsApp = whatsappOptIn === "on";
 
   const normalizedUsername = username ? normalizeUsername(username) : null;
 
@@ -74,6 +75,7 @@ export async function updateProfile(
             licenseNo: licenseNo || null,
             phone: phone || null,
             bio: bio || null,
+            whatsappOptIn: optedInToWhatsApp,
           },
           create: {
             userId: user.id,
@@ -81,6 +83,7 @@ export async function updateProfile(
             licenseNo: licenseNo || null,
             phone: phone || null,
             bio: bio || null,
+            whatsappOptIn: optedInToWhatsApp,
           },
         });
       } else if (user.role === "DEVELOPER") {
