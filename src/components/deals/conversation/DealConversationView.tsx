@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import type { DealMessageType, DealMessageSenderRole, DealOfferStatus } from "@prisma/client";
 import { DealMessageBubble } from "./DealMessageBubble";
 import { DealOfferCard } from "./DealOfferCard";
+import { DealSiteVisitBookingCard } from "./DealSiteVisitBookingCard";
 import { DealComposer } from "./DealComposer";
 import { markDealThreadRead } from "@/lib/actions/deals";
+import { parseRescheduleProposal, parseSiteVisitBookingMessage } from "@/lib/site-visit-proposal";
+import type { SerializedDealSiteVisit } from "@/lib/data/site-visits";
 
 export interface ConversationMessage {
   id: number;
@@ -28,6 +31,9 @@ interface DealConversationViewProps {
   dealAgentName?: string;
   dealCustomerName?: string;
   currencySymbol?: string;
+  siteVisits?: SerializedDealSiteVisit[];
+  propertyTitle?: string;
+  propertyAddress?: string;
 }
 
 export function DealConversationView({
@@ -37,6 +43,9 @@ export function DealConversationView({
   dealAgentName,
   dealCustomerName,
   currencySymbol = "₹",
+  siteVisits,
+  propertyTitle,
+  propertyAddress,
 }: DealConversationViewProps) {
   const router = useRouter();
   const threadEndRef = useRef<HTMLDivElement>(null);
@@ -130,18 +139,67 @@ export function DealConversationView({
             <p className="text-xs text-gray-500">No messages yet. Send a message or offer to begin.</p>
           </div>
         ) : (
-          messages.map((msg) =>
-            msg.type === "OFFER" ? (
-              <DealOfferCard
-                key={msg.id}
-                dealId={dealId}
-                message={msg}
-                viewerRole={viewerRole}
-                dealAgentName={dealAgentName}
-                dealCustomerName={dealCustomerName}
-                onOpenCounter={handleOpenCounter}
-              />
-            ) : (
+          messages.map((msg) => {
+            if (msg.type === "OFFER") {
+              return (
+                <DealOfferCard
+                  key={msg.id}
+                  dealId={dealId}
+                  message={msg}
+                  viewerRole={viewerRole}
+                  dealAgentName={dealAgentName}
+                  dealCustomerName={dealCustomerName}
+                  onOpenCounter={handleOpenCounter}
+                />
+              );
+            }
+
+            const proposal = parseRescheduleProposal(msg.text);
+            if (proposal) {
+              return null;
+            }
+
+            const booking = parseSiteVisitBookingMessage(msg.text);
+            if (booking) {
+              const msgTime = new Date(msg.createdAt).getTime();
+              // 1. First find site visit created around the same time as this booking message (within 5 minutes)
+              let matchedVisit: SerializedDealSiteVisit | null =
+                siteVisits?.find(
+                  (v) => Math.abs(new Date(v.createdAt).getTime() - msgTime) < 5 * 60 * 1000
+                ) ?? null;
+              // 2. Fallback to timeSlot match
+              if (!matchedVisit) {
+                matchedVisit = siteVisits?.find((v) => v.timeSlot === booking.timeSlot) ?? null;
+              }
+              // 3. Fallback to latest visit
+              if (!matchedVisit) {
+                matchedVisit = siteVisits?.[0] ?? null;
+              }
+
+              return (
+                <DealSiteVisitBookingCard
+                  key={msg.id}
+                  dealId={dealId}
+                  message={msg}
+                  booking={booking}
+                  siteVisit={matchedVisit}
+                  viewerRole={viewerRole}
+                  dealAgentName={dealAgentName}
+                  dealCustomerName={dealCustomerName}
+                  propertyTitle={propertyTitle}
+                />
+              );
+            }
+
+            if (
+              viewerRole === "CUSTOMER" &&
+              msg.type === "EVENT" &&
+              msg.text.includes("Site Visit Reminder")
+            ) {
+              return null;
+            }
+
+            return (
               <DealMessageBubble
                 key={msg.id}
                 message={msg}
@@ -149,8 +207,8 @@ export function DealConversationView({
                 dealAgentName={dealAgentName}
                 dealCustomerName={dealCustomerName}
               />
-            )
-          )
+            );
+          })
         )}
         <div ref={threadEndRef} />
       </div>

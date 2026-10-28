@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { getDealForConversation, getDealMessages } from "@/lib/data/deals";
+import { getSiteVisitsForDeal } from "@/lib/data/site-visits";
 import { CustomerInquiryChatHeader } from "@/components/deals/conversation/CustomerInquiryChatHeader";
 import { DealConversationView } from "@/components/deals/conversation/DealConversationView";
-import { formatListingPrice } from "@/lib/price";
+import { DealContextBanner } from "@/components/deals/conversation/DealContextBanner";
+import { CustomerBookingAdvanceCard } from "@/components/deals/booking/CustomerBookingAdvanceCard";
+import { CustomerSiteVisitBanner } from "@/components/deals/site-visit/CustomerSiteVisitBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +29,44 @@ export default async function CustomerOverviewChatPage({
     notFound();
   }
 
-  const messages = await getDealMessages(dealId, "CUSTOMER", user.id, user.email);
+  const [messages, allVisits] = await Promise.all([
+    getDealMessages(dealId, "CUSTOMER", user.id, user.email),
+    getSiteVisitsForDeal(dealId),
+  ]);
+
+  const latestVisit = allVisits[0] || null;
+
+  const serializedVisits = allVisits.map((v) => ({
+    ...v,
+    date: v.date.toISOString(),
+    createdAt: v.createdAt.toISOString(),
+    updatedAt: v.updatedAt.toISOString(),
+    reminded24hAt: v.reminded24hAt?.toISOString() || null,
+    reminded1hAt: v.reminded1hAt?.toISOString() || null,
+  }));
+
+  const serializedVisit = serializedVisits[0] || null;
 
   const listingPriceNumber = deal.listing.price ? Number(deal.listing.price) : null;
+
+  const hasAcceptedOffer =
+    deal.stage !== "CLOSED_LOST" &&
+    (deal.stage === "UNDER_CONTRACT" ||
+      deal.stage === "CLOSED_WON" ||
+      messages.some((m) => m.type === "OFFER" && m.offerStatus === "ACCEPTED"));
+
+  const advance = (deal.booking as any)?.advance ?? null;
+  const advanceAmount = advance?.amount != null ? Number(advance.amount) : null;
+  const advanceStatus = advance?.status ?? null;
+
+  const firstOffer = messages.find(
+    (m) => m.type === "OFFER" && m.amount != null && Number(m.amount) > 0
+  );
+  const initialOfferAmount = firstOffer
+    ? Number(firstOffer.amount)
+    : deal.offerAmount
+      ? Number(deal.offerAmount)
+      : null;
 
   return (
     <div className="flex flex-col gap-5 max-w-5xl mx-auto pb-12">
@@ -55,8 +93,45 @@ export default async function CustomerOverviewChatPage({
             priceDisplay: deal.listing.priceDisplay,
             currency: deal.listing.currency,
             images: deal.listing.images,
+            address: [deal.listing.addressLine, deal.listing.city, deal.listing.state]
+              .filter(Boolean)
+              .join(", "),
           },
         }}
+        siteVisit={
+          serializedVisit
+            ? {
+                id: serializedVisit.id,
+                status: serializedVisit.status,
+                date: serializedVisit.date,
+                timeSlot: serializedVisit.timeSlot,
+                visitType: serializedVisit.visitType,
+                agent: serializedVisit.agent,
+              }
+            : null
+        }
+      />
+
+      {/* Site Visit Status Banner */}
+      {serializedVisit && (
+        <CustomerSiteVisitBanner
+          visit={serializedVisit}
+          dealId={deal.id}
+          propertyTitle={deal.listing.title}
+          propertyAddress={[deal.listing.addressLine, deal.listing.city, deal.listing.state]
+            .filter(Boolean)
+            .join(", ")}
+        />
+      )}
+
+      {/* Context Banner */}
+      <DealContextBanner
+        stage={deal.stage}
+        offerAmount={initialOfferAmount}
+        currency={deal.listing.currency || "INR"}
+        viewerRole="CUSTOMER"
+        advanceStatus={advanceStatus}
+        advanceAmount={advanceAmount}
       />
 
       {/* 2. Conversation Card with Message Bubbles, Offer Cards, & Sticky Composer */}
@@ -66,62 +141,40 @@ export default async function CustomerOverviewChatPage({
         viewerRole="CUSTOMER"
         dealAgentName={deal.agent.name}
         dealCustomerName={deal.contactName}
-        currencySymbol={deal.listing.currency === "INR" || !deal.listing.currency ? "₹" : deal.listing.currency}
+        currencySymbol={
+          deal.listing.currency === "USD" || deal.listing.currency === "INR" || !deal.listing.currency
+            ? "₹"
+            : deal.listing.currency
+        }
+        siteVisits={serializedVisits}
+        propertyTitle={deal.listing.title}
+        propertyAddress={[deal.listing.addressLine, deal.listing.city, deal.listing.state]
+          .filter(Boolean)
+          .join(", ")}
       />
 
-      {/* 3. Booking Summary (Customer Read-Only, when under contract or closed) */}
-      {deal.booking && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <h3 className="text-sm font-semibold text-emerald-900">
-              Booking Confirmation & Details
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <p className="text-gray-500">Agreed Sale Amount</p>
-              <p className="font-semibold text-gray-900 text-sm mt-0.5">
-                {formatListingPrice(deal.booking.saleAmount, deal.listing.currency)}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500">Booking Status</p>
-              <p className="font-medium text-emerald-700 capitalize mt-0.5">
-                {deal.booking.status.toLowerCase().replace("_", " ")}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500">Booking Date</p>
-              <p className="font-medium text-gray-800 mt-0.5">
-                {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(
-                  new Date(deal.booking.bookingDate)
-                )}
-              </p>
-            </div>
-            {deal.booking.unitNumber && (
-              <div>
-                <p className="text-gray-500">Unit / Flat</p>
-                <p className="font-medium text-gray-800 mt-0.5">
-                  {deal.booking.unitNumber}
-                </p>
-              </div>
-            )}
-            {deal.booking.bookingNumber && (
-              <div>
-                <p className="text-gray-500">Booking Reference #</p>
-                <p className="font-medium text-gray-800 mt-0.5">
-                  {deal.booking.bookingNumber}
-                </p>
-              </div>
-            )}
-          </div>
-          {deal.booking.notes && (
-            <div className="mt-3 pt-3 border-t border-emerald-100 text-xs text-emerald-950">
-              <span className="font-medium">Booking notes:</span> {deal.booking.notes}
-            </div>
-          )}
-        </div>
+      {/* 3. Booking & advance Card (Customer Read-Only, shown ONLY when offer accepted / closed won) */}
+      {hasAcceptedOffer && (
+        <CustomerBookingAdvanceCard
+          propertyName={deal.listing.title}
+          currency={deal.listing.currency === "USD" ? "INR" : (deal.listing.currency || "INR")}
+          agreedPrice={deal.offerAmount ? Number(deal.offerAmount) : listingPriceNumber}
+          booking={
+            deal.booking
+              ? {
+                  ...deal.booking,
+                  saleAmount: Number(deal.booking.saleAmount),
+                  advance: (deal.booking as any).advance
+                    ? {
+                        ...(deal.booking as any).advance,
+                        amount: Number((deal.booking as any).advance.amount),
+                        percentUsed: Number((deal.booking as any).advance.percentUsed),
+                      }
+                    : null,
+                }
+              : null
+          }
+        />
       )}
     </div>
   );

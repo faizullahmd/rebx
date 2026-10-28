@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { formatListingPrice } from "@/lib/price";
 import { DEAL_STAGE_LABELS, type DEAL_STAGES } from "@/lib/validation/deal";
-import { CustomerDealHeaderActions } from "./CustomerDealHeaderActions";
+import {
+  CustomerDealHeaderActions,
+  type SerializedSiteVisitHeaderInfo,
+} from "./CustomerDealHeaderActions";
 
 type Stage = (typeof DEAL_STAGES)[number];
 
@@ -17,11 +20,16 @@ interface CustomerInquiryChatHeaderProps {
       priceDisplay?: string | null;
       currency?: string;
       images?: { url: string }[];
+      address?: string | null;
     };
   };
+  siteVisit?: SerializedSiteVisitHeaderInfo | null;
 }
 
-export function CustomerInquiryChatHeader({ deal }: CustomerInquiryChatHeaderProps) {
+export function CustomerInquiryChatHeader({
+  deal,
+  siteVisit,
+}: CustomerInquiryChatHeaderProps) {
   const listing = deal.listing;
   const photo = listing.images?.[0]?.url;
 
@@ -112,7 +120,13 @@ export function CustomerInquiryChatHeader({ deal }: CustomerInquiryChatHeaderPro
 
       {/* Action Buttons for Overview Chat: Book site visit | Make a deal | Not interested */}
       <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-end">
-        <CustomerDealHeaderActions dealId={deal.id} currentStage={deal.stage} />
+        <CustomerDealHeaderActions
+          dealId={deal.id}
+          currentStage={deal.stage}
+          propertyTitle={listing.title}
+          propertyAddress={listing.address}
+          siteVisit={siteVisit}
+        />
       </div>
     </div>
   );

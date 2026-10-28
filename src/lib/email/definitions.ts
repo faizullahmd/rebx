@@ -112,6 +112,17 @@ export const VARIABLES: Record<string, VariableDefinition> = Object.fromEntries(
     v("offer_amount", "Money", "text", "Offer amount", "Formatted offer or counter-offer amount.", "₹ 52,00,000"),
     v("expires_at", "Property", "text", "Offer expiration", "Formatted expiration date and time for the offer.", "October 24, 2026, 6:00 PM"),
     v("offer_expiry", "Property", "text", "Offer expiration", "Formatted expiration date and time for the offer.", "October 24, 2026, 6:00 PM"),
+    v("customer_name", "People", "text", "Customer name", "Name of the customer in the deal.", "Taylor Prospect"),
+    v("amount", "Money", "text", "Amount", "Formatted currency amount.", "₹ 85,000"),
+    v("paid_date", "Property", "text", "Payment date", "Formatted payment date.", "October 24, 2026"),
+    v("balance_remaining", "Money", "text", "Balance remaining", "Remaining balance after deducting advance from agreed sale price.", "₹ 7,65,000"),
+    v("propertyAddress", "Property", "text", "Property address", "Full address of the property.", "50 Marine Drive, Mumbai, MH, 400020, India"),
+    v("directionsUrl", "Links", "url", "Google Maps directions", "Google Maps navigation and directions link.", "https://example.com/sample/directions"),
+    v("timeSlot", "Lead", "text", "Time slot", "Confirmed appointment time slot.", "10:00 AM - 11:00 AM"),
+    v("visitType", "Lead", "text", "Visit type", "Type of visit (In-Person Visit or Virtual Tour).", "In-Person Visit"),
+    v("clientName", "People", "text", "Client name", "Name of the customer who booked the visit.", "Casey Customer"),
+    v("clientEmail", "Lead", "email", "Client email", "Email address of the customer.", "casey.customer@example.com"),
+    v("clientPhone", "Lead", "text", "Client phone", "Phone number of the customer.", "+1 555 0101"),
   ].map((d) => [d.name, d])
 );
 
@@ -309,6 +320,63 @@ export const BUILT_IN_TEMPLATES: TemplateDefinition[] = [
     `,
   },
   {
+    key: "booking_advance_paid",
+    name: "Booking advance received (customer)",
+    description: "Sent to the customer when the agent marks their booking advance payment as paid.",
+    category: "Deals & bookings",
+    event: "booking.advance_paid",
+    recipient: "The customer who submitted the offer",
+    critical: false,
+    variables: [
+      { name: "customer_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "paid_date", required: true },
+      { name: "balance_remaining", required: true },
+      { name: "deal_link", required: true },
+    ],
+    subject: "Advance payment received for {{listing_title}}: {{amount}}",
+    html: `
+      <p>Hello {{customer_name}},</p>
+      <p>Your advance booking payment of <strong style="color:#0f766e;font-size:16px;">{{amount}}</strong> for <strong>"{{listing_title}}"</strong> was recorded as received on <strong>{{paid_date}}</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:16px;font-size:14px;line-height:22px;color:#166534;">
+              <p style="margin:0 0 6px 0;">✅ <strong style="color:#14532d;">Advance Received:</strong> {{amount}}</p>
+              <p style="margin:0 0 6px 0;"><strong style="color:#14532d;">Payment Date:</strong> {{paid_date}}</p>
+              <p style="margin:0;"><strong style="color:#14532d;">Balance Remaining:</strong> {{balance_remaining}}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>You can view your booking details and track agreement progress in your dashboard:</p>
+      <p><a href="{{deal_link}}">View Deal &amp; Booking Details</a></p>
+    `,
+  },
+  {
+    key: "booking_advance_unmarked",
+    name: "Booking advance payment updated (customer)",
+    description: "Sent to the customer when a paid advance is updated back to pending.",
+    category: "Deals & bookings",
+    event: "booking.advance_unmarked",
+    recipient: "The customer",
+    critical: false,
+    variables: [
+      { name: "customer_name", required: true },
+      { name: "listing_title", required: true },
+      { name: "amount", required: true },
+      { name: "deal_link", required: true },
+    ],
+    subject: "Advance payment status updated for {{listing_title}}",
+    html: `
+      <p>Hello {{customer_name}},</p>
+      <p>The advance booking payment status for <strong>"{{listing_title}}"</strong> (amount: <strong>{{amount}}</strong>) has been updated back to pending by your agent.</p>
+      <p>Please contact your listing agent if you have any questions or to coordinate the payment arrangement.</p>
+      <p><a href="{{deal_link}}">View Deal &amp; Booking Details</a></p>
+    `,
+  },
+  {
     key: "commission_paid_out",
     name: "Commission paid out (agent)",
     description: "Sent to the agent when a commission is marked as paid out.",
@@ -486,6 +554,10 @@ export const BUILT_IN_TEMPLATES: TemplateDefinition[] = [
       { name: "contactPhone", required: false },
       { name: "visitDate", required: false },
       { name: "visitTime", required: false },
+      { name: "timeSlot", required: false },
+      { name: "visitType", required: false },
+      { name: "propertyAddress", required: false },
+      { name: "directionsUrl", required: false },
       { name: "message", required: false },
       { name: "dealUrl", required: true },
       { name: "listingUrl", required: false },
@@ -493,63 +565,215 @@ export const BUILT_IN_TEMPLATES: TemplateDefinition[] = [
     subject: "New site visit request: {{listingTitle}} - {{contactName}}",
     html: `
       <p>Hello {{agentName}},</p>
-      <p>A prospective client has requested an in-person site visit for your property <strong>"{{listingTitle}}"</strong>.</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+      <p>A prospective client has requested a site visit for your property <strong>"{{listingTitle}}"</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;border-collapse:separate;">
         <tbody>
           <tr>
-            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
-              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Client Name:</strong> {{contactName}}</p>
-              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Email:</strong> {{contactEmail}}</p>
-              {{#if contactPhone}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Phone:</strong> {{contactPhone}}</p>{{/if}}
-              {{#if visitDate}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Preferred Date:</strong> {{visitDate}}</p>{{/if}}
-              {{#if visitTime}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Preferred Time:</strong> {{visitTime}}</p>{{/if}}
-              {{#if message}}<p style="margin:0;"><strong style="color:#18181b;">Notes:</strong> {{message}}</p>{{/if}}
+            <td style="padding:18px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 10px 0;"><strong style="font-size:15px;color:#1e293b;">📋 Requested Visit Details:</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Client Name:</span> <strong style="color:#0f172a;">{{contactName}}</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Email:</span> <strong style="color:#0f172a;">{{contactEmail}}</strong></p>
+              {{#if contactPhone}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Phone:</span> <strong style="color:#0f172a;">{{contactPhone}}</strong></p>{{/if}}
+              {{#if visitDate}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Preferred Date:</span> <strong style="color:#0f172a;">{{visitDate}}</strong></p>{{/if}}
+              {{#if timeSlot}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Time Slot:</span> <strong style="color:#0f172a;">{{timeSlot}}</strong></p>{{/if}}
+              {{#if visitTime}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Preferred Time:</span> <strong style="color:#0f172a;">{{visitTime}}</strong></p>{{/if}}
+              {{#if visitType}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Tour Type:</span> <strong style="color:#0f172a;">{{visitType}}</strong></p>{{/if}}
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Property:</span> <strong style="color:#0f172a;">{{listingTitle}}</strong></p>
+              {{#if propertyAddress}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Location:</span> 📍 {{propertyAddress}}</p>{{/if}}
+              {{#if message}}<p style="margin:0;"><span style="color:#71717a;">Notes:</span> <em style="color:#0f172a;">{{message}}</em></p>{{/if}}
             </td>
           </tr>
         </tbody>
       </table>
-      <p><a href="{{dealUrl}}">View request in agent dashboard</a></p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{dealUrl}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Review & Confirm in Dashboard</a>
+            </td>
+            {{#if directionsUrl}}
+            <td style="padding-left:12px;">
+              <a href="{{directionsUrl}}" style="display:inline-block;padding:12px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#2563eb;background-color:#ffffff;border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;">Directions on Google Maps ↗</a>
+            </td>
+            {{/if}}
+          </tr>
+        </tbody>
+      </table>
     `,
   },
   {
-    key: "showing_status_update",
-    name: "Showing confirmed, rescheduled or cancelled (agent)",
-    description: "Sent to the listing agent when a property showing or site visit is confirmed, rescheduled, or cancelled by the client or seller.",
+    key: "site_visit_confirmed_agent",
+    name: "Site visit confirmed (agent)",
+    description: "Sent to the listing agent when a site visit appointment is confirmed.",
     category: "Leads & inquiries",
-    event: "showing.status_updated",
+    event: "site_visit.confirmed_agent",
     recipient: "The listing agent",
     critical: false,
     variables: [
       { name: "agentName", required: true },
       { name: "listingTitle", required: true },
       { name: "contactName", required: true },
-      { name: "showingStatus", required: true },
-      { name: "updatedBy", required: false },
-      { name: "visitDate", required: false },
+      { name: "visitDate", required: true },
       { name: "visitTime", required: false },
-      { name: "showingReason", required: false },
+      { name: "timeSlot", required: false },
+      { name: "visitType", required: false },
+      { name: "propertyAddress", required: false },
+      { name: "clientName", required: false },
+      { name: "clientEmail", required: false },
+      { name: "clientPhone", required: false },
+      { name: "directionsUrl", required: false },
       { name: "dealUrl", required: true },
       { name: "listingUrl", required: false },
     ],
-    subject: "Showing {{showingStatus}}: {{listingTitle}} - {{contactName}}",
+    subject: "Site visit confirmed: {{listingTitle}} - {{contactName}}",
     html: `
       <p>Hello {{agentName}},</p>
-      <p>The scheduled showing for <strong>"{{listingTitle}}"</strong> has been <strong>{{showingStatus}}</strong>{{#if updatedBy}} by {{updatedBy}}{{/if}}.</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;">
+      <p>A site visit has been confirmed for <strong>"{{listingTitle}}"</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;border-collapse:separate;">
         <tbody>
           <tr>
-            <td style="padding:16px;font-size:14px;line-height:22px;color:#3f3f46;">
-              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Status:</strong> {{showingStatus}}</p>
-              <p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Client:</strong> {{contactName}}</p>
-              {{#if updatedBy}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Action By:</strong> {{updatedBy}}</p>{{/if}}
-              {{#if visitDate}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Date:</strong> {{visitDate}}</p>{{/if}}
-              {{#if visitTime}}<p style="margin:0 0 8px 0;"><strong style="color:#18181b;">Time:</strong> {{visitTime}}</p>{{/if}}
-              {{#if showingReason}}<p style="margin:0;"><strong style="color:#18181b;">Reason:</strong> {{showingReason}}</p>{{/if}}
+            <td style="padding:18px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 10px 0;"><strong style="font-size:15px;color:#065f46;">✓ Confirmed Visit Details:</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Client:</span> <strong style="color:#0f172a;">{{contactName}}</strong>{{#if clientEmail}} ({{clientEmail}}){{/if}}{{#if clientPhone}} · 📞 {{clientPhone}}{{/if}}</p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Date:</span> <strong style="color:#0f172a;">{{visitDate}}</strong></p>
+              {{#if timeSlot}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Time Slot:</span> <strong style="color:#0f172a;">{{timeSlot}}</strong></p>{{/if}}
+              {{#if visitTime}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Time:</span> <strong style="color:#0f172a;">{{visitTime}}</strong></p>{{/if}}
+              {{#if visitType}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Tour Type:</span> <strong style="color:#0f172a;">{{visitType}}</strong></p>{{/if}}
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Property:</span> <strong style="color:#0f172a;">{{listingTitle}}</strong></p>
+              {{#if propertyAddress}}<p style="margin:0;"><span style="color:#71717a;">Location:</span> 📍 {{propertyAddress}}</p>{{/if}}
             </td>
           </tr>
         </tbody>
       </table>
-      <p><a href="{{dealUrl}}">View showing in agent dashboard</a></p>
+      <p style="margin:0 0 16px 0;font-size:13px;color:#64748b;">Reminders will be automatically dispatched 24 hours and 1 hour before the scheduled appointment.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{dealUrl}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Open Deal Chat</a>
+            </td>
+            {{#if directionsUrl}}
+            <td style="padding-left:12px;">
+              <a href="{{directionsUrl}}" style="display:inline-block;padding:12px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#2563eb;background-color:#ffffff;border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;">Navigate with Google Maps ↗</a>
+            </td>
+            {{/if}}
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "site_visit_rescheduled_agent",
+    name: "Site visit rescheduled (agent)",
+    description: "Sent to the listing agent when a site visit appointment is rescheduled.",
+    category: "Leads & inquiries",
+    event: "site_visit.rescheduled_agent",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "contactName", required: true },
+      { name: "visitDate", required: true },
+      { name: "visitTime", required: false },
+      { name: "timeSlot", required: false },
+      { name: "updatedBy", required: false },
+      { name: "showingReason", required: false },
+      { name: "propertyAddress", required: false },
+      { name: "clientName", required: false },
+      { name: "directionsUrl", required: false },
+      { name: "dealUrl", required: true },
+      { name: "listingUrl", required: false },
+    ],
+    subject: "Site visit rescheduled: {{listingTitle}} - {{contactName}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>The site visit appointment for <strong>"{{listingTitle}}"</strong> has been rescheduled{{#if updatedBy}} by {{updatedBy}}{{/if}}.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#fffbeb;border:1px solid #fde68a;border-radius:10px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:18px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 10px 0;"><strong style="font-size:15px;color:#92400e;">🗓 Rescheduled Appointment Details:</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Client:</span> <strong style="color:#0f172a;">{{contactName}}</strong></p>
+              {{#if updatedBy}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Requested by:</span> <strong style="color:#0f172a;">{{updatedBy}}</strong></p>{{/if}}
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">New Date:</span> <strong style="color:#0f172a;">{{visitDate}}</strong></p>
+              {{#if timeSlot}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">New Time Slot:</span> <strong style="color:#0f172a;">{{timeSlot}}</strong></p>{{/if}}
+              {{#if visitTime}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">New Time:</span> <strong style="color:#0f172a;">{{visitTime}}</strong></p>{{/if}}
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Property:</span> <strong style="color:#0f172a;">{{listingTitle}}</strong></p>
+              {{#if propertyAddress}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Location:</span> 📍 {{propertyAddress}}</p>{{/if}}
+              {{#if showingReason}}<p style="margin:0;"><span style="color:#71717a;">Reason:</span> <em style="color:#0f172a;">{{showingReason}}</em></p>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{dealUrl}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">View Deal & Details</a>
+            </td>
+            {{#if directionsUrl}}
+            <td style="padding-left:12px;">
+              <a href="{{directionsUrl}}" style="display:inline-block;padding:12px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#2563eb;background-color:#ffffff;border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;">Directions on Google Maps ↗</a>
+            </td>
+            {{/if}}
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "site_visit_cancelled_agent",
+    name: "Site visit cancelled (agent)",
+    description: "Sent to the listing agent when a site visit appointment is cancelled.",
+    category: "Leads & inquiries",
+    event: "site_visit.cancelled_agent",
+    recipient: "The listing agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "contactName", required: true },
+      { name: "visitDate", required: false },
+      { name: "visitTime", required: false },
+      { name: "timeSlot", required: false },
+      { name: "updatedBy", required: false },
+      { name: "showingReason", required: false },
+      { name: "propertyAddress", required: false },
+      { name: "clientName", required: false },
+      { name: "dealUrl", required: true },
+      { name: "listingUrl", required: false },
+    ],
+    subject: "Site visit cancelled: {{listingTitle}} - {{contactName}}",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>The scheduled site visit for <strong>"{{listingTitle}}"</strong> has been cancelled{{#if updatedBy}} by {{updatedBy}}{{/if}}.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#fff1f2;border:1px solid #fecdd3;border-radius:10px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:18px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 10px 0;"><strong style="font-size:15px;color:#9f1239;">✕ Cancelled Visit Details:</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Client:</span> <strong style="color:#0f172a;">{{contactName}}</strong></p>
+              {{#if updatedBy}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Cancelled by:</span> <strong style="color:#0f172a;">{{updatedBy}}</strong></p>{{/if}}
+              {{#if visitDate}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Scheduled Date:</span> <strong style="color:#0f172a;">{{visitDate}}</strong></p>{{/if}}
+              {{#if timeSlot}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Scheduled Time:</span> <strong style="color:#0f172a;">{{timeSlot}}</strong></p>{{/if}}
+              {{#if visitTime}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Scheduled Time:</span> <strong style="color:#0f172a;">{{visitTime}}</strong></p>{{/if}}
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Property:</span> <strong style="color:#0f172a;">{{listingTitle}}</strong></p>
+              {{#if propertyAddress}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Location:</span> 📍 {{propertyAddress}}</p>{{/if}}
+              {{#if showingReason}}<p style="margin:0;"><span style="color:#71717a;">Reason:</span> <em style="color:#0f172a;">{{showingReason}}</em></p>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{dealUrl}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">View Deal Conversation</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     `,
   },
   {
@@ -864,6 +1088,117 @@ export const BUILT_IN_TEMPLATES: TemplateDefinition[] = [
       </table>
     `,
   },
+  {
+    key: "site_visit_reminder_24h_agent",
+    name: "Site visit reminder: 24h before (agent)",
+    description: "Sent to the assigned agent approximately 24 hours before a confirmed site visit.",
+    category: "Deals & bookings",
+    event: "site_visit.reminder_24h_agent",
+    recipient: "The assigned agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "propertyAddress", required: false },
+      { name: "visitDate", required: true },
+      { name: "timeSlot", required: true },
+      { name: "visitType", required: true },
+      { name: "clientName", required: true },
+      { name: "clientEmail", required: false },
+      { name: "clientPhone", required: false },
+      { name: "directionsUrl", required: false },
+      { name: "dealUrl", required: true },
+    ],
+    subject: "Agent Reminder: Site visit for {{listingTitle}} is scheduled tomorrow ({{timeSlot}})",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>This is a reminder that you have a confirmed <strong>{{visitType}}</strong> scheduled tomorrow for <strong>"{{listingTitle}}"</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:18px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 10px 0;"><strong style="font-size:15px;color:#18181b;">Appointment Details:</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Date & Time:</span> <strong style="color:#0f172a;">{{visitDate}} at {{timeSlot}}</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Tour Type:</span> <strong style="color:#0f172a;">{{visitType}}</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Property:</span> <strong style="color:#0f172a;">{{listingTitle}}</strong></p>
+              {{#if propertyAddress}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Location:</span> 📍 {{propertyAddress}}</p>{{/if}}
+              <p style="margin:0;"><span style="color:#71717a;">Client:</span> <strong style="color:#0f172a;">{{clientName}}</strong>{{#if clientEmail}} ({{clientEmail}}){{/if}}{{#if clientPhone}} · 📞 {{clientPhone}}{{/if}}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{dealUrl}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">View Deal & Conversation</a>
+            </td>
+            {{#if directionsUrl}}
+            <td style="padding-left:12px;">
+              <a href="{{directionsUrl}}" style="display:inline-block;padding:12px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#2563eb;background-color:#ffffff;border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;">Get Directions on Google Maps ↗</a>
+            </td>
+            {{/if}}
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+  {
+    key: "site_visit_reminder_1h_agent",
+    name: "Site visit reminder: 1h before (agent)",
+    description: "Sent to the assigned agent approximately 1 hour before a confirmed site visit.",
+    category: "Deals & bookings",
+    event: "site_visit.reminder_1h_agent",
+    recipient: "The assigned agent",
+    critical: false,
+    variables: [
+      { name: "agentName", required: true },
+      { name: "listingTitle", required: true },
+      { name: "propertyAddress", required: false },
+      { name: "visitDate", required: true },
+      { name: "timeSlot", required: true },
+      { name: "visitType", required: true },
+      { name: "clientName", required: true },
+      { name: "clientEmail", required: false },
+      { name: "clientPhone", required: false },
+      { name: "directionsUrl", required: false },
+      { name: "dealUrl", required: true },
+    ],
+    subject: "Agent Reminder: Site visit for {{listingTitle}} is in 1 hour ({{timeSlot}})",
+    html: `
+      <p>Hello {{agentName}},</p>
+      <p>This is a quick reminder that your confirmed <strong>{{visitType}}</strong> for <strong>"{{listingTitle}}"</strong> is starting <strong>in approximately 1 hour</strong>.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#fef2f2;border:1px solid #fecaca;border-radius:10px;border-collapse:separate;">
+        <tbody>
+          <tr>
+            <td style="padding:18px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#3f3f46;">
+              <p style="margin:0 0 10px 0;"><strong style="font-size:15px;color:#991b1b;">⏰ Starting Soon:</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Time:</span> <strong style="color:#0f172a;">Today at {{timeSlot}}</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Tour Type:</span> <strong style="color:#0f172a;">{{visitType}}</strong></p>
+              <p style="margin:0 0 6px 0;"><span style="color:#71717a;">Property:</span> <strong style="color:#0f172a;">{{listingTitle}}</strong></p>
+              {{#if propertyAddress}}<p style="margin:0 0 6px 0;"><span style="color:#71717a;">Location:</span> 📍 {{propertyAddress}}</p>{{/if}}
+              <p style="margin:0;"><span style="color:#71717a;">Client:</span> <strong style="color:#0f172a;">{{clientName}}</strong>{{#if clientEmail}} ({{clientEmail}}){{/if}}{{#if clientPhone}} · 📞 {{clientPhone}}{{/if}}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0 0;">
+        <tbody>
+          <tr>
+            <td style="background-color:#111827;border-radius:8px;">
+              <a href="{{dealUrl}}" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Open Deal Chat</a>
+            </td>
+            {{#if directionsUrl}}
+            <td style="padding-left:12px;">
+              <a href="{{directionsUrl}}" style="display:inline-block;padding:12px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#2563eb;background-color:#ffffff;border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;">Navigate with Google Maps ↗</a>
+            </td>
+            {{/if}}
+          </tr>
+        </tbody>
+      </table>
+    `,
+  },
+
 ];
 
 export const BUILT_IN_BY_KEY: Record<string, TemplateDefinition> = Object.fromEntries(

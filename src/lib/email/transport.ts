@@ -20,5 +20,9 @@ export interface OutgoingEmail {
 
 /** The only place that talks to Resend. Tests mock the "resend" module to capture payloads. */
 export async function deliver(email: OutgoingEmail) {
-  return getResend().emails.send(email);
+  const result = await getResend().emails.send(email);
+  if (result.error) {
+    console.error("[Resend Delivery Error]:", result.error);
+  }
+  return result;
 }
