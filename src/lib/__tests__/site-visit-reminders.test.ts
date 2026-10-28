@@ -11,11 +11,8 @@ describe("Site Visit Reminders Logic", () => {
       const slot = "10:00 AM - 11:00 AM";
       const parsed = parseAppointmentStartDateTime(date, slot);
 
-      expect(parsed.getFullYear()).toBe(2026);
-      expect(parsed.getMonth()).toBe(9); // 0-indexed: 9 = October
-      expect(parsed.getDate()).toBe(28);
-      expect(parsed.getHours()).toBe(10);
-      expect(parsed.getMinutes()).toBe(0);
+      // 10:00 AM India time (UTC+05:30) is 04:30 UTC, whatever timezone the server runs in.
+      expect(parsed.toISOString()).toBe("2026-10-28T04:30:00.000Z");
     });
 
     it("parses afternoon PM slot correctly", () => {
@@ -23,8 +20,7 @@ describe("Site Visit Reminders Logic", () => {
       const slot = "03:30 PM - 04:30 PM";
       const parsed = parseAppointmentStartDateTime(date, slot);
 
-      expect(parsed.getHours()).toBe(15);
-      expect(parsed.getMinutes()).toBe(30);
+      expect(parsed.toISOString()).toBe("2026-11-05T10:00:00.000Z");
     });
 
     it("parses 12:00 PM (noon) slot correctly", () => {
@@ -32,8 +28,7 @@ describe("Site Visit Reminders Logic", () => {
       const slot = "12:00 PM - 01:00 PM";
       const parsed = parseAppointmentStartDateTime(date, slot);
 
-      expect(parsed.getHours()).toBe(12);
-      expect(parsed.getMinutes()).toBe(0);
+      expect(parsed.toISOString()).toBe("2026-11-05T06:30:00.000Z");
     });
 
     it("handles fallback gracefully if slot format is unusual", () => {
@@ -41,7 +36,7 @@ describe("Site Visit Reminders Logic", () => {
       const slot = "Custom Slot";
       const parsed = parseAppointmentStartDateTime(date, slot);
 
-      expect(parsed.getHours()).toBe(10); // default fallback
+      expect(parsed.toISOString()).toBe("2026-10-28T04:30:00.000Z"); // defaults to 10:00 AM
     });
   });
 
@@ -70,6 +65,29 @@ describe("Site Visit Reminders Logic", () => {
       expect(html).toContain("https://www.google.com/maps/dir/?api=1&destination=Worli%20Sea%20Face");
       expect(html).toContain("Get Directions on Google Maps");
       expect(html).toContain("tomorrow");
+    });
+
+    it("escapes HTML in user-controlled values", () => {
+      const html = buildReminderEmailHtml({
+        recipientName: "<b>Rohan</b>",
+        recipientRole: "Customer",
+        listingTitle: '<script>alert(1)</script>',
+        addressString: "A & B <i>Road</i>",
+        directionsUrl: null,
+        formattedDate: "Thu, 29 Oct 2026",
+        timeSlot: "11:00 AM - 12:00 PM",
+        visitType: "In-Person Visit",
+        dealUrl: 'https://rebx.app/x"onmouseover="alert(1)',
+        counterpartName: "Sarah",
+        counterpartRole: "Agent",
+        is24h: true,
+      });
+
+      expect(html).not.toContain("<script>");
+      expect(html).not.toContain("<b>Rohan</b>");
+      expect(html).toContain("&lt;script&gt;");
+      expect(html).toContain("A &amp; B &lt;i&gt;Road&lt;/i&gt;");
+      expect(html).not.toContain('x"onmouseover');
     });
 
     it("handles 1-hour reminder phrasing correctly", () => {

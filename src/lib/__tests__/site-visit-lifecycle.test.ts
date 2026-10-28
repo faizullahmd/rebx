@@ -74,6 +74,11 @@ function getFutureDateString(daysAhead: number): string {
   return `${y}-${m}-${day}`;
 }
 
+// Visit slots are India wall-clock times (UTC+05:30), whatever timezone the test machine runs in.
+const IST_OFFSET_MS = 330 * 60_000;
+const istHour = (d: Date) => new Date(d.getTime() + IST_OFFSET_MS).getUTCHours();
+const istDate = (d: Date) => new Date(d.getTime() + IST_OFFSET_MS);
+
 describe("Site Visit Complete Lifecycle, Reminders & Google Maps Verification", () => {
   beforeAll(async () => {
     // Clean up any stale records from test range
@@ -481,7 +486,7 @@ describe("Site Visit Complete Lifecycle, Reminders & Google Maps Verification", 
     it("sends 24h reminder for confirmed visit in ~24h window and prevents duplicate on second run", async () => {
       // Setup appointment ~23.5 hours from now
       const in24Hours = new Date(Date.now() + 23.5 * 3600 * 1000);
-      const hour = in24Hours.getHours();
+      const hour = istHour(in24Hours);
       const period = hour >= 12 ? "PM" : "AM";
       const displayH = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
       const pad = (n: number) => String(n).padStart(2, "0");
@@ -493,7 +498,7 @@ describe("Site Visit Complete Lifecycle, Reminders & Google Maps Verification", 
           listingId: LISTING_ID,
           agentId: AGENT_USER.id,
           customerId: CUSTOMER_1.id,
-          date: in24Hours,
+          date: istDate(in24Hours),
           timeSlot: slot24h,
           visitType: "IN_PERSON",
           status: "CONFIRMED",
@@ -544,7 +549,7 @@ describe("Site Visit Complete Lifecycle, Reminders & Google Maps Verification", 
     it("sends 1h reminder for confirmed visit in ~1h window", async () => {
       // Setup appointment ~60 minutes from now
       const in1Hour = new Date(Date.now() + 65 * 60 * 1000);
-      const hour = in1Hour.getHours();
+      const hour = istHour(in1Hour);
       const period = hour >= 12 ? "PM" : "AM";
       const displayH = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
       const pad = (n: number) => String(n).padStart(2, "0");
@@ -556,7 +561,7 @@ describe("Site Visit Complete Lifecycle, Reminders & Google Maps Verification", 
           listingId: LISTING_ID,
           agentId: AGENT_USER.id,
           customerId: CUSTOMER_1.id,
-          date: in1Hour,
+          date: istDate(in1Hour),
           timeSlot: slot1h,
           visitType: "IN_PERSON",
           status: "CONFIRMED",

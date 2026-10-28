@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { deliver, type OutgoingEmail } from "@/lib/email/transport";
 import { getGoogleMapsDirectionsUrl, formatDisplayAddress } from "@/lib/maps";
@@ -13,6 +14,30 @@ export interface ReminderProcessingResult {
   reminders1hSent: number;
   skipped: number;
   errors: Array<{ siteVisitId: number; error: string }>;
+}
+
+/** Visits are booked in India, so slots like "10:00 AM" are Asia/Kolkata wall-clock times (UTC+05:30, no DST). */
+const SITE_TIME_ZONE = "Asia/Kolkata";
+const SITE_UTC_OFFSET_MINUTES = 330;
+
+function secretsMatch(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** URLs here are built by the app, so only characters that could break out of the attribute are encoded. */
+function escapeUrl(value: string): string {
+  return value.replace(/"/g, "%22").replace(/'/g, "%27").replace(/</g, "%3C").replace(/>/g, "%3E");
 }
 
 /**
@@ -37,14 +62,14 @@ export function verifyCronAuthHeaders(params: {
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7).trim();
-    if (token === configuredSecret) return true;
+    if (secretsMatch(token, configuredSecret)) return true;
   }
 
-  if (cronHeader && cronHeader === configuredSecret) {
+  if (cronHeader && secretsMatch(cronHeader, configuredSecret)) {
     return true;
   }
 
-  if (querySecret && querySecret === configuredSecret) {
+  if (querySecret && secretsMatch(querySecret, configuredSecret)) {
     return true;
   }
 
@@ -75,8 +100,11 @@ export function parseAppointmentStartDateTime(date: Date | string, timeSlot: str
     }
   }
 
-  // Use the appointment's calendar year, month, date in local application time
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), hours, minutes, 0, 0);
+  // The date column is a calendar date (UTC midnight); the slot is India wall-clock time.
+  return new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes) -
+      SITE_UTC_OFFSET_MINUTES * 60_000
+  );
 }
 
 /**
@@ -97,6 +125,15 @@ export function buildReminderEmailHtml(params: {
   is24h: boolean;
 }): string {
   const timeframeLabel = params.is24h ? "tomorrow" : "in approximately 1 hour";
+  const recipientName = escapeHtml(params.recipientName);
+  const listingTitle = escapeHtml(params.listingTitle);
+  const addressString = escapeHtml(params.addressString);
+  const counterpartName = escapeHtml(params.counterpartName);
+  const timeSlot = escapeHtml(params.timeSlot);
+  const formattedDate = escapeHtml(params.formattedDate);
+  const visitType = escapeHtml(params.visitType);
+  const dealUrl = escapeUrl(params.dealUrl);
+  const directionsUrl = params.directionsUrl ? escapeUrl(params.directionsUrl) : null;
 
   return `<!DOCTYPE html>
 <html>
@@ -120,35 +157,35 @@ export function buildReminderEmailHtml(params: {
       </h2>
 
       <p style="font-size: 14px; color: #4b5563; line-height: 1.5; margin: 0 0 20px 0;">
-        Hello ${params.recipientName}, this is a reminder regarding your upcoming confirmed ${params.visitType.toLowerCase()} for <strong>${params.listingTitle}</strong>.
+        Hello ${recipientName}, this is a reminder regarding your upcoming confirmed ${visitType.toLowerCase()} for <strong>${listingTitle}</strong>.
       </p>
 
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
         <div style="margin-bottom: 10px;">
           <span style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Date & Time</span><br>
-          <strong style="font-size: 15px; color: #0f172a;">${params.formattedDate} at ${params.timeSlot}</strong>
+          <strong style="font-size: 15px; color: #0f172a;">${formattedDate} at ${timeSlot}</strong>
         </div>
 
         <div style="margin-bottom: 10px;">
           <span style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Property</span><br>
-          <span style="font-size: 14px; color: #1e293b; font-weight: 600;">${params.listingTitle}</span><br>
-          ${params.addressString ? `<span style="font-size: 13px; color: #64748b;">📍 ${params.addressString}</span>` : ""}
+          <span style="font-size: 14px; color: #1e293b; font-weight: 600;">${listingTitle}</span><br>
+          ${addressString ? `<span style="font-size: 13px; color: #64748b;">📍 ${addressString}</span>` : ""}
         </div>
 
         <div>
           <span style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">${params.counterpartRole}</span><br>
-          <span style="font-size: 13px; color: #1e293b;">${params.counterpartName}</span>
+          <span style="font-size: 13px; color: #1e293b;">${counterpartName}</span>
         </div>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <a href="${params.dealUrl}" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-right: 10px; margin-bottom: 8px;">
+        <a href="${dealUrl}" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-right: 10px; margin-bottom: 8px;">
           View Appointment & Chat →
         </a>
 
         ${
-          params.directionsUrl
-            ? `<a href="${params.directionsUrl}" style="display: inline-block; background-color: #ffffff; color: #2563eb; border: 1px solid #bfdbfe; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
+          directionsUrl
+            ? `<a href="${directionsUrl}" style="display: inline-block; background-color: #ffffff; color: #2563eb; border: 1px solid #bfdbfe; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
                 🗺️ Get Directions on Google Maps
               </a>`
             : ""
@@ -259,14 +296,22 @@ export async function processSiteVisitReminders(options?: {
       // 2. 1h reminder: between 0 and 2 hours away, and not yet sent
       const needs1h = visit.reminded1hAt === null && diffHours > 0 && diffHours <= 2;
 
-      console.log(`[Reminder Evaluation] Visit #${visit.id} (status=${visit.status}, date=${visit.date.toISOString()}, slot=${visit.timeSlot}): apptStart=${apptStart.toISOString()} (${apptStart.toString()}), now=${now.toISOString()} (${now.toString()}), diffMs=${diffMs}, diffHours=${diffHours.toFixed(2)}, needs24h=${needs24h}, needs1h=${needs1h}`);
-
       if (!needs24h && !needs1h) {
         result.skipped++;
         continue;
       }
 
       const is24h = needs24h;
+
+      // Claim the reminder first so overlapping cron runs cannot both send it.
+      const claim = await prisma.siteVisit.updateMany({
+        where: { id: visit.id, ...(is24h ? { reminded24hAt: null } : { reminded1hAt: null }) },
+        data: is24h ? { reminded24hAt: now } : { reminded1hAt: now },
+      });
+      if (claim.count === 0) {
+        result.skipped++;
+        continue;
+      }
       const timeframeText = is24h ? "tomorrow" : "in approximately 1 hour";
 
       const formattedDate = new Intl.DateTimeFormat("en-IN", {
@@ -274,6 +319,7 @@ export async function processSiteVisitReminders(options?: {
         day: "numeric",
         month: "short",
         year: "numeric",
+        timeZone: SITE_TIME_ZONE,
       }).format(apptStart);
 
       const addressString = formatDisplayAddress(visit.listing);
@@ -349,24 +395,14 @@ export async function processSiteVisitReminders(options?: {
         }
       }
 
-      // Record in database inside transaction to enforce strict idempotency
-      await prisma.$transaction(async (tx) => {
-        await tx.siteVisit.update({
-          where: { id: visit.id },
-          data: {
-            ...(is24h ? { reminded24hAt: now } : { reminded1hAt: now }),
-          },
-        });
-
-        // Add in-app event notification in deal conversation
-        await tx.dealMessage.create({
-          data: {
-            dealId: visit.dealId,
-            senderRole: "SYSTEM",
-            type: "EVENT",
-            text: threadEventText,
-          },
-        });
+      // Add in-app event notification in deal conversation
+      await prisma.dealMessage.create({
+        data: {
+          dealId: visit.dealId,
+          senderRole: "SYSTEM",
+          type: "EVENT",
+          text: threadEventText,
+        },
       });
 
       if (is24h) {

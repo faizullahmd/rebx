@@ -25,7 +25,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const siteBaseUrl = req.nextUrl.origin;
+    // Behind the App Platform proxy the request origin can be internal or plain http; links in emails must be public.
+    const origin = req.nextUrl.origin;
+    const siteBaseUrl =
+      process.env.NODE_ENV === "production"
+        ? /^https?:\/\/(localhost|127\.|\[::1\])/.test(origin)
+          ? "https://rebx.app"
+          : origin.replace(/^http:/, "https:")
+        : origin;
     const result = await processSiteVisitReminders({ siteBaseUrl });
     return NextResponse.json(result);
   } catch (err) {
