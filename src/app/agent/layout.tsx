@@ -7,6 +7,7 @@ const items = [
   { href: "/agent/dashboard/listings", label: "My listings" },
   { href: "/agent/dashboard/portfolio", label: "Portfolio" },
   { href: "/agent/dashboard/deals", label: "Deals" },
+  { href: "/agent/dashboard/site-visits", label: "Site visits" },
   { href: "/agent/dashboard/commissions", label: "Commissions" },
   { href: "/account", label: "Account settings" },
 ];

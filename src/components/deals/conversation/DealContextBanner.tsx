@@ -5,6 +5,8 @@ interface DealContextBannerProps {
   offerAmount: number | null;
   currency?: string;
   viewerRole: "AGENT" | "CUSTOMER";
+  advanceStatus?: "PENDING" | "PAID" | null;
+  advanceAmount?: number | null;
 }
 
 export function DealContextBanner({
@@ -12,6 +14,8 @@ export function DealContextBanner({
   offerAmount,
   currency = "INR",
   viewerRole,
+  advanceStatus,
+  advanceAmount,
 }: DealContextBannerProps) {
   const formattedAmount = offerAmount ? formatListingPrice(offerAmount, currency) : "";
 
@@ -29,9 +33,8 @@ export function DealContextBanner({
         toneClass = "bg-sky-50 text-sky-900 border-sky-200";
         break;
       case "VIEWING_SCHEDULED":
-        bannerText = "Site visit scheduled. Coordinate showing details with the client.";
-        toneClass = "bg-violet-50 text-violet-900 border-violet-200";
-        break;
+        // Omit banner since dedicated site visit management card & status flow are active
+        return null;
       case "OFFER_MADE":
         bannerText = formattedAmount
           ? `Customer offered ${formattedAmount}. Accept, counter, or reject.`
@@ -43,9 +46,7 @@ export function DealContextBanner({
         toneClass = "bg-orange-50 text-orange-900 border-orange-200";
         break;
       case "UNDER_CONTRACT":
-        bannerText = formattedAmount
-          ? `Offer agreed at ${formattedAmount}. Add booking details below.`
-          : "Offer agreed. Add booking details below.";
+        bannerText = "Offer agreed. Add booking details and the advance.";
         toneClass = "bg-teal-50 text-teal-900 border-teal-200";
         break;
       case "CLOSED_WON":
@@ -72,9 +73,8 @@ export function DealContextBanner({
         toneClass = "bg-sky-50 text-sky-900 border-sky-200";
         break;
       case "VIEWING_SCHEDULED":
-        bannerText = "A site visit is scheduled for this property.";
-        toneClass = "bg-violet-50 text-violet-900 border-violet-200";
-        break;
+        // Omit outdated banner since CustomerSiteVisitBanner & conversation card display full details
+        return null;
       case "OFFER_MADE":
         bannerText = formattedAmount
           ? `Your offer of ${formattedAmount} is awaiting the agent's review.`
@@ -86,13 +86,22 @@ export function DealContextBanner({
         toneClass = "bg-orange-50 text-orange-900 border-orange-200";
         break;
       case "UNDER_CONTRACT":
-        bannerText = formattedAmount
-          ? `Offer agreed at ${formattedAmount}! The property is now under contract.`
-          : "Offer agreed! The property is now under contract.";
-        toneClass = "bg-teal-50 text-teal-900 border-teal-200";
+        if (advanceStatus === "PAID") {
+          bannerText = "Advance received. Your booking is progressing.";
+          toneClass = "bg-green-50 text-green-900 border-green-200";
+        } else if (advanceStatus === "PENDING") {
+          const advStr = advanceAmount ? formatListingPrice(advanceAmount, currency) : formattedAmount;
+          bannerText = advStr
+            ? `Advance of ${advStr} is pending. Contact your agent to complete it.`
+            : "Advance of amount is pending. Contact your agent to complete it.";
+          toneClass = "bg-amber-50 text-amber-900 border-amber-200";
+        } else {
+          bannerText = "Your offer was accepted. The agent will share booking details shortly.";
+          toneClass = "bg-teal-50 text-teal-900 border-teal-200";
+        }
         break;
       case "CLOSED_WON":
-        bannerText = "Congratulations! This property transaction is completed.";
+        bannerText = "Booking confirmed. Congratulations!";
         toneClass = "bg-green-50 text-green-900 border-green-200";
         break;
       case "CLOSED_LOST":
@@ -103,6 +112,10 @@ export function DealContextBanner({
         bannerText = "Active negotiation.";
         toneClass = "bg-gray-50 text-gray-900 border-gray-200";
     }
+  }
+
+  if (!bannerText) {
+    return null;
   }
 
   return (

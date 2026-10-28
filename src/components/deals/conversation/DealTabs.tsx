@@ -4,15 +4,31 @@ import { useState, useTransition } from "react";
 import type { Booking, Commission } from "@prisma/client";
 import { BookingPanel } from "@/components/bookings/BookingPanel";
 import { CommissionPanel } from "@/components/commissions/CommissionPanel";
+import { AdvanceBookingCard } from "@/components/deals/advance/AdvanceBookingCard";
 import { addDealPrivateNote } from "@/lib/actions/deals";
 
-type ClientBooking = Omit<Booking, "saleAmount"> & { saleAmount: number };
+type ClientBooking = Omit<Booking, "saleAmount"> & {
+  saleAmount: number;
+  advance?: {
+    id: number;
+    amount: number;
+    percentUsed: number;
+    currency: string;
+    status: "PENDING" | "PAID";
+    paidAt: Date | string | null;
+    notes: string | null;
+    markedPaidBy: number | null;
+  } | null;
+};
 type ClientCommission = Omit<Commission, "amount"> & { amount: number };
 
 interface DealTabsProps {
   dealId: number;
   dealStage: string;
   hasDeveloper: boolean;
+  hasAcceptedOffer?: boolean;
+  acceptedOfferAmount?: number | null;
+  currency?: string;
   booking: ClientBooking | null;
   commissions: ClientCommission[];
   privateNotes: { id: number; text: string; createdAt: Date }[];
@@ -22,14 +38,30 @@ export function DealTabs({
   dealId,
   dealStage,
   hasDeveloper,
+  hasAcceptedOffer = false,
+  acceptedOfferAmount = null,
+  currency = "INR",
   booking,
   commissions,
   privateNotes,
 }: DealTabsProps) {
-  const [activeTab, setActiveTab] = useState<"booking" | "commission" | "notes">("booking");
+  // Show Booking tab only when deal has an accepted offer or is Under contract / Closed won.
+  // Closed lost or pre-offer stages hide the Booking tab completely.
+  const canShowBooking =
+    dealStage !== "CLOSED_LOST" &&
+    (dealStage === "UNDER_CONTRACT" ||
+      dealStage === "CLOSED_WON" ||
+      hasAcceptedOffer);
+
+  const [activeTab, setActiveTab] = useState<"booking" | "commission" | "notes">(
+    canShowBooking ? "booking" : "commission"
+  );
   const [isPending, startTransition] = useTransition();
   const [noteText, setNoteText] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
+
+  // If activeTab is booking but canShowBooking is false, adjust tab to commission
+  const currentTab = !canShowBooking && activeTab === "booking" ? "commission" : activeTab;
 
   function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
@@ -46,27 +78,31 @@ export function DealTabs({
     });
   }
 
+  const effectiveSaleAmount = booking?.saleAmount ?? acceptedOfferAmount ?? null;
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200">
-        <button
-          type="button"
-          onClick={() => setActiveTab("booking")}
-          className={`border-b-2 px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-            activeTab === "booking"
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
-        >
-          Booking
-        </button>
+        {canShowBooking && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("booking")}
+            className={`border-b-2 px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+              currentTab === "booking"
+                ? "border-gray-900 text-gray-900"
+                : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            Booking
+          </button>
+        )}
 
         <button
           type="button"
           onClick={() => setActiveTab("commission")}
           className={`border-b-2 px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-            activeTab === "commission"
+            currentTab === "commission"
               ? "border-gray-900 text-gray-900"
               : "border-transparent text-gray-500 hover:text-gray-800"
           }`}
@@ -78,7 +114,7 @@ export function DealTabs({
           type="button"
           onClick={() => setActiveTab("notes")}
           className={`border-b-2 px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-            activeTab === "notes"
+            currentTab === "notes"
               ? "border-gray-900 text-gray-900"
               : "border-transparent text-gray-500 hover:text-gray-800"
           }`}
@@ -89,24 +125,23 @@ export function DealTabs({
 
       {/* Tab Contents */}
       <div className="pt-4">
-        {activeTab === "booking" && (
-          <div>
-            {booking ? (
-              <BookingPanel booking={booking} />
-            ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-                <p>No booking recorded yet.</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  {dealStage === "UNDER_CONTRACT"
-                    ? "Offer has been agreed. You can record the formal booking when finalized."
-                    : "A booking can be recorded once the offer is accepted or under contract."}
-                </p>
-              </div>
-            )}
+        {canShowBooking && currentTab === "booking" && (
+          <div className="flex flex-col gap-3">
+            <AdvanceBookingCard
+              dealId={dealId}
+              saleAmount={effectiveSaleAmount}
+              currency={currency === "USD" ? "INR" : (currency || "INR")}
+              advance={booking?.advance ?? null}
+            />
+            <BookingPanel
+              dealId={dealId}
+              booking={booking}
+              defaultSaleAmount={acceptedOfferAmount}
+            />
           </div>
         )}
 
-        {activeTab === "commission" && (
+        {currentTab === "commission" && (
           <div>
             {booking?.status === "CONFIRMED" ? (
               <CommissionPanel
@@ -125,7 +160,7 @@ export function DealTabs({
           </div>
         )}
 
-        {activeTab === "notes" && (
+        {currentTab === "notes" && (
           <div className="flex flex-col gap-4">
             <form onSubmit={handleAddNote} className="flex flex-col gap-2">
               <label htmlFor="privateNoteInput" className="text-xs font-semibold text-gray-700">
@@ -151,21 +186,23 @@ export function DealTabs({
               </div>
             </form>
 
-            <div className="divide-y divide-gray-100">
-              {privateNotes.length === 0 ? (
-                <p className="py-4 text-center text-xs text-gray-400">No private notes yet.</p>
-              ) : (
-                privateNotes.map((note) => (
-                  <div key={note.id} className="py-2.5 text-xs">
-                    <div className="flex items-center justify-between text-gray-400 text-[11px] mb-1">
-                      <span>🔒 Internal note</span>
-                      <span>{new Date(note.createdAt).toLocaleString()}</span>
-                    </div>
-                    <p className="whitespace-pre-wrap text-gray-800">{note.text}</p>
+            {privateNotes.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">No private notes yet.</p>
+            ) : (
+              <div className="flex flex-col gap-2.5 divide-y divide-gray-100">
+                {privateNotes.map((n) => (
+                  <div key={n.id} className="pt-2 text-xs">
+                    <p className="text-gray-800 whitespace-pre-wrap">{n.text}</p>
+                    <span className="text-[10px] text-gray-400 mt-0.5 block">
+                      {new Intl.DateTimeFormat("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(n.createdAt))}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

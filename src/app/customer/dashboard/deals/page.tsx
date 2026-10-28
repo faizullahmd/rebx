@@ -31,11 +31,32 @@ export default async function CustomerDealsListPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Deals</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Track property deals, negotiate offers directly with listing agents, and follow agreement progress.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Deals</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Track property deals, negotiate offers directly with listing agents, and follow agreement progress.
+          </p>
+        </div>
+        <Link
+          href="/listings"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors shrink-0 shadow-xs w-full sm:w-auto"
+        >
+          <svg
+            className="w-4 h-4 text-gray-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          Browse listings
+        </Link>
       </div>
 
       {deals.length === 0 ? (
@@ -97,6 +118,17 @@ export default async function CustomerDealsListPage() {
                         >
                           {stageLabel}
                         </span>
+                        {(deal.stage === "UNDER_CONTRACT" || deal.stage === "CLOSED_WON") && (
+                          (deal as any).booking?.advance?.status === "PAID" ? (
+                            <span className="inline-flex items-center rounded-full border border-green-200 bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">
+                              Advance paid
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                              Advance pending
+                            </span>
+                          )
+                        )}
                         {deal.unreadCount > 0 && (
                           <span className="inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
                             {deal.unreadCount} new

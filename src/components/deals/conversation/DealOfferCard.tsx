@@ -38,10 +38,9 @@ export function DealOfferCard({
   const [rejectReason, setRejectReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Always format in Rupees (₹)
   const formattedAmount = message.amount
-    ? formatListingPrice(message.amount, "INR")
-    : "₹0";
+    ? formatListingPrice(message.amount, message.currency || "INR")
+    : formatListingPrice(0, message.currency || "INR");
 
   const isFromOtherParty =
     (viewerRole === "AGENT" && message.senderRole === "CUSTOMER") ||
