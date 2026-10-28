@@ -8,40 +8,12 @@ import { PHONE_MESSAGE, EMAIL_MESSAGE, isValidPhone } from "@/lib/validation/con
 export function InquiryForm({
   listingId,
   isLoggedInCustomer,
-  returningName,
-  alreadyInterested,
 }: {
   listingId: number;
   isLoggedInCustomer: boolean;
-  /** Set when this browser session has already sent an inquiry: offers the one-click button. */
   returningName?: string | null;
-  /** This visitor has already contacted the agent about this property in this session. */
   alreadyInterested?: boolean;
 }) {
-  const [showFullForm, setShowFullForm] = useState(false);
-
-  if (alreadyInterested) {
-    return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-4 shadow-xs" role="status">
-        <h2 className="text-sm font-semibold text-green-900">Interest sent ✓</h2>
-        <p className="mt-1 text-xs text-green-800">
-          The listing agent has your details and will be in touch soon.
-        </p>
-      </div>
-    );
-  }
-
-  if (returningName && !showFullForm) {
-    return (
-      <InterestedButton
-        listingId={listingId}
-        name={returningName}
-        isLoggedInCustomer={isLoggedInCustomer}
-        onUseForm={() => setShowFullForm(true)}
-      />
-    );
-  }
-
   return <FullInquiryForm listingId={listingId} isLoggedInCustomer={isLoggedInCustomer} />;
 }
 
@@ -114,9 +86,9 @@ function FullInquiryForm({
       <h2 className="text-sm font-semibold text-gray-900">Interested in this property?</h2>
       <form action={formAction} className="mt-3 flex flex-col gap-2.5">
         {state?.message && (
-          <p className="rounded-md bg-gray-50 px-2.5 py-1.5 text-xs text-gray-700 border border-gray-200">
+          <div className="rounded-md bg-green-50 px-3 py-2 text-xs font-medium text-green-800 border border-green-200" role="status">
             {state.message}
-          </p>
+          </div>
         )}
 
         {!isLoggedInCustomer && (

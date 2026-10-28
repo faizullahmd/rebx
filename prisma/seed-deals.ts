@@ -354,8 +354,8 @@ async function main() {
     ],
   });
 
-  // Upsert confirmed booking on Deal C
-  await prisma.booking.upsert({
+  // Upsert confirmed booking on Deal C (No advance recorded)
+  const bookingC = await prisma.booking.upsert({
     where: { dealId: dealC.id },
     update: {
       status: "CONFIRMED",
@@ -373,6 +373,276 @@ async function main() {
       notes: "Token deposit received into escrow. Agreement drafting underway.",
     },
   });
+  await prisma.bookingAdvance.deleteMany({ where: { bookingId: bookingC.id } });
+
+  // ---------------------------------------------------------------------------
+  // DEAL D: Stage UNDER_CONTRACT (Offer accepted, with PENDING advance at 10%)
+  // ---------------------------------------------------------------------------
+  const customerD = await upsertCustomer(
+    "test.customer4@example.com",
+    "Devon Vance",
+    "devon-vance-test",
+    passwordHash
+  );
+
+  let dealD = await prisma.deal.findFirst({
+    where: { contactEmail: customerD.email, listingId: listingB.id },
+  });
+
+  if (!dealD) {
+    dealD = await prisma.deal.create({
+      data: {
+        stage: "UNDER_CONTRACT",
+        listingId: listingB.id,
+        agentId: agent.id,
+        customerId: customerD.id,
+        contactName: customerD.name,
+        contactEmail: customerD.email,
+        contactPhone: "+1 (512) 555-0444",
+        offerAmount: 950000,
+        notes: "Offer agreed with 10% token advance requested.",
+      },
+    });
+  } else {
+    dealD = await prisma.deal.update({
+      where: { id: dealD.id },
+      data: {
+        stage: "UNDER_CONTRACT",
+        offerAmount: 950000,
+      },
+    });
+  }
+
+  await prisma.dealMessage.deleteMany({ where: { dealId: dealD.id } });
+  await prisma.dealMessage.createMany({
+    data: [
+      {
+        dealId: dealD.id,
+        senderRole: "CUSTOMER",
+        senderId: customerD.id,
+        type: "OFFER",
+        amount: 950000,
+        currency: listingB.currency || "INR",
+        offerStatus: "ACCEPTED",
+        text: "Offer of ₹9,50,000 for the property.",
+        agentReadAt: new Date(),
+        customerReadAt: new Date(),
+        createdAt: new Date(Date.now() - 3600000 * 30),
+      },
+      {
+        dealId: dealD.id,
+        senderRole: "SYSTEM",
+        type: "EVENT",
+        text: "Offer accepted: ₹9,50,000. Stage changed to Under contract",
+        agentReadAt: new Date(),
+        customerReadAt: new Date(),
+        createdAt: new Date(Date.now() - 3600000 * 28),
+      },
+    ],
+  });
+
+  const bookingD = await prisma.booking.upsert({
+    where: { dealId: dealD.id },
+    update: {
+      status: "CONFIRMED",
+      saleAmount: 950000,
+      unitNumber: "Unit 301",
+      notes: "Awaiting token advance deposit.",
+    },
+    create: {
+      dealId: dealD.id,
+      status: "CONFIRMED",
+      saleAmount: 950000,
+      unitNumber: "Unit 301",
+      bookingDate: new Date(),
+      confirmedAt: new Date(),
+      notes: "Awaiting token advance deposit.",
+    },
+  });
+
+  const advanceD = await prisma.bookingAdvance.upsert({
+    where: { bookingId: bookingD.id },
+    update: {
+      dealId: dealD.id,
+      amount: 95000,
+      percentUsed: 10.0,
+      currency: listingB.currency || "INR",
+      status: "PENDING",
+      paidAt: null,
+      notes: "10% token advance requested via bank transfer.",
+      markedPaidBy: null,
+    },
+    create: {
+      bookingId: bookingD.id,
+      dealId: dealD.id,
+      amount: 95000,
+      percentUsed: 10.0,
+      currency: listingB.currency || "INR",
+      status: "PENDING",
+      notes: "10% token advance requested via bank transfer.",
+    },
+  });
+
+  await prisma.bookingAdvanceHistory.deleteMany({ where: { advanceId: advanceD.id } });
+  await prisma.bookingAdvanceHistory.create({
+    data: {
+      advanceId: advanceD.id,
+      action: "CREATED",
+      oldValue: null,
+      newValue: JSON.stringify({ amount: 95000, percentUsed: 10, status: "PENDING" }),
+      reason: "Initial 10% advance record",
+      actorId: agent.id,
+    },
+  });
+
+  // ---------------------------------------------------------------------------
+  // DEAL E: Stage CLOSED_WON (Deal won with a PAID advance a few days ago)
+  // ---------------------------------------------------------------------------
+  const customerE = await upsertCustomer(
+    "test.customer5@example.com",
+    "Elena Rostova",
+    "elena-rostova-test",
+    passwordHash
+  );
+
+  let dealE = await prisma.deal.findFirst({
+    where: { contactEmail: customerE.email, listingId: listingC.id },
+  });
+
+  if (!dealE) {
+    dealE = await prisma.deal.create({
+      data: {
+        stage: "CLOSED_WON",
+        listingId: listingC.id,
+        agentId: agent.id,
+        customerId: customerE.id,
+        contactName: customerE.name,
+        contactEmail: customerE.email,
+        contactPhone: "+1 (512) 555-0555",
+        offerAmount: 1200000,
+        closedAt: new Date(Date.now() - 3600000 * 48),
+        notes: "Deal successfully closed won. Advance cleared and final settlement complete.",
+      },
+    });
+  } else {
+    dealE = await prisma.deal.update({
+      where: { id: dealE.id },
+      data: {
+        stage: "CLOSED_WON",
+        offerAmount: 1200000,
+        closedAt: new Date(Date.now() - 3600000 * 48),
+      },
+    });
+  }
+
+  await prisma.dealMessage.deleteMany({ where: { dealId: dealE.id } });
+  await prisma.dealMessage.createMany({
+    data: [
+      {
+        dealId: dealE.id,
+        senderRole: "CUSTOMER",
+        senderId: customerE.id,
+        type: "OFFER",
+        amount: 1200000,
+        currency: listingC.currency || "INR",
+        offerStatus: "ACCEPTED",
+        text: "Final offer agreed at ₹12,00,000.",
+        agentReadAt: new Date(),
+        customerReadAt: new Date(),
+        createdAt: new Date(Date.now() - 3600000 * 96),
+      },
+      {
+        dealId: dealE.id,
+        senderRole: "SYSTEM",
+        type: "EVENT",
+        text: "Offer accepted: ₹12,00,000. Stage changed to Under contract",
+        agentReadAt: new Date(),
+        customerReadAt: new Date(),
+        createdAt: new Date(Date.now() - 3600000 * 90),
+      },
+      {
+        dealId: dealE.id,
+        senderRole: "SYSTEM",
+        type: "EVENT",
+        text: "Advance of ₹1,20,000 marked as paid",
+        agentReadAt: new Date(),
+        customerReadAt: new Date(),
+        createdAt: new Date(Date.now() - 3600000 * 72),
+      },
+    ],
+  });
+
+  const bookingE = await prisma.booking.upsert({
+    where: { dealId: dealE.id },
+    update: {
+      status: "CONFIRMED",
+      saleAmount: 1200000,
+      unitNumber: "Penthouse 1",
+      bookingDate: new Date(Date.now() - 3600000 * 90),
+      confirmedAt: new Date(Date.now() - 3600000 * 85),
+      notes: "Full advance received. Registration done.",
+    },
+    create: {
+      dealId: dealE.id,
+      status: "CONFIRMED",
+      saleAmount: 1200000,
+      unitNumber: "Penthouse 1",
+      bookingDate: new Date(Date.now() - 3600000 * 90),
+      confirmedAt: new Date(Date.now() - 3600000 * 85),
+      notes: "Full advance received. Registration done.",
+    },
+  });
+
+  const advancePaidDate = new Date(Date.now() - 3 * 86400000); // 3 days ago
+
+  const advanceE = await prisma.bookingAdvance.upsert({
+    where: { bookingId: bookingE.id },
+    update: {
+      dealId: dealE.id,
+      amount: 120000,
+      percentUsed: 10.0,
+      currency: listingC.currency || "INR",
+      status: "PAID",
+      paidAt: advancePaidDate,
+      notes: "10% advance verified in escrow.",
+      markedPaidBy: agent.id,
+    },
+    create: {
+      bookingId: bookingE.id,
+      dealId: dealE.id,
+      amount: 120000,
+      percentUsed: 10.0,
+      currency: listingC.currency || "INR",
+      status: "PAID",
+      paidAt: advancePaidDate,
+      notes: "10% advance verified in escrow.",
+      markedPaidBy: agent.id,
+    },
+  });
+
+  await prisma.bookingAdvanceHistory.deleteMany({ where: { advanceId: advanceE.id } });
+  await prisma.bookingAdvanceHistory.createMany({
+    data: [
+      {
+        advanceId: advanceE.id,
+        action: "CREATED",
+        oldValue: null,
+        newValue: JSON.stringify({ amount: 120000, percentUsed: 10, status: "PENDING" }),
+        reason: "Initial advance record",
+        actorId: agent.id,
+        createdAt: new Date(Date.now() - 4 * 86400000),
+      },
+      {
+        advanceId: advanceE.id,
+        action: "MARKED_PAID",
+        oldValue: JSON.stringify({ status: "PENDING" }),
+        newValue: JSON.stringify({ status: "PAID", paidAt: advancePaidDate.toISOString() }),
+        reason: "Cheque cleared",
+        actorId: agent.id,
+        createdAt: advancePaidDate,
+      },
+    ],
+  });
 
   console.log("\n Negotiation test seed completed successfully!");
   console.log("------------------------------------------------------------------");
@@ -380,6 +650,8 @@ async function main() {
   console.log(`Deal A:     ID #${dealA.id} [OFFER_MADE]     Customer: ${customerA.email} / ${SEED_PASSWORD}`);
   console.log(`Deal B:     ID #${dealB.id} [NEGOTIATION]    Customer: ${customerB.email} / ${SEED_PASSWORD}`);
   console.log(`Deal C:     ID #${dealC.id} [UNDER_CONTRACT] Customer: ${customerC.email} / ${SEED_PASSWORD}`);
+  console.log(`Deal D:     ID #${dealD.id} [UNDER_CONTRACT] (Pending 10% Advance) Customer: ${customerD.email}`);
+  console.log(`Deal E:     ID #${dealE.id} [CLOSED_WON]     (Paid Advance)        Customer: ${customerE.email}`);
   console.log("------------------------------------------------------------------");
 }
 

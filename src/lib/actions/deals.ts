@@ -1,5 +1,7 @@
 "use server";
 
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -7,6 +9,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireUser } from "@/lib/session";
 import { forgetInquirer, readInquirySession, rememberInquiry } from "@/lib/inquiry-session";
+import { nextUserId } from "@/lib/user-id";
+import { createPasswordResetToken, buildResetUrl } from "@/lib/password-reset-tokens";
 import {
   sendNewLeadNotification,
   sendInquiryConfirmation,
@@ -23,6 +27,8 @@ import {
   sendDealOfferAcceptedEmail,
   sendDealOfferRejectedEmail,
   sendDealOfferExpiredEmail,
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
 } from "@/lib/email";
 import { formatListingPrice } from "@/lib/price";
 import {
@@ -84,15 +90,80 @@ async function findInquirableListing(listingId: number) {
 async function recordInquiry(
   listing: ListingForInquiry,
   contact: { name: string; email: string; phone: string | null; message: string | null; customerId?: number }
-) {
+): Promise<{ isNewAccountCreated: boolean }> {
   let customerId = contact.customerId;
+  let isNewAccountCreated = false;
+
+  const host = (await headers()).get("host") ?? "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const siteUrl = `${protocol}://${host}`;
+
   if (!customerId) {
-    const existingCustomer = await prisma.user.findFirst({
-      where: { email: contact.email, role: "CUSTOMER" },
-      select: { id: true },
+    const existingUser = await prisma.user.findUnique({
+      where: { email: contact.email },
+      select: { id: true, role: true },
     });
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
+
+    if (existingUser) {
+      customerId = existingUser.id;
+      console.log("\n========================================================");
+      console.log("ℹ️ [ACCOUNT ALREADY EXISTS]");
+      console.log(`👤 Customer Email: ${contact.email} [User ID: ${existingUser.id}]`);
+      console.log("📌 Inquiry was linked to their existing account.");
+      console.log("========================================================\n");
+    } else {
+      try {
+        const rawPassword = crypto.randomBytes(24).toString("hex");
+        const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+        const newUser = await prisma.$transaction(async (tx) => {
+          const id = await nextUserId(tx, "CUSTOMER");
+          return tx.user.create({
+            data: {
+              id,
+              name: contact.name,
+              email: contact.email,
+              passwordHash,
+              role: "CUSTOMER",
+              customerProfile: {
+                create: {
+                  phone: contact.phone || null,
+                },
+              },
+            },
+            select: { id: true, name: true, email: true },
+          });
+        });
+
+        customerId = newUser.id;
+        isNewAccountCreated = true;
+
+        const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+        const rawToken = await createPasswordResetToken(newUser.id, TOKEN_TTL_MS);
+        const resetUrl = buildResetUrl(host, rawToken);
+
+        console.log("\n========================================================");
+        console.log("✨ [AUTO ACCOUNT CREATED]");
+        console.log(`👤 Customer: ${newUser.name} (${newUser.email}) [ID: ${newUser.id}]`);
+        console.log(`🔑 Reset/Set Password URL: ${resetUrl}`);
+        console.log("========================================================\n");
+
+        // Send welcome email
+        try {
+          await sendWelcomeEmail(newUser.email, newUser.name, siteUrl);
+        } catch (err) {
+          console.error("Failed to send welcome email to new customer:", err);
+        }
+
+        // Send password reset email
+        try {
+          await sendPasswordResetEmail(newUser.email, resetUrl);
+        } catch (err) {
+          console.error("Failed to send password reset email to new customer:", err);
+        }
+      } catch (err) {
+        console.error("Failed to auto-create customer account on inquiry:", err);
+      }
     }
   }
 
@@ -125,8 +196,6 @@ async function recordInquiry(
     },
   });
 
-  const host = (await headers()).get("host") ?? "";
-  const protocol = host.startsWith("localhost") ? "http" : "https";
   const dealUrl = `${protocol}://${host}/agent/dashboard/deals/${deal.id}`;
 
   await sendNewLeadNotification(listing.agent.email, {
@@ -169,6 +238,8 @@ async function recordInquiry(
   }
 
   revalidateDealPaths(listing.slug);
+
+  return { isNewAccountCreated };
 }
 
 export async function createInquiry(
@@ -211,12 +282,17 @@ export async function createInquiry(
     };
   }
 
-  await recordInquiry(listing, contact);
-  // Remember the visitor for this browser session so other properties offer a one-click button.
-  await rememberInquiry(
-    isCustomer ? { phone: contact.phone } : { name: contact.name, email: contact.email, phone: contact.phone },
-    listingId
-  );
+  const { isNewAccountCreated } = await recordInquiry(listing, contact);
+  // Clear any visitor session so refreshing always shows the fresh form.
+  await forgetInquirer();
+
+  if (isNewAccountCreated) {
+    return {
+      message:
+        "Thanks! The listing agent will be in touch soon. We've created an account for you — please check your email to set your password and access your dashboard.",
+    };
+  }
+
   return { message: "Thanks! The listing agent will be in touch soon." };
 }
 
@@ -241,7 +317,7 @@ export async function expressInterest(
     return { message: "Please fill in the form so the agent knows how to reach you." };
   }
 
-  await recordInquiry(listing, {
+  const { isNewAccountCreated } = await recordInquiry(listing, {
     name,
     email,
     phone: remembered.phone ?? null,
@@ -249,6 +325,14 @@ export async function expressInterest(
     ...(isCustomer ? { customerId: Number(session!.user.id) } : {}),
   });
   await rememberInquiry({}, listingId);
+
+  if (isNewAccountCreated) {
+    return {
+      message:
+        "Thanks! We've let the agent know you're interested. An account has also been created for you — check your email to set your password.",
+    };
+  }
+
   return { message: "Thanks! The listing agent will be in touch soon." };
 }
 
@@ -697,7 +781,7 @@ export async function deleteDeal(dealId: number) {
  * Strict server-side authorization check for deal conversation actions.
  * Never trusts the client for role or ownership.
  */
-async function requireDealParticipant(dealId: number) {
+export async function requireDealParticipant(dealId: number) {
   const user = await requireUser();
 
   const deal = await prisma.deal.findUnique({

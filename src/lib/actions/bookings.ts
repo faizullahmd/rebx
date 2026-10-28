@@ -58,6 +58,77 @@ export async function updateBooking(
   return { message: "Booking updated." };
 }
 
+export async function saveBookingForDeal(
+  dealId: number,
+  _prevState: BookingFormState,
+  formData: FormData
+): Promise<BookingFormState> {
+  const user = await requireUser();
+
+  const deal = await prisma.deal.findUnique({
+    where: { id: dealId },
+    include: {
+      listing: { select: { agentId: true, developerId: true } },
+      booking: true,
+    },
+  });
+  if (!deal) {
+    return { message: "Deal not found." };
+  }
+  const isOwner = user.role === "ADMIN" || deal.agentId === user.id || deal.listing.agentId === user.id;
+  if (!isOwner) {
+    return { message: "You are not allowed to edit this booking." };
+  }
+
+  const validatedFields = BookingFormSchema.safeParse(Object.fromEntries(formData));
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors };
+  }
+
+  const { bookingNumber, unitNumber, saleAmount, bookingDate, notes } = validatedFields.data;
+
+  if (deal.booking) {
+    await prisma.booking.update({
+      where: { id: deal.booking.id },
+      data: {
+        bookingNumber: bookingNumber || null,
+        unitNumber: unitNumber || null,
+        saleAmount,
+        bookingDate,
+        notes: notes || null,
+      },
+    });
+  } else {
+    const isDeveloperDeal = deal.listing.developerId !== null;
+    await prisma.$transaction([
+      prisma.booking.create({
+        data: {
+          dealId,
+          bookingNumber: bookingNumber || null,
+          unitNumber: unitNumber || null,
+          saleAmount,
+          bookingDate,
+          notes: notes || null,
+          status: isDeveloperDeal ? "PENDING_CONFIRMATION" : "CONFIRMED",
+          ...(isDeveloperDeal ? {} : { confirmedAt: new Date() }),
+        },
+      }),
+      prisma.dealMessage.create({
+        data: {
+          dealId,
+          senderRole: "SYSTEM",
+          type: "EVENT",
+          text: "Booking details added",
+        },
+      }),
+    ]);
+  }
+
+  revalidateBookingPaths(dealId);
+  return { message: "Booking saved successfully." };
+}
+
+
 export async function confirmBooking(bookingId: number) {
   const user = await requireUser();
 

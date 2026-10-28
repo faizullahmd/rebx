@@ -39,6 +39,9 @@ export function DealMessageBubble({
 
   // 1. System Events: Small grey centered lines
   if (message.type === "EVENT") {
+    if (viewerRole === "CUSTOMER" && message.text.includes("Site Visit Reminder")) {
+      return null;
+    }
     return (
       <div className="flex items-center justify-center py-2">
         <span className="rounded-full bg-gray-100 border border-gray-200 px-3 py-1 text-center text-[11px] font-medium text-gray-500">

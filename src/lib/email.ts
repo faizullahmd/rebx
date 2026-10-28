@@ -276,20 +276,113 @@ export async function sendSiteVisitRequestEmail(
     contactPhone?: string | null;
     visitDate?: string | null;
     visitTime?: string | null;
+    timeSlot?: string | null;
+    visitType?: string | null;
+    propertyAddress?: string | null;
+    directionsUrl?: string | null;
     message?: string | null;
     dealUrl: string;
     listingUrl?: string | null;
   }
 ) {
-  await sendTemplatedEmail("site_visit_request", to, {
+  try {
+    await sendTemplatedEmail("site_visit_request", to, {
+      agentName: details.agentName,
+      listingTitle: details.listingTitle,
+      contactName: details.contactName,
+      contactEmail: details.contactEmail,
+      contactPhone: details.contactPhone ?? "",
+      visitDate: details.visitDate ?? "",
+      visitTime: details.visitTime ?? details.timeSlot ?? "",
+      timeSlot: details.timeSlot ?? details.visitTime ?? "",
+      visitType: details.visitType ?? "In-Person Visit",
+      propertyAddress: details.propertyAddress ?? "",
+      directionsUrl: details.directionsUrl ?? "",
+      message: details.message ?? "",
+      dealUrl: details.dealUrl,
+      listingUrl: details.listingUrl ?? "",
+    });
+  } catch (err) {
+    console.error("Failed to send site visit request email to agent:", err);
+  }
+}
+
+export async function sendShowingConfirmedEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    updatedBy?: string | null;
+    visitDate?: string | null;
+    visitTime?: string | null;
+    notes?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendSiteVisitConfirmedAgentEmail(to, {
     agentName: details.agentName,
     listingTitle: details.listingTitle,
     contactName: details.contactName,
-    contactEmail: details.contactEmail,
-    contactPhone: details.contactPhone ?? "",
+    clientName: details.contactName,
     visitDate: details.visitDate ?? "",
     visitTime: details.visitTime ?? "",
-    message: details.message ?? "",
+    timeSlot: details.visitTime ?? "",
+    dealUrl: details.dealUrl,
+    listingUrl: details.listingUrl ?? "",
+  });
+}
+
+export async function sendShowingRescheduledEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    updatedBy?: string | null;
+    newDate?: string | null;
+    newTime?: string | null;
+    reason?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendSiteVisitRescheduledAgentEmail(to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    contactName: details.contactName,
+    clientName: details.contactName,
+    updatedBy: details.updatedBy ?? "",
+    visitDate: details.newDate ?? "",
+    visitTime: details.newTime ?? "",
+    timeSlot: details.newTime ?? "",
+    showingReason: details.reason ?? "",
+    dealUrl: details.dealUrl,
+    listingUrl: details.listingUrl ?? "",
+  });
+}
+
+export async function sendShowingCancelledEmail(
+  to: string,
+  details: {
+    agentName: string;
+    listingTitle: string;
+    contactName: string;
+    updatedBy?: string | null;
+    reason?: string | null;
+    dealUrl: string;
+    listingUrl?: string | null;
+  }
+) {
+  await sendSiteVisitCancelledAgentEmail(to, {
+    agentName: details.agentName,
+    listingTitle: details.listingTitle,
+    contactName: details.contactName,
+    clientName: details.contactName,
+    updatedBy: details.updatedBy ?? "",
+    visitDate: "",
+    showingReason: details.reason ?? "",
     dealUrl: details.dealUrl,
     listingUrl: details.listingUrl ?? "",
   });
@@ -310,79 +403,18 @@ export async function sendShowingStatusEmail(
     listingUrl?: string | null;
   }
 ) {
-  await sendTemplatedEmail("showing_status_update", to, {
-    agentName: details.agentName,
-    listingTitle: details.listingTitle,
-    contactName: details.contactName,
-    showingStatus: details.showingStatus,
-    updatedBy: details.updatedBy ?? "",
-    visitDate: details.visitDate ?? "",
-    visitTime: details.visitTime ?? "",
-    showingReason: details.showingStatus === "Confirmed" ? "" : (details.reason ?? ""),
-    dealUrl: details.dealUrl,
-    listingUrl: details.listingUrl ?? "",
-  });
-}
-
-export async function sendShowingConfirmedEmail(
-  to: string,
-  details: {
-    agentName: string;
-    listingTitle: string;
-    contactName: string;
-    updatedBy?: string | null;
-    visitDate?: string | null;
-    visitTime?: string | null;
-    notes?: string | null;
-    dealUrl: string;
-    listingUrl?: string | null;
+  const status = (details.showingStatus || "").toLowerCase();
+  if (status.includes("confirm")) {
+    await sendShowingConfirmedEmail(to, details);
+  } else if (status.includes("reschedul")) {
+    await sendShowingRescheduledEmail(to, {
+      ...details,
+      newDate: details.visitDate,
+      newTime: details.visitTime,
+    });
+  } else {
+    await sendShowingCancelledEmail(to, details);
   }
-) {
-  await sendShowingStatusEmail(to, {
-    ...details,
-    showingStatus: "Confirmed",
-    reason: details.notes,
-  });
-}
-
-export async function sendShowingRescheduledEmail(
-  to: string,
-  details: {
-    agentName: string;
-    listingTitle: string;
-    contactName: string;
-    updatedBy?: string | null;
-    newDate?: string | null;
-    newTime?: string | null;
-    reason?: string | null;
-    dealUrl: string;
-    listingUrl?: string | null;
-  }
-) {
-  await sendShowingStatusEmail(to, {
-    ...details,
-    showingStatus: "Rescheduled",
-    visitDate: details.newDate,
-    visitTime: details.newTime,
-  });
-}
-
-export async function sendShowingCancelledEmail(
-  to: string,
-  details: {
-    agentName: string;
-    listingTitle: string;
-    contactName: string;
-    updatedBy?: string | null;
-    reason?: string | null;
-    dealUrl: string;
-    listingUrl?: string | null;
-  }
-) {
-  await sendShowingStatusEmail(to, {
-    ...details,
-    showingStatus: "Cancelled",
-  });
 }
 
 export async function sendDealNewMessageEmail(
@@ -567,6 +599,160 @@ export async function sendDealOfferExpiredEmail(
     });
   } catch (err) {
     console.error("Failed to send deal offer expired email:", err);
+  }
+}
+
+export async function sendBookingAdvancePaidEmail(
+  to: string,
+  details: {
+    customer_name: string;
+    listing_title: string;
+    amount: string;
+    paid_date: string;
+    balance_remaining: string;
+    deal_link: string;
+  }
+) {
+  try {
+    await sendTemplatedEmail("booking_advance_paid", to, details);
+  } catch (err) {
+    console.error("Failed to send booking advance paid email:", err);
+  }
+}
+
+export async function sendBookingAdvanceUnmarkedEmail(
+  to: string,
+  details: {
+    customer_name: string;
+    listing_title: string;
+    amount: string;
+    deal_link: string;
+  }
+) {
+  try {
+    await sendTemplatedEmail("booking_advance_unmarked", to, details);
+  } catch (err) {
+    console.error("Failed to send booking advance unmarked email:", err);
+  }
+}
+
+export interface SiteVisitAgentEmailData {
+  agentName: string;
+  listingTitle: string;
+  propertyAddress?: string | null;
+  visitDate: string;
+  timeSlot?: string | null;
+  visitTime?: string | null;
+  visitType?: string | null;
+  clientName?: string;
+  contactName?: string;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
+  directionsUrl?: string | null;
+  dealUrl: string;
+  listingUrl?: string | null;
+  updatedBy?: string | null;
+  showingReason?: string | null;
+  reason?: string | null;
+}
+
+export async function sendSiteVisitReminder24hAgentEmail(
+  to: string,
+  data: SiteVisitAgentEmailData
+) {
+  try {
+    await sendTemplatedEmail("site_visit_reminder_24h_agent", to, data as unknown as TemplateData);
+  } catch (err) {
+    console.error("Failed to send site visit 24h reminder email to agent:", err);
+  }
+}
+
+export async function sendSiteVisitReminder1hAgentEmail(
+  to: string,
+  data: SiteVisitAgentEmailData
+) {
+  try {
+    await sendTemplatedEmail("site_visit_reminder_1h_agent", to, data as unknown as TemplateData);
+  } catch (err) {
+    console.error("Failed to send site visit 1h reminder email to agent:", err);
+  }
+}
+
+export async function sendSiteVisitConfirmedAgentEmail(
+  to: string,
+  data: SiteVisitAgentEmailData
+) {
+  try {
+    const contact = data.contactName || data.clientName || "Client";
+    await sendTemplatedEmail("site_visit_confirmed_agent", to, {
+      agentName: data.agentName,
+      listingTitle: data.listingTitle,
+      contactName: contact,
+      clientName: contact,
+      visitDate: data.visitDate,
+      timeSlot: data.timeSlot ?? data.visitTime ?? "",
+      visitTime: data.visitTime ?? data.timeSlot ?? "",
+      visitType: data.visitType ?? "In-Person Visit",
+      clientEmail: data.clientEmail ?? "",
+      clientPhone: data.clientPhone ?? "",
+      propertyAddress: data.propertyAddress ?? "",
+      directionsUrl: data.directionsUrl ?? "",
+      dealUrl: data.dealUrl,
+      listingUrl: data.listingUrl ?? "",
+    } as unknown as TemplateData);
+  } catch (err) {
+    console.error("Failed to send site visit confirmation email to agent:", err);
+  }
+}
+
+export async function sendSiteVisitRescheduledAgentEmail(
+  to: string,
+  data: SiteVisitAgentEmailData
+) {
+  try {
+    const contact = data.contactName || data.clientName || "Client";
+    await sendTemplatedEmail("site_visit_rescheduled_agent", to, {
+      agentName: data.agentName,
+      listingTitle: data.listingTitle,
+      contactName: contact,
+      clientName: contact,
+      visitDate: data.visitDate,
+      timeSlot: data.timeSlot ?? data.visitTime ?? "",
+      visitTime: data.visitTime ?? data.timeSlot ?? "",
+      updatedBy: data.updatedBy ?? "",
+      showingReason: data.showingReason ?? data.reason ?? "",
+      propertyAddress: data.propertyAddress ?? "",
+      directionsUrl: data.directionsUrl ?? "",
+      dealUrl: data.dealUrl,
+      listingUrl: data.listingUrl ?? "",
+    } as unknown as TemplateData);
+  } catch (err) {
+    console.error("Failed to send site visit rescheduled email to agent:", err);
+  }
+}
+
+export async function sendSiteVisitCancelledAgentEmail(
+  to: string,
+  data: SiteVisitAgentEmailData
+) {
+  try {
+    const contact = data.contactName || data.clientName || "Client";
+    await sendTemplatedEmail("site_visit_cancelled_agent", to, {
+      agentName: data.agentName,
+      listingTitle: data.listingTitle,
+      contactName: contact,
+      clientName: contact,
+      visitDate: data.visitDate,
+      timeSlot: data.timeSlot ?? data.visitTime ?? "",
+      visitTime: data.visitTime ?? data.timeSlot ?? "",
+      updatedBy: data.updatedBy ?? "",
+      showingReason: data.showingReason ?? data.reason ?? "",
+      propertyAddress: data.propertyAddress ?? "",
+      dealUrl: data.dealUrl,
+      listingUrl: data.listingUrl ?? "",
+    } as unknown as TemplateData);
+  } catch (err) {
+    console.error("Failed to send site visit cancelled email to agent:", err);
   }
 }
 

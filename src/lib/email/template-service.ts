@@ -116,6 +116,25 @@ async function loadTemplate(id: number) {
 // ----------------------------------------------------------------------------------------
 
 export async function ensureBuiltInTemplates(actor?: Actor | null) {
+  // Clean up any obsolete system templates no longer present in BUILT_IN_TEMPLATES (e.g. showing_status_update)
+  const obsoleteSystem = await prisma.emailTemplate.findMany({
+    where: {
+      isSystem: true,
+      key: { notIn: BUILT_IN_TEMPLATES.map((t) => t.key) },
+    },
+    select: { id: true },
+  });
+  if (obsoleteSystem.length > 0) {
+    const obsoleteIds = obsoleteSystem.map((t) => t.id);
+    await prisma.emailTemplateVersion.deleteMany({
+      where: { templateId: { in: obsoleteIds } },
+    });
+    await prisma.emailTemplate.deleteMany({
+      where: { id: { in: obsoleteIds } },
+    });
+    invalidateTemplateCache();
+  }
+
   const existing = new Set(
     (await prisma.emailTemplate.findMany({ where: { isSystem: true }, select: { key: true } })).map((t) => t.key)
   );

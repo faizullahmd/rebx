@@ -80,6 +80,18 @@ export async function getDealsForCustomer(customerId: number, customerEmail?: st
         },
       },
       agent: { select: { name: true, email: true } },
+      booking: {
+        select: {
+          status: true,
+          saleAmount: true,
+          advance: {
+            select: {
+              status: true,
+              amount: true,
+            },
+          },
+        },
+      },
       messages: {
         where: { type: { not: "NOTE" } },
         orderBy: { createdAt: "desc" },
@@ -149,6 +161,7 @@ export async function getDealForConversation(
           price: true,
           priceDisplay: true,
           currency: true,
+          addressLine: true,
           city: true,
           state: true,
           propertyType: true,
@@ -164,7 +177,15 @@ export async function getDealForConversation(
       },
       agent: { select: { id: true, name: true, email: true } },
       customer: { select: { id: true, name: true, email: true } },
-      booking: true,
+      booking: {
+        include: {
+          advance: {
+            include: {
+              history: userRole === "AGENT" ? { orderBy: { createdAt: "desc" as const } } : false,
+            },
+          },
+        },
+      },
       commissions: true,
     },
   });

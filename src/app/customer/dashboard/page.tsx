@@ -19,7 +19,28 @@ export default async function CustomerDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Welcome, {user.name}</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold">Welcome, {user.name}</h1>
+        <Link
+          href="/listings"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors shadow-xs w-full sm:w-auto"
+        >
+          <svg
+            className="w-4 h-4 text-gray-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          Browse listings
+        </Link>
+      </div>
 
       {deals.length === 0 ? (
         <div className="flex flex-col gap-4">
