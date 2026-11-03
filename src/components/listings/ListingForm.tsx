@@ -28,6 +28,11 @@ import {
 } from "@/lib/property-taxonomy";
 import { parseVideoUrl } from "@/lib/video";
 import { formatListingPrice, parsePriceInput } from "@/lib/price";
+import {
+  getGoogleMapsEmbedUrl,
+  parseLocationInput,
+  extractGoogleMapsShortLink,
+} from "@/lib/maps";
 
 type Developer = { id: number; name: string; developerProfile: { companyName: string } | null };
 type ListingWithImages = Omit<Listing, "price"> & {
@@ -54,6 +59,8 @@ const FIELD_STEP: Record<string, number> = {
   state: 1,
   country: 1,
   postalCode: 1,
+  latitude: 1,
+  longitude: 1,
   price: 2,
   priceOnRequest: 2,
   currency: 2,
@@ -102,6 +109,8 @@ function initialValues(listing?: ListingWithImages) {
     state: listing?.state ?? "",
     country: listing?.country ?? "",
     postalCode: listing?.postalCode ?? "",
+    latitude: listing?.latitude != null ? String(listing.latitude) : "",
+    longitude: listing?.longitude != null ? String(listing.longitude) : "",
     bedrooms: listing?.bedrooms?.toString() ?? "",
     bathrooms: listing?.bathrooms?.toString() ?? "",
     areaSqFt: listing?.areaSqFt?.toString() ?? "",
@@ -166,10 +175,20 @@ export function ListingForm({
   // otherwise silently wipe whatever the agent already typed on steps 1, 3, and 5. Keeping
   // values here (instead of defaultValue) makes them immune to that reset.
   const [values, setValues] = useState<Values>(() => initialValues(listing));
+  const [locationInput, setLocationInput] = useState(
+    listing?.latitude != null && listing?.longitude != null
+      ? `${listing.latitude}, ${listing.longitude}`
+      : ""
+  );
+  const [resolvingLocation, setResolvingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (listing) {
       setValues(initialValues(listing));
+      if (listing.latitude != null && listing.longitude != null) {
+        setLocationInput(`${listing.latitude}, ${listing.longitude}`);
+      }
       if (listing.transactionType) setTransactionType(listing.transactionType);
       if (listing.propertyCategory) setPropertyCategory(listing.propertyCategory);
       if (listing.propertyType) setPropertyType(listing.propertyType);
@@ -179,6 +198,79 @@ export function ListingForm({
 
   function setField<K extends keyof Values>(key: K, value: Values[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  const previewEmbedUrl =
+    values.latitude && values.longitude
+      ? getGoogleMapsEmbedUrl({
+          latitude: Number(values.latitude),
+          longitude: Number(values.longitude),
+          addressLine: values.addressLine,
+          city: values.city,
+          state: values.state,
+          country: values.country,
+          postalCode: values.postalCode,
+          title: values.title,
+        })
+      : null;
+
+  async function resolveLocation(rawInput: string) {
+    const trimmed = rawInput.trim();
+    if (!trimmed) {
+      setLocationError(null);
+      setField("latitude", "");
+      setField("longitude", "");
+      return;
+    }
+
+    // Clean duplicate/concatenated short links if present
+    const extractedShort = extractGoogleMapsShortLink(trimmed);
+    const cleanedInput = extractedShort || trimmed;
+    if (extractedShort && extractedShort !== trimmed) {
+      setLocationInput(extractedShort);
+    }
+
+    const clientResult = parseLocationInput(cleanedInput);
+    if ("latitude" in clientResult && "longitude" in clientResult) {
+      setLocationError(null);
+      setField("latitude", String(clientResult.latitude));
+      setField("longitude", String(clientResult.longitude));
+      return;
+    }
+
+    setResolvingLocation(true);
+    setLocationError(null);
+    try {
+      const res = await fetch("/api/location/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: cleanedInput }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setLocationError(
+          data.error ||
+            "We couldn't read this link. Paste a Google Maps link or coordinates (latitude, longitude)."
+        );
+      } else {
+        setLocationError(null);
+        setField("latitude", String(data.latitude));
+        setField("longitude", String(data.longitude));
+      }
+    } catch {
+      setLocationError(
+        "We couldn't read this link. Paste a Google Maps link or coordinates (latitude, longitude)."
+      );
+    } finally {
+      setResolvingLocation(false);
+    }
+  }
+
+  function handleClearLocation() {
+    setLocationInput("");
+    setField("latitude", "");
+    setField("longitude", "");
+    setLocationError(null);
   }
 
   const availableCategories = categoriesFor(transactionType);
@@ -471,6 +563,95 @@ export function ListingForm({
             value={values.postalCode}
             onChange={(v) => setField("postalCode", v)}
           />
+        </div>
+
+        {/* Hidden inputs to guarantee coordinate persistence */}
+        <input type="hidden" name="latitude" value={values.latitude ?? ""} />
+        <input type="hidden" name="longitude" value={values.longitude ?? ""} />
+
+        {/* Google Maps Location Field */}
+        <div className="flex flex-col gap-1.5 pt-3 border-t border-gray-100">
+          <label className="text-sm font-medium text-gray-700">
+            Google Maps location <span className="text-xs font-normal text-gray-500">(optional, recommended)</span>
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={locationInput}
+              placeholder="Paste Google Maps link or e.g. 17.3850, 78.4867"
+              onChange={(e) => {
+                const val = e.target.value;
+                const cleaned = extractGoogleMapsShortLink(val) || val;
+                setLocationInput(cleaned);
+                if (locationError) setLocationError(null);
+              }}
+              onBlur={() => {
+                if (locationInput.trim()) {
+                  resolveLocation(locationInput);
+                } else {
+                  handleClearLocation();
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pastedText = e.clipboardData.getData("text")?.trim() || "";
+                if (pastedText) {
+                  const cleaned = extractGoogleMapsShortLink(pastedText) || pastedText;
+                  setLocationInput(cleaned);
+                  resolveLocation(cleaned);
+                }
+              }}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-xs focus:border-black focus:outline-hidden focus:ring-1 focus:ring-black pr-10"
+            />
+            {resolvingLocation && (
+              <div className="absolute right-3 top-2.5 flex items-center">
+                <svg className="animate-spin h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            Open the property in Google Maps, tap Share, and paste the link here. You can also paste coordinates like 17.3850, 78.4867.
+          </p>
+
+          {locationError && (
+            <p className="text-xs text-red-600 font-medium mt-0.5">{locationError}</p>
+          )}
+
+          {values.latitude && values.longitude && previewEmbedUrl ? (
+            <div className="mt-2 flex flex-col gap-1.5">
+              <div className="w-full h-[250px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative">
+                <iframe
+                  src={previewEmbedUrl}
+                  title="Google Maps location preview"
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-600 px-0.5">
+                <span>
+                  Location found: {Number(values.latitude).toFixed(6)}, {Number(values.longitude).toFixed(6)}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearLocation}
+                  className="text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          ) : (
+            !locationInput.trim() && (
+              <p className="text-xs text-gray-400 italic mt-0.5">
+                Without a pin, the map is based on the typed address and may be less accurate.
+              </p>
+            )
+          )}
         </div>
       </div>
 
