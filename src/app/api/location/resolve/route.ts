@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import https from "https";
 import http from "http";
-import dns from "dns";
 import { auth } from "@/auth";
 import { parseLocationInput, isGoogleMapsShortLink, extractGoogleMapsShortLink } from "@/lib/maps";
 
@@ -36,43 +35,6 @@ function isAllowedHost(hostname: string): boolean {
   return ALLOWED_HOSTS.has(hostname.toLowerCase());
 }
 
-/**
- * Custom DNS lookup that falls back to public DNS (Google/Cloudflare) if the local ISP
- * returns a blocked/sinkhole IP or fails to resolve Google Maps shortlink domains.
- */
-function dnsFallbackLookup(
-  hostname: string,
-  options: any,
-  callback: (err: NodeJS.ErrnoException | null, address: any, family?: number) => void
-) {
-  if (typeof options === "function") {
-    callback = options;
-    options = {};
-  }
-
-  // Use c-ares resolver with public DNS servers as fallback
-  const resolver = new dns.promises.Resolver();
-  resolver.setServers(["8.8.8.8", "1.1.1.1"]);
-
-  resolver
-    .resolve4(hostname)
-    .then((addresses) => {
-      // Filter out known ISP sinkhole IPs (such as 49.44.* in India) if valid IPs exist
-      const valid = addresses.filter((ip) => !ip.startsWith("49.44."));
-      const chosen = valid.length > 0 ? valid[0] : addresses[0];
-
-      if (options && options.all) {
-        callback(null, [{ address: chosen, family: 4 }]);
-      } else {
-        callback(null, chosen, 4);
-      }
-    })
-    .catch(() => {
-      // Fallback to standard system resolver
-      dns.lookup(hostname, options, callback);
-    });
-}
-
 function fetchHeaderWithRedirect(
   targetUrl: string,
   timeoutMs: number = 5000
@@ -90,7 +52,6 @@ function fetchHeaderWithRedirect(
       parsed,
       {
         method: "GET",
-        lookup: dnsFallbackLookup,
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

@@ -64,13 +64,10 @@ export async function POST(request: Request) {
   const customerId = Number(session.user.id);
 
   try {
-    const db = (prisma as any).shortlist
-      ? prisma
-      : new (await import("@prisma/client")).PrismaClient();
 
-    // Verify listing exists
-    const listing = await db.listing.findUnique({
-      where: { id: listingId },
+    // Only publicly visible listings can be shortlisted (ids are sequential, so drafts must not be reachable).
+    const listing = await prisma.listing.findFirst({
+      where: { id: listingId, status: { in: ["ACTIVE", "UNDER_OFFER"] } },
       select: { id: true, title: true, status: true },
     });
 
@@ -82,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     // Idempotent upsert
-    const record = await db.shortlist.upsert({
+    const record = await prisma.shortlist.upsert({
       where: {
         customerId_listingId: {
           customerId,
@@ -144,11 +141,8 @@ export async function DELETE(request: Request) {
   const customerId = Number(session.user.id);
 
   try {
-    const db = (prisma as any).shortlist
-      ? prisma
-      : new (await import("@prisma/client")).PrismaClient();
 
-    await db.shortlist.deleteMany({
+    await prisma.shortlist.deleteMany({
       where: {
         customerId,
         listingId,

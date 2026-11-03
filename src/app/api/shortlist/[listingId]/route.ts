@@ -30,11 +30,8 @@ export async function DELETE(
   const customerId = Number(session.user.id);
 
   try {
-    const db = (prisma as any).shortlist
-      ? prisma
-      : new (await import("@prisma/client")).PrismaClient();
 
-    const result = await db.shortlist.deleteMany({
+    const result = await prisma.shortlist.deleteMany({
       where: {
         customerId,
         listingId,

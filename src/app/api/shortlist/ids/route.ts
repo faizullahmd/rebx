@@ -17,11 +17,8 @@ export async function GET() {
   const customerId = Number(session.user.id);
 
   try {
-    const db = (prisma as any).shortlist
-      ? prisma
-      : new (await import("@prisma/client")).PrismaClient();
 
-    const records = await db.shortlist.findMany({
+    const records = await prisma.shortlist.findMany({
       where: { customerId },
       select: { listingId: true },
     });

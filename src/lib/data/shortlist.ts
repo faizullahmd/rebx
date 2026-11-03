@@ -32,11 +32,8 @@ export async function getShortlistForCustomer(
   customerId: number
 ): Promise<ShortlistItem[]> {
   try {
-    const db = (prisma as any).shortlist
-      ? prisma
-      : new (await import("@prisma/client")).PrismaClient();
 
-    const items = await db.shortlist.findMany({
+    const items = await prisma.shortlist.findMany({
       where: { customerId },
       orderBy: { createdAt: "desc" },
       include: {
@@ -62,7 +59,8 @@ export async function getShortlistForCustomer(
     });
 
     return items.map((item) => {
-      const listing = item.listing;
+      // A listing that is (or went back to) a draft must not expose its details to the customer.
+      const listing = item.listing.status === "DRAFT" ? null : item.listing;
       const isAvailable = listing && listing.status === "ACTIVE";
 
       return {

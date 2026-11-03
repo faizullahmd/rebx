@@ -44,24 +44,22 @@ export async function POST(request: Request) {
   }
 
   try {
-    const db = (prisma as any).shortlist
-      ? prisma
-      : new (await import("@prisma/client")).PrismaClient();
 
     // Unique list of input IDs
     const uniqueInputIds = Array.from(new Set(listingIds));
 
-    // Verify which listings actually exist in DB
-    const validListings = await db.listing.findMany({
+    // Keep only publicly visible listings (drafts must not be reachable by id)
+    const validListings = await prisma.listing.findMany({
       where: {
         id: { in: uniqueInputIds },
+        status: { in: ["ACTIVE", "UNDER_OFFER"] },
       },
       select: { id: true },
     });
     const validListingIds = new Set(validListings.map((l: { id: number }) => l.id));
 
     // Check which listings the customer already has shortlisted
-    const alreadyShortlisted = await db.shortlist.findMany({
+    const alreadyShortlisted = await prisma.shortlist.findMany({
       where: {
         customerId,
         listingId: { in: Array.from(validListingIds) },
@@ -79,7 +77,7 @@ export async function POST(request: Request) {
 
     let addedCount = 0;
     if (toInsert.length > 0) {
-      const result = await db.shortlist.createMany({
+      const result = await prisma.shortlist.createMany({
         data: toInsert.map((listingId) => ({
           customerId,
           listingId,
@@ -90,7 +88,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch all current IDs for the customer to return
-    const allRecords = await db.shortlist.findMany({
+    const allRecords = await prisma.shortlist.findMany({
       where: { customerId },
       select: { listingId: true },
     });
