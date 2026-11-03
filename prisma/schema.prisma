@@ -207,6 +207,7 @@ model User {
 
   advancesMarkedPaid    BookingAdvance[]        @relation("AdvanceMarkedPaidBy")
   advanceHistoryActions BookingAdvanceHistory[] @relation("AdvanceHistoryActor")
+  shortlists            Shortlist[]             @relation("CustomerShortlists")
 
   @@index([role])
 }
@@ -296,6 +297,7 @@ model Listing {
   siteVisits  SiteVisit[]
   developerRequests DeveloperRequest[]
   reviews     Review[]      @relation("ListingReviews")
+  shortlists  Shortlist[]   @relation("ListingShortlists")
 
   tagId       Int?
   tag         Tag?          @relation(fields: [tagId], references: [id], onDelete: SetNull)
@@ -775,4 +777,19 @@ model EmailLayout {
   updatedBy   User?    @relation("EmailLayoutEditor", fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+
+model Shortlist {
+  id         Int      @id @default(autoincrement())
+  customerId Int      @map("customer_id")
+  customer   User     @relation("CustomerShortlists", fields: [customerId], references: [id], onDelete: Cascade)
+  listingId  Int      @map("listing_id")
+  listing    Listing  @relation("ListingShortlists", fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([customerId, listingId])
+  @@index([customerId])
+  @@index([listingId])
+  @@map("shortlist")
 }
