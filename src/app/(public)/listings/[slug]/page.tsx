@@ -20,6 +20,8 @@ import {
 } from "@/lib/property-taxonomy";
 import { getListingTag } from "@/lib/tags";
 import { ListingTagBadge } from "@/components/listings/ListingTagBadge";
+import { HeartButton } from "@/components/shortlist/HeartButton";
+import { PropertyLocationSection } from "@/components/listings/PropertyLocationSection";
 
 import { formatListingPrice } from "@/lib/price";
 
@@ -208,9 +210,32 @@ export default async function ListingDetailPage({
           {listing.videos && listing.videos.length > 0 && (
             <ListingVideosSection videos={listing.videos} />
           )}
+
+          <PropertyLocationSection
+            title={listing.title}
+            location={{
+              title: listing.title,
+              latitude: listing.latitude,
+              longitude: listing.longitude,
+              addressLine: listing.addressLine,
+              city: listing.city,
+              state: listing.state,
+              postalCode: listing.postalCode,
+              country: listing.country,
+            }}
+          />
         </div>
 
-        <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+        <div id="contact-agent" className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start scroll-mt-20">
+          {/* Shortlist Action next to contact cards */}
+          <div className="hidden lg:flex items-center">
+            <HeartButton
+              listingId={listing.id}
+              variant="button"
+              className="w-full justify-center shadow-xs"
+            />
+          </div>
+
           {/* Broker Card with Mobile Number and Ratings & Reviews */}
           <BrokerCard
             agentId={listing.agent.id}
@@ -243,6 +268,23 @@ export default async function ListingDetailPage({
             />
           )}
         </div>
+      </div>
+
+      {/* Sticky Mobile Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-neutral-200/90 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-md flex items-center gap-3">
+        <HeartButton
+          listingId={listing.id}
+          variant="button"
+          className="flex-1 justify-center py-2 text-xs"
+        />
+        {listing.status === "ACTIVE" && (
+          <a
+            href="#contact-agent"
+            className="flex-1 inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-neutral-800 transition min-h-[44px]"
+          >
+            Contact Agent
+          </a>
+        )}
       </div>
     </article>
   );

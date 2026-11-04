@@ -92,10 +92,15 @@ export async function signup(
   const protocol = host.startsWith("localhost") ? "http" : "https";
   await sendWelcomeEmail(email, name, `${protocol}://${host}`);
 
+  let callbackUrl = (formData.get("callbackUrl") as string) || "/dashboard";
+  if (!callbackUrl.startsWith("/")) {
+    callbackUrl = "/dashboard";
+  }
+
   await signIn("credentials", {
     email,
     password,
-    redirectTo: "/dashboard",
+    redirectTo: callbackUrl,
   });
 }
 

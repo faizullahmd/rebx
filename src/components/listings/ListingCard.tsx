@@ -3,6 +3,7 @@ import type { Listing, ListingImage } from "@prisma/client";
 import { TRANSACTION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/property-taxonomy";
 import { getListingTag } from "@/lib/tags";
 import { ListingTagBadge } from "@/components/listings/ListingTagBadge";
+import { HeartButton } from "@/components/shortlist/HeartButton";
 
 import { formatListingPrice } from "@/lib/price";
 
@@ -67,6 +68,11 @@ export function ListingCard({
               Featured
             </span>
           ) : null}
+        </div>
+
+        {/* Shortlist Heart Button */}
+        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 flex items-center h-[26px] z-10">
+          <HeartButton listingId={listing.id} />
         </div>
       </div>
 

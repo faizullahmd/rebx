@@ -201,6 +201,8 @@ export async function createListing(
   const listing = await prisma.listing.create({
     data: {
       ...data,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
       price: finalPrice,
       priceDisplay: finalPriceDisplay,
       priceOnRequest: Boolean(data.priceOnRequest),
@@ -375,6 +377,8 @@ export async function updateListing(
       where: { id: listingId },
       data: {
         ...data,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
         price: finalPrice,
         priceDisplay: finalPriceDisplay,
         priceOnRequest: Boolean(data.priceOnRequest),
@@ -686,4 +690,3 @@ export async function expireListing(listingId: number) {
   revalidatePath("/listings");
   revalidatePath(`/listings/${listing.slug}`);
 }
-

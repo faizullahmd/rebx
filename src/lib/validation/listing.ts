@@ -27,6 +27,18 @@ export const ListingFormSchema = z
     state: z.string().trim().optional().or(z.literal("")),
     country: z.string().trim().min(1, "Country is required."),
     postalCode: z.string().trim().optional().or(z.literal("")),
+    latitude: optionalNumber(
+      z.coerce
+        .number()
+        .min(-90, "Latitude must be between -90 and 90.")
+        .max(90, "Latitude must be between -90 and 90.")
+    ),
+    longitude: optionalNumber(
+      z.coerce
+        .number()
+        .min(-180, "Longitude must be between -180 and 180.")
+        .max(180, "Longitude must be between -180 and 180.")
+    ),
     bedrooms: optionalNumber(z.coerce.number().int().nonnegative()),
     bathrooms: optionalNumber(z.coerce.number().int().nonnegative()),
     areaSqFt: optionalNumber(z.coerce.number().int().positive()),
@@ -36,67 +48,67 @@ export const ListingFormSchema = z
     avgPricePerSqFt: z.string().trim().optional().or(z.literal("")),
     possessionStarts: z.string().trim().optional().or(z.literal("")),
     status: z.enum(["DRAFT", "ACTIVE", "UNDER_OFFER", "SOLD"]),
-  developerId: z.string().trim().optional().or(z.literal("")),
-  imageUrls: z.string().trim().optional().or(z.literal("")),
-  videoUrl: z
-    .string()
-    .trim()
-    .optional()
-    .or(z.literal(""))
-    .refine((val) => !val || isValidVideoUrl(val), {
-      message: "Please enter a valid YouTube or Vimeo URL.",
-    }),
-  videoId: optionalNumber(z.coerce.number().int().positive()),
-  requestDeveloperCompanyName: z.string().trim().optional().or(z.literal("")),
-  requestDeveloperContactName: z.string().trim().optional().or(z.literal("")),
-  requestDeveloperEmail: z.string().trim().optional().or(z.literal("")),
-  requestDeveloperPhone: z.string().trim().optional().or(z.literal("")),
-  transactionType: z.enum(["FOR_SALE", "FOR_RENT", "FOR_LEASE", "AUCTION"]),
-  propertyCategory: optionalEnum(["RESIDENTIAL", "COMMERCIAL", "LAND_PLOT", "INDUSTRIAL"]),
-  propertyType: optionalEnum([
-    "APARTMENT",
-    "VILLA",
-    "INDEPENDENT_HOUSE",
-    "BUILDER_FLOOR",
-    "PENTHOUSE",
-    "STUDIO",
-    "OFFICE",
-    "SHOP",
-    "SHOWROOM",
-    "WAREHOUSE",
-    "RESIDENTIAL_PLOT",
-    "COMMERCIAL_PLOT",
-    "AGRICULTURAL_LAND",
-    "FACTORY",
-    "INDUSTRIAL_BUILDING",
-    "INDUSTRIAL_LAND",
-  ]),
-  furnishing: optionalEnum(["UNFURNISHED", "SEMI_FURNISHED", "FURNISHED"]),
-  parkingSpots: optionalNumber(z.coerce.number().int().nonnegative()),
-  facing: optionalEnum(["NORTH", "SOUTH", "EAST", "WEST", "NORTH_EAST", "NORTH_WEST", "SOUTH_EAST", "SOUTH_WEST"]),
-  propertyAgeYears: optionalNumber(z.coerce.number().int().nonnegative()),
-  availability: optionalEnum(["READY_TO_MOVE", "UNDER_CONSTRUCTION"]),
-})
-.superRefine((data, ctx) => {
-  if (!data.priceOnRequest) {
-    if (!data.price || data.price.trim().length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["price"],
-        message: "Price is required.",
-      });
-    } else {
-      const { numericPrice } = parsePriceInput(data.price);
-      if (numericPrice <= 0) {
+    developerId: z.string().trim().optional().or(z.literal("")),
+    imageUrls: z.string().trim().optional().or(z.literal("")),
+    videoUrl: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(""))
+      .refine((val) => !val || isValidVideoUrl(val), {
+        message: "Please enter a valid YouTube or Vimeo URL.",
+      }),
+    videoId: optionalNumber(z.coerce.number().int().positive()),
+    requestDeveloperCompanyName: z.string().trim().optional().or(z.literal("")),
+    requestDeveloperContactName: z.string().trim().optional().or(z.literal("")),
+    requestDeveloperEmail: z.string().trim().optional().or(z.literal("")),
+    requestDeveloperPhone: z.string().trim().optional().or(z.literal("")),
+    transactionType: z.enum(["FOR_SALE", "FOR_RENT", "FOR_LEASE", "AUCTION"]),
+    propertyCategory: optionalEnum(["RESIDENTIAL", "COMMERCIAL", "LAND_PLOT", "INDUSTRIAL"]),
+    propertyType: optionalEnum([
+      "APARTMENT",
+      "VILLA",
+      "INDEPENDENT_HOUSE",
+      "BUILDER_FLOOR",
+      "PENTHOUSE",
+      "STUDIO",
+      "OFFICE",
+      "SHOP",
+      "SHOWROOM",
+      "WAREHOUSE",
+      "RESIDENTIAL_PLOT",
+      "COMMERCIAL_PLOT",
+      "AGRICULTURAL_LAND",
+      "FACTORY",
+      "INDUSTRIAL_BUILDING",
+      "INDUSTRIAL_LAND",
+    ]),
+    furnishing: optionalEnum(["UNFURNISHED", "SEMI_FURNISHED", "FURNISHED"]),
+    parkingSpots: optionalNumber(z.coerce.number().int().nonnegative()),
+    facing: optionalEnum(["NORTH", "SOUTH", "EAST", "WEST", "NORTH_EAST", "NORTH_WEST", "SOUTH_EAST", "SOUTH_WEST"]),
+    propertyAgeYears: optionalNumber(z.coerce.number().int().nonnegative()),
+    availability: optionalEnum(["READY_TO_MOVE", "UNDER_CONSTRUCTION"]),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.priceOnRequest) {
+      if (!data.price || data.price.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["price"],
-          message: "Please enter a valid price (e.g. 10.58 Cr - 11.96 Cr, 1.5 Cr, or 5000000).",
+          message: "Price is required.",
         });
+      } else {
+        const { numericPrice } = parsePriceInput(data.price);
+        if (numericPrice <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["price"],
+            message: "Please enter a valid price (e.g. 10.58 Cr - 11.96 Cr, 1.5 Cr, or 5000000).",
+          });
+        }
       }
     }
-  }
-});
+  });
 
 export type ListingFormState =
   | {

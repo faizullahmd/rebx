@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/lib/actions/auth";
+import { useShortlist } from "@/context/ShortlistContext";
 
 type NavItem = { href: string; label: string };
 
@@ -17,6 +18,7 @@ export function DashboardSidebar({
   userName: string;
 }) {
   const pathname = usePathname();
+  const { count } = useShortlist();
   const [isOpen, setIsOpen] = useState(false);
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
@@ -94,25 +96,56 @@ export function DashboardSidebar({
         {isOpen && (
           <div className="border-b border-gray-200 bg-white px-4 pt-2 pb-5 shadow-lg animate-in slide-in-from-top-2 duration-150">
           <nav className="flex flex-col gap-1 text-sm">
-            {items.map((item) => {
+            {items
+              .filter((item) => {
+                // Shortlist is strictly visible ONLY for customers in the dashboard
+                if (item.label === "Shortlist" || item.href === "/dashboard/shortlist") {
+                  return roleLabel.toLowerCase() === "customer";
+                }
+                return true;
+              })
+              .map((item) => {
               const isDashboardRoot = item.href.endsWith("/dashboard");
               const isActive =
                 pathname === item.href ||
                 (isDashboardRoot
                   ? pathname.startsWith(item.href + "/chat")
                   : pathname.startsWith(item.href + "/"));
+              const isShortlist =
+                item.label === "Shortlist" || item.href === "/dashboard/shortlist";
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`rounded-md px-3 py-2.5 text-sm transition-colors ${
+                  className={`flex items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors ${
                     isActive
                       ? "bg-gray-100 font-semibold text-gray-900"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  {item.label}
+                  <span className="flex items-center gap-2">
+                    {isShortlist ? (
+                      <svg
+                        className="h-4 w-4 shrink-0"
+                        style={{
+                          fill: "#FF385C",
+                          stroke: "#FF385C",
+                          strokeWidth: 2,
+                        }}
+                        viewBox="0 0 32 32"
+                        aria-hidden="true"
+                      >
+                        <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05a6.98 6.98 0 0 0-9.9 0A6.98 6.98 0 0 0 2 11c0 7 7 12.27 14 17z" />
+                      </svg>
+                    ) : null}
+                    <span>{item.label}</span>
+                  </span>
+                  {isShortlist && count > 0 ? (
+                    <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
+                      {count}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}
@@ -142,24 +175,55 @@ export function DashboardSidebar({
           </Link>
           <p className="mt-1 text-xs uppercase tracking-wide text-gray-400">{roleLabel}</p>
           <nav className="mt-6 flex flex-col gap-1 text-sm">
-            {items.map((item) => {
+            {items
+              .filter((item) => {
+                // Shortlist is strictly visible ONLY for customers in the dashboard
+                if (item.label === "Shortlist" || item.href === "/dashboard/shortlist") {
+                  return roleLabel.toLowerCase() === "customer";
+                }
+                return true;
+              })
+              .map((item) => {
               const isDashboardRoot = item.href.endsWith("/dashboard");
               const isActive =
                 pathname === item.href ||
                 (isDashboardRoot
                   ? pathname.startsWith(item.href + "/chat")
                   : pathname.startsWith(item.href + "/"));
+              const isShortlist =
+                item.label === "Shortlist" || item.href === "/dashboard/shortlist";
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-md px-3 py-2 transition-colors ${
+                  className={`flex items-center justify-between rounded-md px-3 py-2 transition-colors ${
                     isActive
                       ? "bg-gray-100 font-medium text-gray-900"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  {item.label}
+                  <span className="flex items-center gap-2">
+                    {isShortlist ? (
+                      <svg
+                        className="h-4 w-4 shrink-0"
+                        style={{
+                          fill: "#FF385C",
+                          stroke: "#FF385C",
+                          strokeWidth: 2,
+                        }}
+                        viewBox="0 0 32 32"
+                        aria-hidden="true"
+                      >
+                        <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05a6.98 6.98 0 0 0-9.9 0A6.98 6.98 0 0 0 2 11c0 7 7 12.27 14 17z" />
+                      </svg>
+                    ) : null}
+                    <span>{item.label}</span>
+                  </span>
+                  {isShortlist && count > 0 ? (
+                    <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
+                      {count}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

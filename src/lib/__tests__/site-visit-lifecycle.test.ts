@@ -707,11 +707,15 @@ describe("Site Visit Complete Lifecycle, Reminders & Google Maps Verification", 
   // SCENARIO 7: Google Maps Utilities & Integrity
   // ==========================================
   describe("Scenario 7: Google Maps Links & Fallbacks", () => {
-    it("generates exact coordinate directions when coordinates are valid", () => {
+    it("prefers the address for directions and uses coordinates when there is no address", () => {
       const loc = { latitude: 18.943, longitude: 72.823, addressLine: "Marine Drive", city: "Mumbai" };
       expect(hasValidCoordinates(loc)).toBe(true);
-      const url = getGoogleMapsDirectionsUrl(loc);
-      expect(url).toBe("https://www.google.com/maps/dir/?api=1&destination=18.943%2C72.823");
+      expect(getGoogleMapsDirectionsUrl(loc)).toBe(
+        "https://www.google.com/maps/dir/?api=1&destination=Marine%20Drive%2C%20Mumbai"
+      );
+      expect(getGoogleMapsDirectionsUrl({ latitude: 18.943, longitude: 72.823 })).toBe(
+        "https://www.google.com/maps/dir/?api=1&destination=18.943,72.823"
+      );
     });
 
     it("falls back safely to encoded address when coordinates are missing", () => {

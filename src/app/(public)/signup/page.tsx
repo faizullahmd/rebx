@@ -1,17 +1,22 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { signup } from "@/lib/actions/auth";
 
-export default function SignupPage() {
+function SignupForm() {
   const [state, formAction, pending] = useActionState(signup, undefined);
   const [role, setRole] = useState<"AGENT" | "CUSTOMER" | "DEVELOPER">("AGENT");
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "";
 
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-6 py-12">
       <h1 className="text-2xl font-semibold">Sign up</h1>
       <form action={formAction} className="flex flex-col gap-4">
+        {callbackUrl ? <input type="hidden" name="callbackUrl" value={callbackUrl} /> : null}
+
         {state?.message && (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
         )}
@@ -100,16 +105,10 @@ export default function SignupPage() {
               <input
                 id="username"
                 name="username"
-                type="text"
-                autoCapitalize="none"
-                autoCorrect="off"
-                placeholder="e.g. alex-agent"
-                className="ml-1 w-full bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
+                className="w-full bg-transparent pl-1 text-sm outline-none"
+                placeholder="company-or-name"
               />
             </div>
-            <p className="text-xs text-gray-500">
-              Your public portfolio URL. Lowercase letters, numbers, and hyphens (3–30 chars).
-            </p>
             {state?.errors?.username && <FieldError messages={state.errors.username} />}
           </div>
         )}
@@ -138,11 +137,22 @@ export default function SignupPage() {
       </form>
       <p className="text-sm text-gray-600">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-gray-900 underline">
+        <Link
+          href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
+          className="font-medium text-gray-900 underline"
+        >
           Log in
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-sm py-12 text-sm text-gray-500">Loading…</div>}>
+      <SignupForm />
+    </Suspense>
   );
 }
 
