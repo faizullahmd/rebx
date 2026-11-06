@@ -1,4 +1,5 @@
 import "server-only";
+import type { Prisma, DealStage } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendDealOfferExpiredEmail } from "@/lib/email";
 import { formatListingPrice } from "@/lib/price";
@@ -56,16 +57,52 @@ export function getDealById(id: number) {
   });
 }
 
-export async function getDealsForCustomer(customerId: number, customerEmail?: string) {
+export async function getDealsForCustomer(
+  customerId: number,
+  customerEmail?: string,
+  options?: { onlyWithOffers?: boolean }
+) {
+  const customerWhere: Prisma.DealWhereInput = customerEmail
+    ? {
+        OR: [
+          { customerId },
+          { contactEmail: customerEmail },
+        ],
+      }
+    : { customerId };
+
+  const whereClause: Prisma.DealWhereInput = options?.onlyWithOffers
+    ? {
+        AND: [
+          customerWhere,
+          {
+            OR: [
+              { offerAmount: { not: null, gt: 0 } },
+              {
+                stage: {
+                  in: [
+                    "OFFER_MADE",
+                    "NEGOTIATION",
+                    "UNDER_CONTRACT",
+                    "CLOSED_WON",
+                  ],
+                },
+              },
+              {
+                messages: {
+                  some: {
+                    type: "OFFER",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      }
+    : customerWhere;
+
   const deals = await prisma.deal.findMany({
-    where: customerEmail
-      ? {
-          OR: [
-            { customerId },
-            { contactEmail: customerEmail },
-          ],
-        }
-      : { customerId },
+    where: whereClause,
     include: {
       listing: {
         select: {

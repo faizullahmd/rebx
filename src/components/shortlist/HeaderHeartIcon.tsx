@@ -24,20 +24,16 @@ export function HeaderHeartIcon({
       <div className="relative flex items-center justify-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 32 32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={count > 0 ? "#FF385C" : "currentColor"}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-6 w-6 transition-colors"
           aria-hidden="true"
-          role="presentation"
-          focusable="false"
-          className="h-5 w-5"
-          style={{
-            display: "block",
-            fill: count > 0 ? "#FF385C" : "none",
-            stroke: count > 0 ? "#FF385C" : "currentColor",
-            strokeWidth: 2,
-            overflow: "visible",
-          }}
         >
-          <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05a6.98 6.98 0 0 0-9.9 0A6.98 6.98 0 0 0 2 11c0 7 7 12.27 14 17z" />
+          <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
         </svg>
 
         {/* Count Badge */}

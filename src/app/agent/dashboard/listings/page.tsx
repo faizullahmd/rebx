@@ -1,23 +1,23 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { getListingsForAgent } from "@/lib/data/listings";
+import { prisma } from "@/lib/prisma";
 import { DashboardListingsTable } from "@/components/dashboard/DashboardListingsTable";
 
 export default async function AgentListingsPage() {
   const user = await requireRole("AGENT");
-  const rawListings = await getListingsForAgent(user.id);
+  const [rawListings, agentProfile] = await Promise.all([
+    getListingsForAgent(user.id),
+    prisma.agentProfile.findUnique({
+      where: { userId: user.id },
+      select: { phone: true },
+    }),
+  ]);
 
   const listings = rawListings.map((listing) => ({
-    id: listing.id,
-    title: listing.title,
-    city: listing.city,
+    ...listing,
     price: listing.price != null ? Number(listing.price) : null,
-    priceDisplay: listing.priceDisplay,
-    priceOnRequest: (listing as any).priceOnRequest,
-    currency: listing.currency,
-    status: listing.status,
-    tags: listing.tags,
-    tagId: (listing as any).tagId,
+    projectArea: listing.projectArea != null ? Number(listing.projectArea) : null,
     tag: (listing as any).tag,
   }));
 
@@ -35,6 +35,8 @@ export default async function AgentListingsPage() {
 
       <DashboardListingsTable
         listings={listings}
+        agentName={user.name}
+        agentPhone={agentProfile?.phone}
         emptyMessage="You haven't created any listings yet."
       />
     </div>

@@ -31,7 +31,7 @@ export function hasValidCoordinates(loc?: PropertyLocation | null): boolean {
 export function formatDisplayAddress(loc?: PropertyLocation | null): string {
   if (!loc) return "";
   const parts = [loc.addressLine, loc.city, loc.state, loc.postalCode, loc.country]
-    .map((s) => s?.trim())
+    .map((s) => s?.trim().replace(/,\s*$/, ""))
     .filter(Boolean);
   return parts.join(", ");
 }

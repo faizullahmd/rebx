@@ -81,6 +81,8 @@ export function AgentPortfolioManager({
 
         <DashboardListingsTable
           listings={listings}
+          agentName={agentProfile.name}
+          agentPhone={agentProfile.phone}
           onTagChange={handleTagChange}
           emptyMessage="No listings yet"
         />

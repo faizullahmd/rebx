@@ -4,8 +4,11 @@ import { auth } from "@/auth";
 import { getShortlistForCustomer } from "@/lib/data/shortlist";
 import { ShortlistView } from "./ShortlistView";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
-  title: "Shortlist | REBX",
+  title: "My Shortlist | REBX",
   description: "View and manage your shortlisted properties.",
 };
 

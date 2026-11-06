@@ -12,7 +12,7 @@ const roleDashboard: Record<Role, string> = {
 
 const items = [
   { href: "/customer/dashboard", label: "Overview" },
-  { href: "/dashboard/shortlist", label: "Shortlist" },
+  { href: "/dashboard/shortlist", label: "My Shortlist" },
   { href: "/customer/dashboard/deals", label: "Deals" },
   { href: "/account", label: "Account settings" },
 ];

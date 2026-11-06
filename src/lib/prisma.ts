@@ -5,7 +5,7 @@ const globalForPrisma = globalThis as unknown as {
   prismaVersion?: number;
 };
 
-const PRISMA_CLIENT_VERSION = 5;
+const PRISMA_CLIENT_VERSION = 6;
 
 export const prisma =
   globalForPrisma.prismaVersion === PRISMA_CLIENT_VERSION && globalForPrisma.prisma
