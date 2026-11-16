@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeWithFfmpeg } from "@/test/ffmpeg";
 
 import {
   DEFAULT_WATERMARK_CONFIG,
@@ -439,7 +440,7 @@ describe("REBX AI Video Studio — C3.6 Brand Watermark Overlay", () => {
   /* 5. Real FFmpeg Video Render & Alpha Verification across all 3 Ratios       */
   /* -------------------------------------------------------------------------- */
 
-  describe("Real FFmpeg Render & Alpha Verification", () => {
+  describeWithFfmpeg("Real FFmpeg Render & Alpha Verification", () => {
     it("renders stationary REBX logo watermark without black box or color distortion", async () => {
       const hasLogo = fsSync.existsSync(sampleLogoPath);
       expect(hasLogo).toBe(true);

@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeWithFfmpeg } from "@/test/ffmpeg";
 import {
   buildSceneCaptionCues,
   chunkNarrationIntoCaptionPhrases,
@@ -165,7 +166,7 @@ function analyzeFrameRegion(params: {
   };
 }
 
-describe("REBX AI Video Studio - Burned-in Spoken Captions (Option 1)", () => {
+describeWithFfmpeg("REBX AI Video Studio - Burned-in Spoken Captions (Option 1)", () => {
   beforeAll(async () => {
     ffmpegEnv = await checkFfmpegEnvironment();
     if (

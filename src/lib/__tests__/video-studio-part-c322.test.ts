@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -496,7 +497,8 @@ describe("REBX AI Video Studio - Phase 3 Part C3.2.2: FFmpeg Environment Integra
     }
   });
 
-  it("8. Deduplicates Windows Registry PATH lookups across parallel ffmpeg and ffprobe probes and discovers portable WinGet Packages paths", async () => {
+  // Scans a real WinGet directory layout with Windows path rules, so it only runs on Windows.
+  it.skipIf(process.platform !== "win32")("8. Deduplicates Windows Registry PATH lookups across parallel ffmpeg and ffprobe probes and discovers portable WinGet Packages paths", async () => {
     const winGetBin = "C:\\Tools\\WinGet\\Packages\\Gyan.FFmpeg\\bin";
     const regLookupMock = vi.fn(async () => [winGetBin]);
 

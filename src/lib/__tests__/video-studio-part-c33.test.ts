@@ -6,6 +6,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { NextRequest } from "next/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { describeWithFfmpeg } from "@/test/ffmpeg";
 import { prisma } from "@/lib/prisma";
 
 class RedirectSignal extends Error {
@@ -627,7 +628,7 @@ async function cleanupTestDatabaseAndAssets() {
   mockS3Deletes.length = 0;
 }
 
-describe("REBX AI Video Studio - Phase 3 Part C3.3: MP4 Storage, Completion & Admin Preview", () => {
+describeWithFfmpeg("REBX AI Video Studio - Phase 3 Part C3.3: MP4 Storage, Completion & Admin Preview", () => {
   beforeAll(async () => {
     ffmpegEnv = await checkFfmpegEnvironment();
     if (!ffmpegEnv.readyForPartC32Rendering || !ffmpegEnv.ffmpeg.executablePath || !ffmpegEnv.ffprobe.executablePath) {

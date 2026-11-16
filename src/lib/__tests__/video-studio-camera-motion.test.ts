@@ -6,6 +6,7 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { itWithFfmpeg } from "@/test/ffmpeg";
 import { prisma } from "@/lib/prisma";
 
 class RedirectSignal extends Error {
@@ -414,7 +415,7 @@ describe("REBX AI Video Studio — Part C3.5: Cinematic Zoom & Pan Animation Eff
   /* ------------------------------------------------------------------ */
   /* Test 5: Real FFmpeg & FFprobe Verification across 16:9, 9:16, 1:1  */
   /* ------------------------------------------------------------------ */
-  it("5. Real FFmpeg renders multi-scene videos across 16:9, 9:16, and 1:1 with 30fps CFR, H.264/AAC, audio sync, and captions", async () => {
+  itWithFfmpeg("5. Real FFmpeg renders multi-scene videos across 16:9, 9:16, and 1:1 with 30fps CFR, H.264/AAC, audio sync, and captions", async () => {
     const testCases: {
       aspectRatio: "16:9" | "9:16" | "1:1";
       width: number;
@@ -820,7 +821,7 @@ describe("REBX AI Video Studio — Part C3.5: Cinematic Zoom & Pan Animation Eff
   /* ------------------------------------------------------------------ */
   /* Test 9: Worker Cancellation & Cleanup During Animated Render      */
   /* ------------------------------------------------------------------ */
-  it("9. Aborting renderVideoToMp4 cancels FFmpeg process cleanly and removes temporary workspaces", async () => {
+  itWithFfmpeg("9. Aborting renderVideoToMp4 cancels FFmpeg process cleanly and removes temporary workspaces", async () => {
     const caseDir = path.join(tempDir, "cancel-case");
     await fs.mkdir(caseDir, { recursive: true });
 

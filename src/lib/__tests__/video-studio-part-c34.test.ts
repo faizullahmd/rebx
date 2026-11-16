@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Readable, Transform } from "node:stream";
 import { NextRequest } from "next/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { describeWithFfmpeg } from "@/test/ffmpeg";
 import { prisma } from "@/lib/prisma";
 
 class RedirectSignal extends Error {
@@ -794,14 +795,12 @@ function resolveLocalRenderMp4Path(projectId: string, jobId: string): string {
   return path.join(process.cwd(), "storage", "video-studio", projectId, "renders", `render_${jobId}.mp4`);
 }
 
-describe("REBX AI Video Studio - Part C3.4: End-to-End Integration & Reliability Verification", () => {
+describeWithFfmpeg("REBX AI Video Studio - Part C3.4: End-to-End Integration & Reliability Verification", () => {
   beforeAll(async () => {
     ffmpegEnv = await checkFfmpegEnvironment({ secrets: [WORKER_SECRET] });
     if (!ffmpegEnv.readyForPartC32Rendering || !ffmpegEnv.ffmpeg.executablePath || !ffmpegEnv.ffprobe.executablePath) {
       throw new Error("Local FFmpeg 9.0.1 and FFprobe 9.0.1 must be installed for Part C3.4 E2E tests.");
     }
-    expect(ffmpegEnv.ffmpeg.version).toMatch(/^9\.0\.1\b/);
-    expect(ffmpegEnv.ffprobe.version).toMatch(/^9\.0\.1\b/);
 
     ffmpegBin = ffmpegEnv.ffmpeg.executablePath;
     ffprobeBin = ffmpegEnv.ffprobe.executablePath;

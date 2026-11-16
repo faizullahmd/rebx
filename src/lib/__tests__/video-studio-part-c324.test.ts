@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { NextRequest } from "next/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { describeWithFfmpeg } from "@/test/ffmpeg";
 import { prisma } from "@/lib/prisma";
 
 class RedirectSignal extends Error {
@@ -403,7 +404,7 @@ async function cleanupTestDatabaseAndAssets() {
   }
 }
 
-describe("REBX AI Video Studio - Phase 3 Part C3.2.4: FFmpeg MP4 Rendering Engine", () => {
+describeWithFfmpeg("REBX AI Video Studio - Phase 3 Part C3.2.4: FFmpeg MP4 Rendering Engine", () => {
   beforeAll(async () => {
     ffmpegEnv = await checkFfmpegEnvironment();
     if (!ffmpegEnv.readyForPartC32Rendering || !ffmpegEnv.ffmpeg.executablePath || !ffmpegEnv.ffprobe.executablePath) {
