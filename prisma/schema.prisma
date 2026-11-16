@@ -208,6 +208,8 @@ model User {
   advancesMarkedPaid    BookingAdvance[]        @relation("AdvanceMarkedPaidBy")
   advanceHistoryActions BookingAdvanceHistory[] @relation("AdvanceHistoryActor")
   shortlists            Shortlist[]             @relation("CustomerShortlists")
+  videoProjects         VideoProject[]
+  videoRenderJobs       VideoRenderJob[]        @relation("VideoRenderJobCreator")
 
   @@index([role])
 }
@@ -794,4 +796,128 @@ model Shortlist {
   @@index([customerId])
   @@index([listingId])
   @@map("shortlist")
+}
+
+enum VideoProjectStatus {
+  DRAFT
+  PROCESSING
+  COMPLETED
+  FAILED
+  APPROVED
+}
+
+enum VideoSourceType {
+  CUSTOM_SCRIPT
+  EXISTING_CONTENT
+  CONTENT_IDEAS
+  BRIEF
+  REBX_CONTENT
+}
+
+model VideoProject {
+  id             String             @id @default(cuid())
+  schemaVersion  String             @default("1.0.0")
+  title          String             @db.VarChar(255)
+  topic          String?            @db.Text
+  category       String             @default("property_showcase")
+  contentType    String?            @default("property_showcase")
+  status         VideoProjectStatus @default(DRAFT)
+  sourceType     VideoSourceType    @default(CUSTOM_SCRIPT)
+  sourceRefType  String?
+  sourceRefId    String?
+  targetAudience String?
+  language       String             @default("English")
+  tone           String             @default("Professional")
+  duration       Int                @default(60)
+  aspectRatio    String             @default("16:9")
+  resolution     String             @default("1920x1080")
+  brief          Json?
+  summary        String?            @db.Text
+  targetRatios   Json?
+  metadata       Json?
+  createdById    Int
+  createdBy      User               @relation(fields: [createdById], references: [id])
+  scenes         VideoScene[]
+  versions       VideoVersion[]
+  renderJobs     VideoRenderJob[]
+  approvedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([createdById])
+}
+
+enum VideoRenderJobStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model VideoRenderJob {
+  id               String               @id @default(cuid())
+  projectId        String
+  project          VideoProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById      Int?
+  createdBy        User?                @relation("VideoRenderJobCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  status           VideoRenderJobStatus @default(PENDING)
+  progress         Int                  @default(0)
+  stage            String?              @db.VarChar(120)
+  errorMessage     String?              @db.Text
+  snapshot         Json
+  snapshotHash     String               @db.VarChar(64)
+  outputStorageKey String?              @db.VarChar(500)
+  outputMetadata   Json?
+  retryCount       Int                  @default(0)
+  workerId         String?              @db.VarChar(120)
+  leaseExpiresAt   DateTime?
+  lastHeartbeatAt  DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([projectId, status])
+  @@index([projectId, snapshotHash, status])
+  @@index([status, createdAt])
+  @@index([status, leaseExpiresAt])
+  @@index([createdById])
+}
+
+model VideoScene {
+  id           String       @id @default(cuid())
+  projectId    String
+  project      VideoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  order        Int          @default(0)
+  position     Int          @default(0)
+  title        String       @db.VarChar(255)
+  narration    String       @db.Text
+  onScreenText String?      @db.VarChar(255)
+  imagePrompt  String       @db.Text
+  imageUrl     String?      @db.Text
+  imagePath    String?      @db.Text
+  duration     Int          @default(6)
+  durationSec  Int          @default(6)
+  locked       Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now()) @updatedAt
+
+  @@index([projectId, order])
+  @@index([projectId, position])
+}
+
+model VideoVersion {
+  id        String       @id @default(cuid())
+  projectId String
+  project   VideoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  reason    String       @db.VarChar(255)
+  createdAt DateTime     @default(now())
+
+  @@index([projectId, createdAt])
 }
