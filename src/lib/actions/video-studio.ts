@@ -117,7 +117,7 @@ const BASE_ROUTE = "/admin/dashboard/video-studio";
  * Overrides the default 5s timeout to 30s with 10s pool wait so multi-scene operations
  * succeed reliably over live cloud database connections with network round-trip latency.
  */
-export const STUDIO_TRANSACTION_OPTIONS = {
+const STUDIO_TRANSACTION_OPTIONS = {
   maxWait: 10000,
   timeout: 30000,
 } as const;
