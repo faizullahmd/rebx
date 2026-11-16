@@ -13,6 +13,9 @@
     "seed:deals": "tsx prisma/seed-deals.ts",
     "seed:videos": "tsx prisma/seed-videos.ts",
     "seed:videos:clear": "tsx prisma/seed-videos.ts --clear",
+    "worker:video": "tsx worker/video-renderer/src/index.ts",
+    "worker:video:check-ffmpeg": "tsx worker/video-renderer/src/check-ffmpeg.ts",
+    "worker:video:typecheck": "tsc -p worker/video-renderer/tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -22,6 +25,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",
     "@aws-sdk/s3-request-presigner": "^3.1138.0",
+    "@google/genai": "^3.0.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "leaflet": "^1.9.4",
