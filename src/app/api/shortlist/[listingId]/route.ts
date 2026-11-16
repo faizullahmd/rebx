@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+const MAX_NOTE_LENGTH = 2000;
+
 /**
  * DELETE /api/shortlist/[listingId]
  * Removes one listing from the customer's Shortlist (idempotent).
@@ -50,23 +52,10 @@ export async function DELETE(
     });
   } catch (error) {
     console.error(`DELETE /api/shortlist/${rawParam} error:`, error);
-    try {
-      await prisma.$executeRawUnsafe(
-        `DELETE FROM shortlist WHERE customer_id = ? AND listing_id = ?`,
-        customerId,
-        listingId
-      );
-      return NextResponse.json({
-        success: true,
-        message: "Removed from Shortlist",
-        listingId,
-      });
-    } catch (sqlErr) {
-      return NextResponse.json(
-        { error: "Failed to remove property from Shortlist" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json(
+      { error: "Failed to remove property from Shortlist" },
+      { status: 500 }
+    );
   }
 }
 
@@ -100,45 +89,25 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => ({}));
-  const notes = typeof body.notes === "string" ? body.notes.trim() : null;
+  if (body.notes != null && typeof body.notes !== "string") {
+    return NextResponse.json({ error: "notes must be text" }, { status: 400 });
+  }
+  const notes = typeof body.notes === "string" ? body.notes.trim() : "";
+  if (notes.length > MAX_NOTE_LENGTH) {
+    return NextResponse.json(
+      { error: `Notes can be at most ${MAX_NOTE_LENGTH} characters` },
+      { status: 400 }
+    );
+  }
 
   try {
-    // 1. Direct SQL update to ensure immediate persistence in MySQL
-    await prisma.$executeRawUnsafe(
-      `UPDATE shortlist SET notes = ?, updated_at = NOW() WHERE customer_id = ? AND listing_id = ?`,
-      notes,
-      customerId,
-      listingId
-    );
-
-    // Also attempt Prisma upsert in case row didn't exist or for client consistency
-    try {
-      await prisma.shortlist.upsert({
-        where: {
-          customerId_listingId: {
-            customerId,
-            listingId,
-          },
-        },
-        create: {
-          customerId,
-          listingId,
-          notes,
-        },
-        update: {
-          notes,
-        },
-      });
-    } catch {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO shortlist (customer_id, listing_id, notes, created_at, updated_at)
-         VALUES (?, ?, ?, NOW(), NOW())
-         ON DUPLICATE KEY UPDATE notes = ?, updated_at = NOW()`,
-        customerId,
-        listingId,
-        notes,
-        notes
-      );
+    // Update only: a note must never create a shortlist entry (that would bypass the public-listing check).
+    const result = await prisma.shortlist.updateMany({
+      where: { customerId, listingId },
+      data: { notes: notes || null },
+    });
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Property is not in your Shortlist" }, { status: 404 });
     }
 
     revalidatePath("/dashboard/shortlist");
@@ -147,7 +116,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       message: "Note saved",
-      notes,
+      notes: notes || null,
     });
   } catch (error) {
     console.error(`PATCH /api/shortlist/${rawParam} error:`, error);

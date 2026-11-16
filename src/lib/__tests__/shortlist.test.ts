@@ -3,12 +3,15 @@ import { prisma } from "@/lib/prisma";
 
 let sessionUserId: number | null = null;
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => (sessionUserId ? { user: { id: String(sessionUserId), role: "CUSTOMER" } } : null)),
 }));
 
 import { POST as addShortlist } from "@/app/api/shortlist/route";
 import { POST as mergeShortlist } from "@/app/api/shortlist/merge/route";
+import { PATCH as saveNote } from "@/app/api/shortlist/[listingId]/route";
 import { getShortlistForCustomer } from "@/lib/data/shortlist";
 
 const AGENT_ID = 930001;
@@ -100,5 +103,53 @@ describe("shortlist", () => {
     expect(items[0].name).toBe("Property unavailable");
     expect(items[0].agent).toBeNull();
     expect(items[0].status).toBe("Unavailable");
+  });
+
+  describe("private notes", () => {
+    const patch = (listingId: number, body: unknown) =>
+      saveNote(
+        new Request(`http://localhost/api/shortlist/${listingId}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+        { params: Promise.resolve({ listingId: String(listingId) }) }
+      );
+
+    it("saves and clears a note on a shortlisted listing", async () => {
+      await prisma.shortlist.create({ data: { customerId: CUSTOMER_ID, listingId: ACTIVE_ID } });
+      expect((await patch(ACTIVE_ID, { notes: "  near metro  " })).status).toBe(200);
+      expect((await getShortlistForCustomer(CUSTOMER_ID))[0].notes).toBe("near metro");
+      expect((await patch(ACTIVE_ID, { notes: "" })).status).toBe(200);
+      expect((await getShortlistForCustomer(CUSTOMER_ID))[0].notes).toBeNull();
+    });
+
+    it("never creates a shortlist entry (so drafts stay unreachable)", async () => {
+      expect((await patch(DRAFT_ID, { notes: "sneaky" })).status).toBe(404);
+      expect((await patch(ACTIVE_ID, { notes: "not shortlisted" })).status).toBe(404);
+      expect(await prisma.shortlist.count({ where: { customerId: CUSTOMER_ID } })).toBe(0);
+    });
+
+    it("rejects oversized or non-text notes", async () => {
+      await prisma.shortlist.create({ data: { customerId: CUSTOMER_ID, listingId: ACTIVE_ID } });
+      expect((await patch(ACTIVE_ID, { notes: "x".repeat(2001) })).status).toBe(400);
+      expect((await patch(ACTIVE_ID, { notes: { a: 1 } })).status).toBe(400);
+    });
+
+    it("cannot touch another customer's note", async () => {
+      await prisma.shortlist.create({ data: { customerId: CUSTOMER_ID, listingId: ACTIVE_ID, notes: "mine" } });
+      const OTHER_ID = 930003;
+      await prisma.user.create({
+        data: { id: OTHER_ID, name: "Other", email: "shortlist-other@example.com", role: "CUSTOMER", passwordHash: "x" },
+      });
+      try {
+        sessionUserId = OTHER_ID;
+        expect((await patch(ACTIVE_ID, { notes: "hijack" })).status).toBe(404);
+        const row = await prisma.shortlist.findFirst({ where: { customerId: CUSTOMER_ID } });
+        expect(row?.notes).toBe("mine");
+      } finally {
+        await prisma.user.delete({ where: { id: OTHER_ID } });
+      }
+    });
   });
 });

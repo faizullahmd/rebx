@@ -77,21 +77,6 @@ export async function getShortlistForCustomer(
       },
     });
 
-    // Direct SQL query for notes guarantees reliable retrieval even across hot-reload client instances
-    const rawNotes = await (prisma as any).$queryRawUnsafe(
-      `SELECT listing_id, notes FROM shortlist WHERE customer_id = ?`,
-      customerId
-    ).catch(() => []);
-
-    const notesMap = new Map<number, string | null>();
-    if (Array.isArray(rawNotes)) {
-      for (const row of rawNotes) {
-        if (row && row.listing_id != null) {
-          notesMap.set(Number(row.listing_id), row.notes || null);
-        }
-      }
-    }
-
     return items.map((item) => {
       // A listing that is (or went back to) a draft must not expose its details to the customer.
       const listing = item.listing.status === "DRAFT" ? null : item.listing;
@@ -145,7 +130,7 @@ export async function getShortlistForCustomer(
         projectUnits: listing?.projectUnits ?? null,
         projectArea: listing?.projectArea != null ? Number(listing.projectArea) : null,
         possessionStarts: listing?.possessionStarts || null,
-        notes: (item as any).notes || notesMap.get(item.listingId) || null,
+        notes: item.notes || null,
         location: listing
           ? [listing.addressLine, listing.city, listing.state]
               .filter(Boolean)

@@ -56,7 +56,8 @@ export async function generateMetadata({
   const { slug } = await params;
   const listing = await getListingBySlug(slug);
 
-  if (!listing) {
+  // Drafts and other non-public listings are only shown to their owners, so they must not leak into link previews.
+  if (!listing || (listing.status !== "ACTIVE" && listing.status !== "UNDER_OFFER")) {
     return {
       title: "Listing Not Found — REBX",
     };
