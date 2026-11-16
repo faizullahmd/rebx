@@ -1,0 +1,13 @@
+{
+  "name": "rebx-video-renderer-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Node.js background worker foundation for REBX AI Video Studio (Phase 3 Part C3.1).",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx src/index.ts",
+    "check-ffmpeg": "tsx src/check-ffmpeg.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
+

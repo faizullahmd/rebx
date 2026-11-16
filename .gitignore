@@ -46,3 +46,11 @@ next-env.d.ts
 
 # generated prisma client (never commit; engines are platform-specific)
 /src/generated/
+
+# local AI Video Studio dev uploads
+/public/uploads/video-studio/*
+!/public/uploads/video-studio/.gitkeep
+/storage/video-studio/*
+
+# temporary scratch & diagnostic files
+/scratch/
