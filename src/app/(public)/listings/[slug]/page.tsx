@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -45,6 +46,57 @@ function formatListingAddress(listing: {
     parts.push(listing.country);
   }
   return parts.join(", ");
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const listing = await getListingBySlug(slug);
+
+  if (!listing) {
+    return {
+      title: "Listing Not Found — REBX",
+    };
+  }
+
+  const rawBase = process.env.NEXTAUTH_URL || "https://rebx.app";
+  const baseUrl = rawBase.replace(/\/$/, "");
+  const listingUrl = `${baseUrl}/listings/${encodeURIComponent(listing.slug)}`;
+
+  const coverImage = listing.images?.[0]?.url;
+  const absoluteImageUrl = coverImage
+    ? coverImage.startsWith("http://") || coverImage.startsWith("https://")
+      ? coverImage
+      : `${baseUrl}${coverImage.startsWith("/") ? "" : "/"}${coverImage}`
+    : undefined;
+
+  const title = `${listing.title} — REBX`;
+  const description =
+    listing.description?.trim().slice(0, 200) ||
+    `${listing.bedrooms ? `${listing.bedrooms} BHK ` : ""}${listing.propertyType || "Property"} in ${
+      listing.city || "REBX"
+    }`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: listingUrl,
+      images: absoluteImageUrl ? [{ url: absoluteImageUrl }] : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: absoluteImageUrl ? [absoluteImageUrl] : [],
+    },
+  };
 }
 
 export default async function ListingDetailPage({
