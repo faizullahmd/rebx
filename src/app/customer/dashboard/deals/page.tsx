@@ -21,7 +21,7 @@ const STAGE_BADGE: Record<string, string> = {
 
 export default async function CustomerDealsListPage() {
   const user = await requireRole("CUSTOMER");
-  const deals = await getDealsForCustomer(user.id, user.email);
+  const deals = await getDealsForCustomer(user.id, user.email, { onlyWithOffers: true });
 
   const dateFormat = new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
@@ -60,18 +60,26 @@ export default async function CustomerDealsListPage() {
       </div>
 
       {deals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 p-12 text-center">
-          <span className="text-3xl mb-2">🏡</span>
-          <p className="text-sm font-semibold text-gray-900">No deals yet</p>
-          <p className="mt-1 text-xs text-gray-500 max-w-sm">
-            Browse our listings and submit an offer to start a direct negotiation with the listing agent.
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center shadow-xs">
+          <span className="text-3xl mb-2">🤝</span>
+          <p className="text-sm font-semibold text-gray-900">No active deals yet</p>
+          <p className="mt-1 text-xs text-gray-500 max-w-md">
+            Properties appear here once an initial offer price is submitted or price negotiations have started.
           </p>
-          <Link
-            href="/listings"
-            className="mt-4 rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-gray-800"
-          >
-            Browse Properties
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/customer/dashboard"
+              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition-colors"
+            >
+              View Overview
+            </Link>
+            <Link
+              href="/listings"
+              className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-gray-800 transition-colors"
+            >
+              Browse Properties
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white shadow-xs overflow-hidden">
@@ -137,8 +145,16 @@ export default async function CustomerDealsListPage() {
                       </div>
 
                       <p className="mt-0.5 text-xs text-gray-500">
-                        Listing price: <strong className="text-gray-800">{priceDisplay}</strong> · Agent:{" "}
-                        <span className="text-gray-700">{deal.agent.name}</span>
+                        Listing price: <strong className="text-gray-800">{priceDisplay}</strong>
+                        {deal.offerAmount && (
+                          <>
+                            {" "}· Offer price:{" "}
+                            <strong className="text-emerald-700">
+                              ₹ {Number(deal.offerAmount).toLocaleString("en-IN")}
+                            </strong>
+                          </>
+                        )}
+                        {" "}· Agent: <span className="text-gray-700">{deal.agent.name}</span>
                       </p>
 
                       {/* Last message preview */}

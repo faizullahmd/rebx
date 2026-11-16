@@ -99,7 +99,11 @@ export function DashboardSidebar({
             {items
               .filter((item) => {
                 // Shortlist is strictly visible ONLY for customers in the dashboard
-                if (item.label === "Shortlist" || item.href === "/dashboard/shortlist") {
+                if (
+                  item.label === "Shortlist" ||
+                  item.label === "My Shortlist" ||
+                  item.href === "/dashboard/shortlist"
+                ) {
                   return roleLabel.toLowerCase() === "customer";
                 }
                 return true;
@@ -112,7 +116,9 @@ export function DashboardSidebar({
                   ? pathname.startsWith(item.href + "/chat")
                   : pathname.startsWith(item.href + "/"));
               const isShortlist =
-                item.label === "Shortlist" || item.href === "/dashboard/shortlist";
+                item.label === "Shortlist" ||
+                item.label === "My Shortlist" ||
+                item.href === "/dashboard/shortlist";
               return (
                 <Link
                   key={item.href}
@@ -124,25 +130,9 @@ export function DashboardSidebar({
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    {isShortlist ? (
-                      <svg
-                        className="h-4 w-4 shrink-0"
-                        style={{
-                          fill: "#FF385C",
-                          stroke: "#FF385C",
-                          strokeWidth: 2,
-                        }}
-                        viewBox="0 0 32 32"
-                        aria-hidden="true"
-                      >
-                        <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05a6.98 6.98 0 0 0-9.9 0A6.98 6.98 0 0 0 2 11c0 7 7 12.27 14 17z" />
-                      </svg>
-                    ) : null}
-                    <span>{item.label}</span>
-                  </span>
+                  <span>{item.label}</span>
                   {isShortlist && count > 0 ? (
-                    <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
+                    <span className="text-xs font-semibold text-black">
                       {count}
                     </span>
                   ) : null}
@@ -178,7 +168,11 @@ export function DashboardSidebar({
             {items
               .filter((item) => {
                 // Shortlist is strictly visible ONLY for customers in the dashboard
-                if (item.label === "Shortlist" || item.href === "/dashboard/shortlist") {
+                if (
+                  item.label === "Shortlist" ||
+                  item.label === "My Shortlist" ||
+                  item.href === "/dashboard/shortlist"
+                ) {
                   return roleLabel.toLowerCase() === "customer";
                 }
                 return true;
@@ -191,7 +185,9 @@ export function DashboardSidebar({
                   ? pathname.startsWith(item.href + "/chat")
                   : pathname.startsWith(item.href + "/"));
               const isShortlist =
-                item.label === "Shortlist" || item.href === "/dashboard/shortlist";
+                item.label === "Shortlist" ||
+                item.label === "My Shortlist" ||
+                item.href === "/dashboard/shortlist";
               return (
                 <Link
                   key={item.href}
@@ -202,25 +198,9 @@ export function DashboardSidebar({
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    {isShortlist ? (
-                      <svg
-                        className="h-4 w-4 shrink-0"
-                        style={{
-                          fill: "#FF385C",
-                          stroke: "#FF385C",
-                          strokeWidth: 2,
-                        }}
-                        viewBox="0 0 32 32"
-                        aria-hidden="true"
-                      >
-                        <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05a6.98 6.98 0 0 0-9.9 0A6.98 6.98 0 0 0 2 11c0 7 7 12.27 14 17z" />
-                      </svg>
-                    ) : null}
-                    <span>{item.label}</span>
-                  </span>
+                  <span>{item.label}</span>
                   {isShortlist && count > 0 ? (
-                    <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
+                    <span className="text-xs font-semibold text-black">
                       {count}
                     </span>
                   ) : null}

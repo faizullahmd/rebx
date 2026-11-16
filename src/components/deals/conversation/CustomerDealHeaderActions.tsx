@@ -67,21 +67,18 @@ export function CustomerDealHeaderActions({
   }
 
   function handleMakeADeal() {
-    const targetUrl = `/customer/dashboard/deals/${dealId}#deal-offer-input`;
-    if (typeof window !== "undefined" && window.location.pathname === `/customer/dashboard/deals/${dealId}`) {
-      const input = document.getElementById("deal-offer-input") as HTMLInputElement | null;
-      if (input) {
-        input.scrollIntoView({ behavior: "smooth", block: "center" });
+    const input = document.getElementById("deal-offer-input") as HTMLInputElement | null;
+    if (input) {
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => {
+        input.focus();
+        input.classList.add("ring-2", "ring-blue-500", "border-blue-500");
         setTimeout(() => {
-          input.focus();
-          input.classList.add("ring-2", "ring-blue-500", "border-blue-500");
-          setTimeout(() => {
-            input.classList.remove("ring-2", "ring-blue-500", "border-blue-500");
-          }, 2000);
-        }, 300);
-      }
+          input.classList.remove("ring-2", "ring-blue-500", "border-blue-500");
+        }, 2000);
+      }, 300);
     } else {
-      router.push(targetUrl);
+      router.push(`/customer/dashboard/deals/${dealId}#deal-offer-input`);
     }
   }
 

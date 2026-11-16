@@ -3,13 +3,24 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { deleteListing } from "@/lib/actions/listings";
+import { ShareListingButton } from "@/components/listings/ShareListingButton";
+import type { PitchListingData } from "@/lib/pitch";
 
 interface ListingActionsMenuProps {
   listingId: number;
+  listing?: (PitchListingData & { status: string }) | null;
+  agentName?: string | null;
+  agentPhone?: string | null;
   isLastRow?: boolean;
 }
 
-export function ListingActionsMenu({ listingId, isLastRow = false }: ListingActionsMenuProps) {
+export function ListingActionsMenu({
+  listingId,
+  listing,
+  agentName,
+  agentPhone,
+  isLastRow = false,
+}: ListingActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +70,7 @@ export function ListingActionsMenu({ listingId, isLastRow = false }: ListingActi
         <div
           role="menu"
           aria-orientation="vertical"
-          className={`absolute right-0 z-50 min-w-[120px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg focus:outline-none ${
+          className={`absolute right-0 z-50 min-w-[150px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg focus:outline-none ${
             isLastRow ? "bottom-full mb-1 origin-bottom-right" : "top-full mt-1 origin-top-right"
           }`}
         >
@@ -71,6 +82,16 @@ export function ListingActionsMenu({ listingId, isLastRow = false }: ListingActi
           >
             Edit
           </Link>
+          {listing && (
+            <div onClick={() => setIsOpen(false)}>
+              <ShareListingButton
+                listing={listing}
+                agentName={agentName}
+                agentPhone={agentPhone}
+                variant="menuitem"
+              />
+            </div>
+          )}
           <form
             action={deleteListing.bind(null, listingId)}
             onSubmit={(e) => {

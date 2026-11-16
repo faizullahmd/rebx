@@ -786,7 +786,9 @@ model Shortlist {
   customer   User     @relation("CustomerShortlists", fields: [customerId], references: [id], onDelete: Cascade)
   listingId  Int      @map("listing_id")
   listing    Listing  @relation("ListingShortlists", fields: [listingId], references: [id], onDelete: Cascade)
+  notes      String?  @db.Text
   createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @default(now()) @map("updated_at")
 
   @@unique([customerId, listingId])
   @@index([customerId])

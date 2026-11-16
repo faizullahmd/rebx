@@ -6,11 +6,13 @@ import { getListingTag } from "@/lib/tags";
 import { deleteListing } from "@/lib/actions/listings";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { ListingActionsMenu } from "@/components/dashboard/ListingActionsMenu";
-
+import { ShareListingButton } from "@/components/listings/ShareListingButton";
 import { formatListingPrice } from "@/lib/price";
+import type { PitchListingData } from "@/lib/pitch";
 
-export interface DashboardListingItem {
+export interface DashboardListingItem extends Partial<PitchListingData> {
   id: number;
+  slug?: string;
   title: string;
   city: string;
   price: number | string | null;
@@ -25,12 +27,16 @@ export interface DashboardListingItem {
 
 export interface DashboardListingsTableProps {
   listings: DashboardListingItem[];
+  agentName?: string | null;
+  agentPhone?: string | null;
   onTagChange?: (listingId: number, nextTag: string | null) => void;
   emptyMessage?: string;
 }
 
 export function DashboardListingsTable({
   listings,
+  agentName,
+  agentPhone,
   onTagChange,
   emptyMessage,
 }: DashboardListingsTableProps) {
@@ -104,11 +110,17 @@ export function DashboardListingsTable({
                     />
                   </td>
 
-                  {/* Column 4: Actions (⋯ menu with Edit & Delete) */}
+                  {/* Column 4: Actions (⋯ menu with Edit, Share & Delete) */}
                   <td className={`py-3 px-2 text-right align-middle ${isLast ? "rounded-br-xl" : ""}`}>
                     <div className="flex justify-end">
                       <ListingActionsMenu
                         listingId={listing.id}
+                        listing={{
+                          ...listing,
+                          slug: listing.slug || `listing-${listing.id}`,
+                        }}
+                        agentName={agentName}
+                        agentPhone={agentPhone}
                         isLastRow={index >= listings.length - 2}
                       />
                     </div>
@@ -153,7 +165,15 @@ export function DashboardListingsTable({
                   />
                 </td>
                 <td className="py-3 px-4 text-right">
-                  <div className="flex justify-end gap-3">
+                  <div className="flex justify-end items-center gap-3">
+                    <ShareListingButton
+                      listing={{
+                        ...listing,
+                        slug: listing.slug || `listing-${listing.id}`,
+                      }}
+                      agentName={agentName}
+                      agentPhone={agentPhone}
+                    />
                     <Link
                       href={`/agent/dashboard/listings/${listing.id}/edit`}
                       className="text-gray-600 hover:text-gray-900"

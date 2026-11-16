@@ -43,6 +43,7 @@ export function getListingById(id: number) {
       tag: true,
       videos: { orderBy: { sortOrder: "asc" } },
       video: true,
+      agent: { select: { id: true, name: true, email: true } },
     },
   });
 }
