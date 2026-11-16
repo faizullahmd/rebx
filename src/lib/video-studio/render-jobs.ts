@@ -390,7 +390,7 @@ export async function createRenderJobForProject(
     await syncProjectStatusFromRenderJobs(tx, projectId, { kind: "RENDER_ACTIVE" });
 
     return updatedRow;
-  });
+  }, { maxWait: 10000, timeout: 30000 });
 
   return serializeRenderJob(createdJob);
 }

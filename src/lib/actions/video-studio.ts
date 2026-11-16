@@ -112,6 +112,16 @@ const ALLOWED_AUDIO_TYPES: Record<string, AudioContainerFormat> = {
 };
 const BASE_ROUTE = "/admin/dashboard/video-studio";
 
+/**
+ * Prisma interactive transaction options for Video Studio actions.
+ * Overrides the default 5s timeout to 30s with 10s pool wait so multi-scene operations
+ * succeed reliably over live cloud database connections with network round-trip latency.
+ */
+const STUDIO_TRANSACTION_OPTIONS = {
+  maxWait: 10000,
+  timeout: 30000,
+} as const;
+
 async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
   try {
     return { ok: true, data: await fn() };
@@ -473,7 +483,7 @@ export async function createProjectAction(input: CreateProjectInput): Promise<Ac
 
       await recordVersionSnapshot(tx, project.id, "Initial Draft Created");
       return project.id;
-    });
+    }, STUDIO_TRANSACTION_OPTIONS);
 
     revalidatePath(BASE_ROUTE);
     return { id: projectId };
@@ -566,7 +576,7 @@ export async function saveDraftAction(
         ...s,
         cameraMotion: nextMotionMap[s.id] ?? null,
       }));
-    });
+    }, STUDIO_TRANSACTION_OPTIONS);
 
     const retainedUrls = new Set(scenes.map((s) => s.imageUrl).filter((u): u is string => Boolean(u)));
     for (const oldUrl of oldUrls) {
@@ -675,7 +685,7 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
 
       await recordVersionSnapshot(tx, cloned.id, "Duplicated from " + existing.title);
       return cloned;
-    });
+    }, STUDIO_TRANSACTION_OPTIONS);
 
     revalidatePath(BASE_ROUTE);
     return { id: newProject.id };
@@ -1293,7 +1303,7 @@ export async function restoreVersionAction(
 
       await recordVersionSnapshot(tx, projectId, `Restored from snapshot (${version.reason})`);
       return withRestoredAudio;
-    });
+    }, STUDIO_TRANSACTION_OPTIONS);
 
     const retainedAudioKeys = new Set(scenes.map((s) => s.audio?.storageKey).filter((k): k is string => Boolean(k)));
     for (const prevAudio of Object.values(previousAudioMap)) {
@@ -1747,7 +1757,7 @@ export async function syncProjectAudioTimingAction(input: {
           });
         }
         await recordVersionSnapshot(tx, parsed.projectId, "Synced audio & scene timing");
-      });
+      }, STUDIO_TRANSACTION_OPTIONS);
     }
 
     const refreshed = await prisma.videoProject.findUniqueOrThrow({
