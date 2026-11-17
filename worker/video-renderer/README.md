@@ -4,6 +4,10 @@ Standalone Node.js/TypeScript background worker process for REBX AI Video Studio
 
 > **Scope & Safety Note:** This worker implements configuration, structured logging (with secret redaction), authenticated HTTP coordination with REBX, atomic job claiming, heartbeat/lease tracking, graceful shutdown, cross-platform FFmpeg/FFprobe environment integration (**Part C3.2.2**), secure authenticated asset access + temporary workspace staging (**Part C3.2.3**), the local FFmpeg H.264/AAC MP4 rendering + FFprobe verification engine (**Part C3.2.4**), and streaming private MP4 upload + server-verified completion + safe temp workspace cleanup (**Part C3.3**). By default (`RENDER_WORKER_PROCESSING_ENABLED="false"`), the worker remains safely idle and does **not** claim or mutate `PENDING`/`QUEUED` render jobs until explicitly enabled.
 
+## Deployment
+
+A Dockerfile (bundles FFmpeg + caption fonts), `docker-compose.yml` and step-by-step instructions for a DigitalOcean Droplet or App Platform worker are in [DEPLOY.md](DEPLOY.md).
+
 ## Environment Variables
 
 Set these in the **main REBX Next.js app** (`.env` / `.env.local`):
