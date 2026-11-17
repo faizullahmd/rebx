@@ -1584,6 +1584,8 @@ describe("REBX AI Video Studio - Phase 3 Part C3.2.3: Secure Worker Asset Access
         jobId: jobRes.data.id,
         asset: imgAsset,
         targetFilePath: workspace.allocateSafeAssetPath({ index: 0, assetId: imgAsset.assetId, format: imgAsset.format }),
+        // Downloads default to a much longer timeout than API calls; use a short explicit one here.
+        timeoutMs: 40,
       }),
     ).rejects.toBeInstanceOf(WorkerApiTimeoutError);
 
@@ -1615,6 +1617,7 @@ describe("REBX AI Video Studio - Phase 3 Part C3.2.3: Secure Worker Asset Access
         jobId: jobRes.data.id,
         asset: imgAsset,
         targetFilePath: workspace.allocateSafeAssetPath({ index: 1, assetId: imgAsset.assetId, format: imgAsset.format }),
+        timeoutMs: 60,
       }),
     ).rejects.toBeInstanceOf(WorkerApiTimeoutError);
 
