@@ -468,7 +468,9 @@ export class RenderWorkerApiClient {
     const defaultMaxBytes =
       asset.kind === "image" ? WORKER_MAX_IMAGE_BYTES : WORKER_MAX_AUDIO_BYTES;
     const maxBytes = params.maxBytes ?? asset.maxBytes ?? defaultMaxBytes;
-    const timeoutMs = params.timeoutMs ?? this.requestTimeoutMs;
+    // The timeout covers the whole streamed transfer (images up to 10 MB, audio up to 15 MB),
+    // so it needs far more headroom than a small JSON API call. Mirrors the MP4 upload default.
+    const timeoutMs = params.timeoutMs ?? Math.max(this.requestTimeoutMs * 4, 60_000);
     const endpointPath = `/api/internal/video-studio/render-jobs/${encodeURIComponent(cleanJobId)}/assets/${encodeURIComponent(asset.assetId)}`;
     const url = `${this.apiBaseUrl}${endpointPath}`;
 
