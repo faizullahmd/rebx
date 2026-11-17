@@ -28,8 +28,10 @@ stay on the web app only.
 ## 3. Run the worker on a Droplet (recommended)
 
 Rendering is CPU-heavy and long-running, so a dedicated Droplet is simpler and cheaper than a
-managed container. A Basic/Regular Droplet with **2 vCPU / 4 GB RAM** (Ubuntu 24.04) is a good
-start; the compose file caps the container at 3 GB.
+managed container. A Basic/Regular Droplet with **2 vCPU / 4 GB RAM** (Ubuntu 24.04) is the minimum that renders
+1080p reliably; the compose file caps the container at 3 GB. **1 GB Droplets will be OOM-killed
+mid-render** (jobs end as `Lease expired (max retries reached)`). Adding a 2 GB swap file is a
+good safety net.
 
 ```bash
 # On the Droplet
@@ -106,7 +108,7 @@ Redeploys on every push to `main` are wasteful for a CPU-heavy worker; consider
 | Worker logs `401`/`403`/`404` from REBX | `RENDER_WORKER_SECRET` differs between web app and worker, or `RENDER_WORKER_ENABLED` isn't `true` on the web app |
 | Startup logs `ffmpegAvailable: false` | Image built without FFmpeg; rebuild (`docker compose build --no-cache`) |
 | Render killed after 5 min | Raise `RENDER_FFMPEG_TIMEOUT_MS` in `.env.worker` |
-| Out-of-memory / killed | Use a bigger Droplet and raise `mem_limit` in `docker-compose.yml` |
+| `Lease expired (max retries reached)` / out-of-memory | Check `dmesg -T \| grep -i "out of memory"`. Use a Droplet with ≥ 4 GB RAM (resize in the DO console) and add swap; keep scratch space on disk, not tmpfs |
 | Indic captions show boxes | Rebuild the image (needs `fonts-noto-core`) |
 
 To change a worker setting, edit `.env.worker` then run `docker compose up -d`.

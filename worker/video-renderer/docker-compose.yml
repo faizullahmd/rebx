@@ -12,12 +12,18 @@ services:
     # Give an in-flight render time to stop and release its lease on shutdown.
     stop_grace_period: 30s
     # Rendering is CPU/memory heavy; keep it from starving the host.
+    # Use a Droplet with more RAM than this (>= 4 GB recommended).
     mem_limit: 3g
-    # Scratch space for downloaded assets and intermediate renders.
-    tmpfs:
-      - /var/rebx-render-tmp:size=2g,uid=1000,gid=1000
+    # Scratch space for downloaded assets and intermediate renders. This must be
+    # on disk, NOT tmpfs: tmpfs lives in RAM and gets the worker OOM-killed on
+    # small Droplets.
+    volumes:
+      - render-tmp:/var/rebx-render-tmp
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
+
+volumes:
+  render-tmp:
