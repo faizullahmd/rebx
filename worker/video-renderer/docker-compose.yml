@@ -1,0 +1,23 @@
+# Run the render worker on a Droplet (or any Docker host):
+#   cp .env.example .env.worker   # then fill in RENDER_WORKER_SECRET
+#   docker compose up -d --build
+#   docker compose logs -f
+services:
+  video-worker:
+    build: .
+    image: rebx-video-worker:latest
+    container_name: rebx-video-worker
+    env_file: .env.worker
+    restart: unless-stopped
+    # Give an in-flight render time to stop and release its lease on shutdown.
+    stop_grace_period: 30s
+    # Rendering is CPU/memory heavy; keep it from starving the host.
+    mem_limit: 3g
+    # Scratch space for downloaded assets and intermediate renders.
+    tmpfs:
+      - /var/rebx-render-tmp:size=2g,uid=1000,gid=1000
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

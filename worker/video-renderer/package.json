@@ -8,6 +8,9 @@
     "dev": "tsx src/index.ts",
     "check-ffmpeg": "tsx src/check-ffmpeg.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "tsx": "^4.23.15",
+    "zod": "^4.6.5"
   }
 }
-
